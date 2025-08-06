@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@main
 struct EdutokApp: App {
     var body: some Scene {
         WindowGroup {
