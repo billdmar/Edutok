@@ -117,19 +117,41 @@ struct TopicRowView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(topic.title)
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
+                        HStack {
+                            Text(topic.title)
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                            
+                            // Like indicator
+                            if topic.isLiked {
+                                Image(systemName: "heart.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                                    .scaleEffect(1.1)
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: topic.isLiked)
+                            }
+                            
+                            Spacer()
+                        }
                         
-                        Text("\(topic.flashcards.count) cards")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.6))
+                        HStack {
+                            Text("\(topic.flashcards.count) cards")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.6))
+                            
+                            if topic.isLiked {
+                                Text("• Liked")
+                                    .font(.caption)
+                                    .foregroundColor(.red.opacity(0.8))
+                                    .fontWeight(.medium)
+                            }
+                            
+                            Spacer()
+                        }
                     }
-                    
-                    Spacer()
                     
                     VStack {
                         Text("\(topic.progressPercentage)%")
@@ -153,7 +175,10 @@ struct TopicRowView: View {
                         RoundedRectangle(cornerRadius: 2)
                             .fill(
                                 LinearGradient(
-                                    gradient: Gradient(colors: [Color.pink, Color.purple]),
+                                    gradient: Gradient(colors: topic.isLiked ?
+                                        [Color.red.opacity(0.8), Color.pink] :
+                                        [Color.pink, Color.purple]
+                                    ),
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
@@ -164,12 +189,16 @@ struct TopicRowView: View {
                 .frame(height: 4)
             }
             .padding(15)
-            .background(Color.white.opacity(0.05))
-            .cornerRadius(15)
-            .overlay(
+            .background(
                 RoundedRectangle(cornerRadius: 15)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    .fill(Color.white.opacity(topic.isLiked ? 0.08 : 0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 15)
+                            .stroke(Color.white.opacity(topic.isLiked ? 0.2 : 0.1), lineWidth: 1)
+                    )
             )
         }
+        .scaleEffect(topic.isLiked ? 1.02 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: topic.isLiked)
     }
 }
