@@ -235,10 +235,10 @@ struct FlashcardView: View {
                 .onEnded { gesture in
                     let swipeThreshold: CGFloat = 100
                     
-                    if gesture.translation.x > swipeThreshold {
+                    if gesture.translation.width > swipeThreshold {
                         markAsUnderstood()
                         nextCard()
-                    } else if gesture.translation.x < -swipeThreshold {
+                    } else if gesture.translation.width < -swipeThreshold {
                         nextCard()
                     } else {
                         withAnimation(.spring()) {

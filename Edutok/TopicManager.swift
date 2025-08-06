@@ -1,6 +1,13 @@
 import Foundation
 import SwiftUI
 
+// MARK: - API Error
+enum APIError: Error {
+    case invalidResponse
+    case noData
+}
+
+// MARK: - TopicManager
 @MainActor
 class TopicManager: ObservableObject {
     @Published var savedTopics: [Topic] = []
@@ -30,7 +37,9 @@ class TopicManager: ObservableObject {
     }
     
     private func fetchFlashcardsFromGemini(topic: String) async throws -> [Flashcard] {
-        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=\(geminiAPIKey)")!
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=\(geminiAPIKey)") else {
+            throw APIError.invalidResponse
+        }
         
         let prompt = """
         Create exactly 10 educational flashcards about "\(topic)". Return ONLY a valid JSON array with this exact structure:
@@ -64,9 +73,19 @@ class TopicManager: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         
-        let (data, _) = try await URLSession.shared.data(for: request)
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        } catch {
+            throw APIError.invalidResponse
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
         
         struct GeminiResponse: Codable {
             let candidates: [Candidate]
@@ -84,9 +103,14 @@ class TopicManager: ObservableObject {
             }
         }
         
-        let response = try JSONDecoder().decode(GeminiResponse.self, from: data)
+        let geminiResponse: GeminiResponse
+        do {
+            geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+        } catch {
+            throw APIError.invalidResponse
+        }
         
-        guard let firstCandidate = response.candidates.first,
+        guard let firstCandidate = geminiResponse.candidates.first,
               let firstPart = firstCandidate.content.parts.first else {
             throw APIError.invalidResponse
         }
@@ -103,7 +127,16 @@ class TopicManager: ObservableObject {
             let answer: String
         }
         
-        let flashcardData = try JSONDecoder().decode([FlashcardData].self, from: jsonText.data(using: .utf8)!)
+        guard let jsonData = jsonText.data(using: .utf8) else {
+            throw APIError.invalidResponse
+        }
+        
+        let flashcardData: [FlashcardData]
+        do {
+            flashcardData = try JSONDecoder().decode([FlashcardData].self, from: jsonData)
+        } catch {
+            throw APIError.invalidResponse
+        }
         
         return flashcardData.compactMap { data in
             guard let type = FlashcardType(rawValue: data.type) else { return nil }
@@ -177,9 +210,4 @@ class TopicManager: ObservableObject {
             savedTopics = []
         }
     }
-}
-
-enum APIError: Error {
-    case invalidResponse
-    case noData
 }

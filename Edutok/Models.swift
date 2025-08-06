@@ -1,5 +1,6 @@
 import Foundation
 
+// MARK: - FlashcardType
 enum FlashcardType: String, CaseIterable, Codable {
     case definition = "definition"
     case question = "question"
@@ -7,6 +8,7 @@ enum FlashcardType: String, CaseIterable, Codable {
     case fillblank = "fill in the blank"
 }
 
+// MARK: - Flashcard
 struct Flashcard: Identifiable, Codable {
     let id = UUID()
     let type: FlashcardType
@@ -20,9 +22,7 @@ struct Flashcard: Identifiable, Codable {
     }
 }
 
-// MARK: - Models/TopicModel.swift
-import Foundation
-
+// MARK: - Topic
 struct Topic: Identifiable, Codable {
     let id = UUID()
     let title: String

@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct FlashTokApp: App {
+struct EdutokApp: App {
     @StateObject private var topicManager = TopicManager()
     
     var body: some Scene {
