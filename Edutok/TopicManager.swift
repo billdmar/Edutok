@@ -7,12 +7,23 @@ class TopicManager: ObservableObject {
     @Published var currentTopic: Topic?
     
     private let geminiAPIKey = "AIzaSyCs5jpHB0v_FqxPzFWVOA4F3dSAWyRew_c"
+    private let unsplashAPIKey = "I0EJ10tuuAYutgLBHLQ7TTlQRqxbT3W2goFQTWPeHCo"
     private let userDefaultsKey = "SavedTopics"
     
     func generateFlashcards(for topicTitle: String) async {
         do {
             // Generate initial batch of facts
-            let initialFacts = try await fetchFlashcardsFromGemini(topic: topicTitle, batchNumber: 1)
+            var initialFacts = try await fetchFlashcardsFromGemini(topic: topicTitle, batchNumber: 1)
+            
+            // Generate images for each flashcard
+            for index in initialFacts.indices {
+                let imageURL = await ImageManager.shared.generateImageForFlashcard(
+                    question: initialFacts[index].question,
+                    topic: topicTitle
+                )
+                initialFacts[index].imageURL = imageURL
+            }
+            
             let newTopic = Topic(title: topicTitle, flashcards: initialFacts)
             
             savedTopics.insert(newTopic, at: 0)
@@ -21,7 +32,13 @@ class TopicManager: ObservableObject {
         } catch {
             print("Error generating flashcards: \(error)")
             // Create mock data as fallback
-            let mockFlashcards = createMockFlashcards(for: topicTitle)
+            var mockFlashcards = createMockFlashcards(for: topicTitle)
+            
+            // Add placeholder images for mock data
+            for index in mockFlashcards.indices {
+                mockFlashcards[index].imageURL = "https://source.unsplash.com/400x300/?education,\(topicTitle)"
+            }
+            
             let newTopic = Topic(title: topicTitle, flashcards: mockFlashcards)
             
             savedTopics.insert(newTopic, at: 0)
@@ -42,7 +59,16 @@ class TopicManager: ObservableObject {
     func generateMoreFacts(for topic: Topic) async {
         do {
             let batchNumber = (topic.flashcards.count / 15) + 2 // Generate next batch
-            let newFacts = try await fetchFlashcardsFromGemini(topic: topic.title, batchNumber: batchNumber)
+            var newFacts = try await fetchFlashcardsFromGemini(topic: topic.title, batchNumber: batchNumber)
+            
+            // Generate images for new facts
+            for index in newFacts.indices {
+                let imageURL = await ImageManager.shared.generateImageForFlashcard(
+                    question: newFacts[index].question,
+                    topic: topic.title
+                )
+                newFacts[index].imageURL = imageURL
+            }
             
             // Add new facts to existing topic
             if let topicIndex = savedTopics.firstIndex(where: { $0.id == topic.id }) {
@@ -58,7 +84,12 @@ class TopicManager: ObservableObject {
         } catch {
             print("Error generating more facts: \(error)")
             // Add some mock facts as fallback
-            let mockFacts = createAdditionalMockFacts(for: topic.title, batchNumber: (topic.flashcards.count / 15) + 2)
+            var mockFacts = createAdditionalMockFacts(for: topic.title, batchNumber: (topic.flashcards.count / 15) + 2)
+            
+            // Add placeholder images for mock facts
+            for index in mockFacts.indices {
+                mockFacts[index].imageURL = "https://source.unsplash.com/400x300/?education,\(topic.title)"
+            }
             
             if let topicIndex = savedTopics.firstIndex(where: { $0.id == topic.id }) {
                 savedTopics[topicIndex].flashcards.append(contentsOf: mockFacts)
@@ -71,7 +102,6 @@ class TopicManager: ObservableObject {
             }
         }
     }
-    
     private func fetchFlashcardsFromGemini(topic: String, batchNumber: Int) async throws -> [Flashcard] {
         let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=\(geminiAPIKey)")!
         

@@ -8,7 +8,8 @@ struct BouncyButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.85 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .brightness(configuration.isPressed ? 0.2 : 0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
@@ -32,6 +33,7 @@ struct FlashcardView: View {
     @State private var dotIndex = 2 // Start at middle dot (0-4 range)
     @State private var cardTransitionDirection: CardTransitionDirection = .none
     @State private var answerStartTime: Date?
+    @State private var cardXPAwarded: Set<UUID> = []
     
     var body: some View {
         GeometryReader { geometry in
@@ -85,18 +87,31 @@ struct FlashcardView: View {
                 }
                 
                 // Sidebar overlay
-                if showSidebar {
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                showSidebar = false
-                            }
-                        }
-                    
-                    SidebarView(isShowing: $showSidebar)
-                        .transition(.move(edge: .leading))
-                }
+                                if showSidebar {
+                                    ZStack {
+                                        // Full screen dimming overlay
+                                        Color.black.opacity(0.3)
+                                            .blur(radius: 2)
+                                            .ignoresSafeArea()
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                withAnimation(.easeInOut(duration: 0.3)) {
+                                                    showSidebar = false
+                                                }
+                                            }
+                                        
+                                        // Sidebar positioned on left
+                                        HStack {
+                                            SidebarView(isShowing: $showSidebar)
+                                                .frame(width: 280)
+                                                .transition(.move(edge: .leading))
+                                            
+                                            Spacer()
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .zIndex(1000)
+                                }
                 
                 // XP Gain Animations
                 ForEach(gamificationManager.recentXPGains) { xpEvent in
@@ -165,6 +180,7 @@ struct FlashcardView: View {
     private func headerView(topic: Topic, geometry: GeometryProxy) -> some View {
         VStack(spacing: 10) {
             HStack {
+                // Menu button
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showSidebar = true
@@ -174,33 +190,11 @@ struct FlashcardView: View {
                         .font(.title2)
                         .foregroundColor(.white)
                 }
-                .frame(width: 60) // Fixed width for consistent spacing
+                .frame(width: 44, height: 44) // Fixed square button
                 
                 Spacer()
                 
-                // Perfectly centered topic title and cycling dots
-                VStack(spacing: 8) {
-                    Text(topic.title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                    
-                    // Cycling dot indicator (like TikTok)
-                    HStack(spacing: 8) {
-                        ForEach(0..<5, id: \.self) { index in
-                            Circle()
-                                .fill(Color.white.opacity(index == dotIndex ? 1.0 : 0.3))
-                                .frame(width: index == dotIndex ? 8 : 6, height: index == dotIndex ? 8 : 6)
-                                .scaleEffect(index == dotIndex ? 1.2 : 1.0)
-                                .animation(.easeInOut(duration: 0.3), value: dotIndex)
-                        }
-                    }
-                }
-                
-                Spacer()
-                
-                // XP and Level Display with beautiful rectangle
+                // XP and Level Display
                 HStack(spacing: 8) {
                     VStack(alignment: .trailing, spacing: 4) {
                         Text("Level \(gamificationManager.userProgress.currentLevel)")
@@ -256,10 +250,30 @@ struct FlashcardView: View {
                         )
                 )
                 .shadow(color: .purple.opacity(0.3), radius: 5, x: 0, y: 2)
-                .frame(width: 120) // Fixed width to match left side
             }
             .padding(.horizontal, 20)
             .padding(.top, 5)
+            
+            // Centered topic title and dots - now in separate layer
+            VStack(spacing: 8) {
+                Text(topic.title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                
+                // Cycling dot indicator
+                HStack(spacing: 8) {
+                    ForEach(0..<5, id: \.self) { index in
+                        Circle()
+                            .fill(Color.white.opacity(index == dotIndex ? 1.0 : 0.3))
+                            .frame(width: index == dotIndex ? 8 : 6, height: index == dotIndex ? 8 : 6)
+                            .scaleEffect(index == dotIndex ? 1.2 : 1.0)
+                            .animation(.easeInOut(duration: 0.3), value: dotIndex)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity) // This ensures full width centering
         }
         .padding(.bottom, 15)
     }
@@ -306,6 +320,7 @@ struct FlashcardView: View {
                     y: isCurrentCard ? 15 : 5
                 )
             
+        
             VStack(spacing: 30) {
                 // Card type indicator
                 HStack {
@@ -333,27 +348,50 @@ struct FlashcardView: View {
                     axis: (x: 0, y: 1, z: 0)
                 )
                 
-                // Card content
-                VStack(spacing: 25) {
-                    Text(card.question)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                    
-                    if showAnswer && isCurrentCard {
-                        Divider()
-                            .background(Color.white.opacity(0.3))
-                        
-                        Text(card.answer)
-                            .font(.body)
-                            .foregroundColor(.white.opacity(0.9))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(nil)
-                            .transition(.opacity.combined(with: .scale))
-                    }
-                }
+               
+                
+                
+                // Card content with boundary-based auto-sizing
+                                VStack(spacing: 15) {
+                                    
+                                                        AutoSizedText(
+                                                            text: card.question,
+                                                            maxWidth: geometry.size.width - 100, // More conservative padding
+                                                            maxHeight: card.imageURL != nil && !showAnswer ? 100 : 180, // More conservative height
+                                                            fontWeight: .bold,
+                                                            color: .white
+                                                        )
+                                    
+                                    // Image display (now at bottom, only on question side)
+                                    if !showAnswer && isCurrentCard && card.imageURL != nil {
+                                        AsyncImageLoader(url: card.imageURL)
+                                            .frame(height: 160)
+                                            .clipShape(RoundedRectangle(cornerRadius: 15))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 15)
+                                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                            )
+                                            .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+                                            .transition(.opacity.combined(with: .scale))
+                                    }
+                                    
+                                    if showAnswer && isCurrentCard {
+                                        Divider()
+                                            .background(Color.white.opacity(0.3))
+                                            .padding(.horizontal, 10)
+                                        
+                                      
+                                        
+                                                                AutoSizedText(
+                                                                    text: card.answer,
+                                                                    maxWidth: geometry.size.width - 100, // More conservative padding
+                                                                    maxHeight: 130, // More conservative answer area height
+                                                                    fontWeight: .medium,
+                                                                    color: .white.opacity(0.9)
+                                                                )
+                                        .transition(.opacity.combined(with: .scale))
+                                    }
+                                }
                 .padding(.horizontal, 25)
                 .rotation3DEffect(
                     .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
@@ -366,8 +404,10 @@ struct FlashcardView: View {
                 if !showAnswer && isCurrentCard {
                     VStack(spacing: 10) {
                         Image(systemName: "hand.tap.fill")
-                            .font(.title3)
-                            .foregroundColor(.white.opacity(0.6))
+                                                    .font(.title3)
+                                                    .foregroundColor(.white.opacity(0.8))
+                                                    .symbolEffect(.pulse, options: .repeat(.continuous).speed(0.8))
+                                                    .shadow(color: .white.opacity(0.3), radius: 5, x: 0, y: 0)
                         
                         Text("Tap to reveal answer")
                             .font(.caption)
@@ -399,33 +439,40 @@ struct FlashcardView: View {
                         
                         // Action buttons on card
                         HStack(spacing: 30) {
-                            // Skip button
-                            Button(action: {
-                                nextCard()
-                                
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.impactOccurred()
-                            }) {
-                                VStack(spacing: 6) {
-                                    Image(systemName: "arrow.right.circle.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                    
-                                    Text("Skip")
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white.opacity(0.8))
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .fill(Color.orange.opacity(0.7))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 20)
-                                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                                        )
-                                )
+                            // Skip button with enhanced animations
+                                                        Button(action: {
+                                                            nextCard()
+                                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                                            impactFeedback.impactOccurred()
+                                                        }) {
+                                                            VStack(spacing: 6) {
+                                                                                                Image(systemName: "arrow.right.circle.fill")
+                                                                                                    .font(.title2)
+                                                                                                    .foregroundColor(.white)
+                                                                                                    .symbolEffect(.bounce, options: .repeat(.continuous).speed(0.5))
+                                                                                                
+                                                                                                Text("Skip")
+                                                                                                    .font(.caption)
+                                                                                                    .fontWeight(.semibold)
+                                                                                                    .foregroundColor(.white.opacity(0.8))
+                                                                                            }
+                                                                                            .padding(.horizontal, 20)
+                                                                                            .padding(.vertical, 12)
+                                                                                            .background(
+                                                                                                RoundedRectangle(cornerRadius: 20)
+                                                                                                    .fill(
+                                                                                                        LinearGradient(
+                                                                                                            gradient: Gradient(colors: [Color.orange, Color.red.opacity(0.8)]),
+                                                                                                            startPoint: .topLeading,
+                                                                                                            endPoint: .bottomTrailing
+                                                                                                        )
+                                                                                                    )
+                                                                                                    .overlay(
+                                                                                                        RoundedRectangle(cornerRadius: 20)
+                                                                                                            .stroke(Color.white.opacity(0.4), lineWidth: 2)
+                                                                                                    )
+                                                                                                    .shadow(color: .orange.opacity(0.5), radius: 8, x: 0, y: 4)
+                                                                                            )
                             }
                             .scaleEffect(isCurrentCard ? 1.0 : 0.8)
                             .buttonStyle(BouncyButtonStyle())
@@ -443,25 +490,33 @@ struct FlashcardView: View {
                                 impactFeedback.impactOccurred()
                             }) {
                                 VStack(spacing: 6) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                    
-                                    Text("Got it")
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white.opacity(0.8))
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .fill(Color.green.opacity(0.7))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 20)
-                                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                                        )
-                                )
+                                                                    Image(systemName: "checkmark.circle.fill")
+                                                                        .font(.title2)
+                                                                        .foregroundColor(.white)
+                                                                        .symbolEffect(.pulse, options: .repeat(.continuous).speed(0.7))
+                                                                    
+                                                                    Text("Got it")
+                                                                        .font(.caption)
+                                                                        .fontWeight(.semibold)
+                                                                        .foregroundColor(.white.opacity(0.8))
+                                                                }
+                                                                .padding(.horizontal, 20)
+                                                                .padding(.vertical, 12)
+                                                                .background(
+                                                                    RoundedRectangle(cornerRadius: 20)
+                                                                        .fill(
+                                                                            LinearGradient(
+                                                                                gradient: Gradient(colors: [Color.green, Color.mint]),
+                                                                                startPoint: .topLeading,
+                                                                                endPoint: .bottomTrailing
+                                                                            )
+                                                                        )
+                                                                        .overlay(
+                                                                            RoundedRectangle(cornerRadius: 20)
+                                                                                .stroke(Color.white.opacity(0.4), lineWidth: 2)
+                                                                        )
+                                                                        .shadow(color: .green.opacity(0.5), radius: 8, x: 0, y: 4)
+                                                                )
                             }
                             .scaleEffect(isCurrentCard ? 1.0 : 0.8)
                             .buttonStyle(BouncyButtonStyle())
@@ -500,15 +555,16 @@ struct FlashcardView: View {
                     cardRotation = showAnswer ? 180 : 0
                 }
                 
-                // Award XP for revealing answer
-                if showAnswer {
-                    let timeToAnswer = answerStartTime?.timeIntervalSinceNow ?? 0
-                    gamificationManager.awardXPForCardCompletion(
-                        wasCorrect: true, // Assume correct for now
-                        isFirstTry: true,
-                        timeToAnswer: abs(timeToAnswer)
-                    )
-                }
+                // Award XP for revealing answer (only once per card)
+                                if showAnswer && !cardXPAwarded.contains(card.id) {
+                                    cardXPAwarded.insert(card.id)
+                                    let timeToAnswer = answerStartTime?.timeIntervalSinceNow ?? 0
+                                    gamificationManager.awardXPForCardCompletion(
+                                        wasCorrect: true, // Assume correct for now
+                                        isFirstTry: true,
+                                        timeToAnswer: abs(timeToAnswer)
+                                    )
+                                }
                 
                 // Haptic feedback
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -729,5 +785,111 @@ struct FlashcardView: View {
     private func toggleBookmark() {
         guard let topic = topicManager.currentTopic else { return }
         topicManager.toggleBookmark(topicId: topic.id, cardIndex: currentCardIndex)
+    }
+    // Improved AutoSizedText component with precise boundary fitting
+    struct AutoSizedText: View {
+        let text: String
+        let maxWidth: CGFloat
+        let maxHeight: CGFloat
+        let fontWeight: Font.Weight
+        let color: Color
+        
+        @State private var fontSize: CGFloat = 20
+        
+        var body: some View {
+            Text(text)
+                .font(.system(size: fontSize, weight: fontWeight))
+                .foregroundColor(color)
+                .multilineTextAlignment(.center)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: maxWidth)
+                .onAppear {
+                    calculateOptimalFontSize()
+                }
+                .onChange(of: text) { _ in
+                    calculateOptimalFontSize()
+                }
+        }
+        
+        private func calculateOptimalFontSize() {
+            let maxFontSize: CGFloat = 32
+            let minFontSize: CGFloat = 8
+            var bestSize: CGFloat = minFontSize
+            
+            // Binary search for the optimal font size
+            var low: CGFloat = minFontSize
+            var high: CGFloat = maxFontSize
+            
+            while high - low > 0.5 {
+                let mid = (low + high) / 2
+                let textSize = measureText(fontSize: mid)
+                
+                if textSize.width <= maxWidth && textSize.height <= maxHeight {
+                    bestSize = mid
+                    low = mid
+                } else {
+                    high = mid - 0.5
+                }
+            }
+            
+            // Final verification and adjustment
+            var finalSize = bestSize
+            while finalSize > minFontSize {
+                let testSize = measureText(fontSize: finalSize)
+                if testSize.width <= maxWidth && testSize.height <= maxHeight {
+                    break
+                }
+                finalSize -= 0.5
+            }
+            
+            fontSize = max(finalSize, minFontSize)
+        }
+        
+        private func measureText(fontSize: CGFloat) -> CGSize {
+            let font = UIFont.systemFont(ofSize: fontSize, weight: uiFontWeight(from: fontWeight))
+            
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = .center
+            paragraphStyle.lineBreakMode = .byWordWrapping
+            
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .paragraphStyle: paragraphStyle
+            ]
+            
+            let attributedString = NSAttributedString(string: text, attributes: attributes)
+            
+            // Use a slightly smaller width for measurement to account for padding
+            let constraintWidth = maxWidth - 4
+            let constraintSize = CGSize(width: constraintWidth, height: CGFloat.greatestFiniteMagnitude)
+            
+            let boundingRect = attributedString.boundingRect(
+                with: constraintSize,
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                context: nil
+            )
+            
+            // Add small buffer to ensure no truncation
+            return CGSize(
+                width: ceil(boundingRect.width) + 2,
+                height: ceil(boundingRect.height) + 2
+            )
+        }
+        
+        private func uiFontWeight(from fontWeight: Font.Weight) -> UIFont.Weight {
+            switch fontWeight {
+            case .ultraLight: return .ultraLight
+            case .thin: return .thin
+            case .light: return .light
+            case .regular: return .regular
+            case .medium: return .medium
+            case .semibold: return .semibold
+            case .bold: return .bold
+            case .heavy: return .heavy
+            case .black: return .black
+            default: return .regular
+            }
+        }
     }
 }

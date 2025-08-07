@@ -5,23 +5,31 @@ struct SidebarView: View {
     @EnvironmentObject var topicManager: TopicManager
     
     var body: some View {
-        HStack {
+        HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 // Header
                 VStack(alignment: .leading, spacing: 15) {
                     HStack {
-                        VStack(alignment: .leading) {
-                            Text("FlashTok")
-                                .font(.title)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                            
-                            Text("Your Learning Journey")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                        
-                        Spacer()
+                        Button(action: {
+                                                    topicManager.currentTopic = nil
+                                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                                        isShowing = false
+                                                    }
+                                                }) {
+                                                VStack(alignment: .leading) {
+                                                    Text("Edutok")
+                                                        .font(.title)
+                                                        .fontWeight(.bold)
+                                                        .foregroundColor(.white)
+                                                    
+                                                    Text("Your Learning Journey")
+                                                        .font(.caption)
+                                                        .foregroundColor(.white.opacity(0.7))
+                                                }
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                            
+                                            Spacer()
                         
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.3)) {
@@ -52,7 +60,7 @@ struct SidebarView: View {
                                 }
                             }, onDelete: {
                                 topicManager.deleteTopic(topic)
-                            })                    
+                            })
                         }
                     }
                     .padding(.horizontal, 20)
@@ -91,21 +99,24 @@ struct SidebarView: View {
                 }
                 .padding(.bottom, 30)
             }
-            .frame(width: 300)
+            .frame(width: 280)
             .background(
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.black.opacity(0.95),
-                        Color.purple.opacity(0.3),
-                        Color.black.opacity(0.95)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.black.opacity(0.999),
+                                    Color.purple.opacity(0.4),
+                                    Color.black.opacity(0.999)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            .overlay(
+                                Rectangle()
+                                    .fill(.ultraThinMaterial.opacity(0.6))
+                            )
+                        )
             .ignoresSafeArea()
             
-            Spacer()
         }
     }
 }

@@ -328,18 +328,23 @@ struct MainView: View {
                 }
                 
                 // Sidebar overlay
-                if showSidebar {
-                    Color.black.opacity(0.95)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                showSidebar = false
-                            }
-                        }
-                    
-                    SidebarView(isShowing: $showSidebar)
-                        .transition(.move(edge: .leading))
-                }
+                                if showSidebar {
+                                    HStack(spacing: 0) {
+                                        SidebarView(isShowing: $showSidebar)
+                                            .frame(width: 280)
+                                            .transition(.move(edge: .leading))
+                                        
+                                        // Transparent overlay area - shows main view with slight dimming
+                                        Color.black.opacity(0.7)
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                withAnimation(.easeInOut(duration: 0.3)) {
+                                                    showSidebar = false
+                                                }
+                                            }
+                                    }
+                                    .zIndex(1000)
+                                }
             }
         }
         .onTapGesture {

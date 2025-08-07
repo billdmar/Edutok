@@ -14,9 +14,10 @@ struct Flashcard: Identifiable, Codable {
     let answer: String
     var isUnderstood: Bool = false
     var isBookmarked: Bool = false
+    var imageURL: String? = nil  // NEW: Image URL for the flashcard
     
     enum CodingKeys: String, CodingKey {
-        case type, question, answer, isUnderstood, isBookmarked
+        case type, question, answer, isUnderstood, isBookmarked, imageURL
     }
 }
 
