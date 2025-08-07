@@ -22,6 +22,7 @@ struct HeartButtonStyle: ButtonStyle {
 
 struct FlashcardView: View {
     @EnvironmentObject var topicManager: TopicManager
+    @EnvironmentObject var gamificationManager: GamificationManager
     @State private var currentCardIndex = 0
     @State private var dragOffset = CGSize.zero
     @State private var showAnswer = false
@@ -30,6 +31,8 @@ struct FlashcardView: View {
     @State private var isTransitioning = false
     @State private var dotIndex = 2 // Start at middle dot (0-4 range)
     @State private var cardTransitionDirection: CardTransitionDirection = .none
+    @State private var answerStartTime: Date?
+    @State private var answeredCards: Set<UUID> = [] // Track which cards have been answered
     
     var body: some View {
         GeometryReader { geometry in
@@ -95,6 +98,39 @@ struct FlashcardView: View {
                     SidebarView(isShowing: $showSidebar)
                         .transition(.move(edge: .leading))
                 }
+                
+                // XP Gain Animations
+                ForEach(gamificationManager.recentXPGains) { xpEvent in
+                    XPGainView(xpEvent: xpEvent)
+                        .position(x: geometry.size.width - 100, y: 100)
+                        .zIndex(100)
+                }
+                
+                // Particle Effects
+                ForEach(gamificationManager.particleEffects) { effect in
+                    ParticleSystemView(effect: effect)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        .zIndex(99)
+                }
+                
+                // Level Up Overlay
+                if gamificationManager.shouldShowLevelUp {
+                    LevelUpView(
+                        isShowing: $gamificationManager.shouldShowLevelUp,
+                        level: gamificationManager.userProgress.currentLevel
+                    )
+                    .zIndex(1000)
+                }
+                
+                // Achievement Overlay
+                if gamificationManager.shouldShowAchievement,
+                   let achievement = gamificationManager.newAchievement {
+                    AchievementView(
+                        isShowing: $gamificationManager.shouldShowAchievement,
+                        achievement: achievement
+                    )
+                    .zIndex(1000)
+                }
             }
         }
     }
@@ -128,7 +164,43 @@ struct FlashcardView: View {
     }
     
     private func headerView(topic: Topic, geometry: GeometryProxy) -> some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 15) {
+            // XP and Level Display at top
+            HStack {
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("Level \(gamificationManager.userProgress.currentLevel)")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.yellow)
+                            
+                            Text("\(gamificationManager.userProgress.totalXP) XP")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        
+                        ZStack {
+                            ProgressRing(
+                                progress: gamificationManager.userProgress.levelProgress,
+                                lineWidth: 4,
+                                size: 40
+                            )
+                            
+                            Text("\(gamificationManager.userProgress.currentLevel)")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            
+            // Sidebar button (left side)
             HStack {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
@@ -141,40 +213,29 @@ struct FlashcardView: View {
                 }
                 
                 Spacer()
-                
-                // Centered topic title and cycling dots
-                VStack(spacing: 8) {
-                    Text(topic.title)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                    
-                    // Cycling dot indicator (like TikTok)
-                    HStack(spacing: 8) {
-                        ForEach(0..<5, id: \.self) { index in
-                            Circle()
-                                .fill(Color.white.opacity(index == dotIndex ? 1.0 : 0.3))
-                                .frame(width: index == dotIndex ? 8 : 6, height: index == dotIndex ? 8 : 6)
-                                .scaleEffect(index == dotIndex ? 1.2 : 1.0)
-                                .animation(.easeInOut(duration: 0.3), value: dotIndex)
-                        }
-                    }
-                }
-                
-                Spacer()
-                
-                Button(action: {
-                    topicManager.currentTopic = nil
-                }) {
-                    Image(systemName: "arrow.left")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 10)
+            
+            // Centered topic title and cycling dots
+            VStack(spacing: 12) {
+                Text(topic.title)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                
+                // Cycling dot indicator (like TikTok)
+                HStack(spacing: 10) {
+                    ForEach(0..<5, id: \.self) { index in
+                        Circle()
+                            .fill(Color.white.opacity(index == dotIndex ? 1.0 : 0.3))
+                            .frame(width: index == dotIndex ? 10 : 8, height: index == dotIndex ? 10 : 8)
+                            .scaleEffect(index == dotIndex ? 1.2 : 1.0)
+                            .animation(.easeInOut(duration: 0.3), value: dotIndex)
+                    }
+                }
+            }
         }
         .padding(.bottom, 20)
     }
@@ -405,9 +466,25 @@ struct FlashcardView: View {
         .zIndex(isCurrentCard ? 10 : Double(10 - abs(relativeIndex)))
         .onTapGesture {
             if isCurrentCard {
+                if !showAnswer {
+                    // Record answer start time
+                    answerStartTime = Date()
+                }
+                
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     showAnswer.toggle()
                     cardRotation = showAnswer ? 180 : 0
+                }
+                
+                // Award XP only if this card hasn't been answered before
+                if showAnswer && !answeredCards.contains(card.id) {
+                    answeredCards.insert(card.id)
+                    let timeToAnswer = answerStartTime?.timeIntervalSinceNow ?? 0
+                    gamificationManager.awardXPForCardCompletion(
+                        wasCorrect: true, // Assume correct for now
+                        isFirstTry: true,
+                        timeToAnswer: abs(timeToAnswer)
+                    )
                 }
                 
                 // Haptic feedback
@@ -467,40 +544,72 @@ struct FlashcardView: View {
         VStack {
             Spacer()
             
-            // Like button at bottom center (replacing save button)
-            Button(action: {
-                if let topic = topicManager.currentTopic {
-                    topicManager.toggleTopicLike(topicId: topic.id)
-                    
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-                    impactFeedback.impactOccurred()
+            HStack {
+                // Like button at bottom left
+                Button(action: {
+                    if let topic = topicManager.currentTopic {
+                        topicManager.toggleTopicLike(topicId: topic.id)
+                        
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
+                    }
+                }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: topicManager.currentTopic?.isLiked == true ? "heart.fill" : "heart")
+                            .font(.title2)
+                            .foregroundColor(topicManager.currentTopic?.isLiked == true ? .red : .white)
+                            .scaleEffect(topicManager.currentTopic?.isLiked == true ? 1.2 : 1.0)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: topicManager.currentTopic?.isLiked)
+                        
+                        Text(topicManager.currentTopic?.isLiked == true ? "Liked" : "Like")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(topicManager.currentTopic?.isLiked == true ? .red : .white.opacity(0.8))
+                            .animation(.easeInOut(duration: 0.2), value: topicManager.currentTopic?.isLiked)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(Color.black.opacity(0.4))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 25)
+                                    .stroke(topicManager.currentTopic?.isLiked == true ? Color.red.opacity(0.3) : Color.white.opacity(0.2), lineWidth: 1)
+                            )
+                    )
                 }
-            }) {
-                VStack(spacing: 8) {
-                    Image(systemName: topicManager.currentTopic?.isLiked == true ? "heart.fill" : "heart")
-                        .font(.title2)
-                        .foregroundColor(topicManager.currentTopic?.isLiked == true ? .red : .white)
-                        .scaleEffect(topicManager.currentTopic?.isLiked == true ? 1.2 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: topicManager.currentTopic?.isLiked)
-                    
-                    Text(topicManager.currentTopic?.isLiked == true ? "Liked" : "Like")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(topicManager.currentTopic?.isLiked == true ? .red : .white.opacity(0.8))
-                        .animation(.easeInOut(duration: 0.2), value: topicManager.currentTopic?.isLiked)
+                .buttonStyle(HeartButtonStyle())
+                
+                Spacer()
+                
+                // Back button at bottom right
+                Button(action: {
+                    topicManager.currentTopic = nil
+                }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "arrow.left")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                        
+                        Text("Back")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(Color.black.opacity(0.4))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 25)
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            )
+                    )
                 }
-                .padding(.horizontal, 25)
-                .padding(.vertical, 15)
-                .background(
-                    RoundedRectangle(cornerRadius: 25)
-                        .fill(Color.black.opacity(0.4))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 25)
-                                .stroke(topicManager.currentTopic?.isLiked == true ? Color.red.opacity(0.3) : Color.white.opacity(0.2), lineWidth: 1)
-                        )
-                )
+                .buttonStyle(BouncyButtonStyle())
             }
-            .buttonStyle(HeartButtonStyle())
+            .padding(.horizontal, 25)
             .padding(.bottom, max(20, geometry.safeAreaInsets.bottom + 5))
         }
     }
@@ -578,6 +687,9 @@ struct FlashcardView: View {
     private func markAsUnderstood() {
         guard let topic = topicManager.currentTopic else { return }
         topicManager.markCardAsUnderstood(topicId: topic.id, cardIndex: currentCardIndex)
+        
+        // Award XP for understanding the card
+        gamificationManager.awardXP(.perfectCard)
     }
     
     private func toggleBookmark() {
