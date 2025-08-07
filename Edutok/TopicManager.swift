@@ -29,7 +29,16 @@ class TopicManager: ObservableObject {
             saveTopics()
         }
     }
-    
+    func deleteTopic(_ topic: Topic) {
+        savedTopics.removeAll { $0.id == topic.id }
+        
+        // If the deleted topic is currently active, clear it
+        if currentTopic?.id == topic.id {
+            currentTopic = nil
+        }
+        
+        saveTopics()
+    }
     func generateMoreFacts(for topic: Topic) async {
         do {
             let batchNumber = (topic.flashcards.count / 15) + 2 // Generate next batch

@@ -32,7 +32,6 @@ struct FlashcardView: View {
     @State private var dotIndex = 2 // Start at middle dot (0-4 range)
     @State private var cardTransitionDirection: CardTransitionDirection = .none
     @State private var answerStartTime: Date?
-    @State private var answeredCards: Set<UUID> = [] // Track which cards have been answered
     
     var body: some View {
         GeometryReader { geometry in
@@ -164,43 +163,7 @@ struct FlashcardView: View {
     }
     
     private func headerView(topic: Topic, geometry: GeometryProxy) -> some View {
-        VStack(spacing: 15) {
-            // XP and Level Display at top
-            HStack {
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 4) {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("Level \(gamificationManager.userProgress.currentLevel)")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.yellow)
-                            
-                            Text("\(gamificationManager.userProgress.totalXP) XP")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                        
-                        ZStack {
-                            ProgressRing(
-                                progress: gamificationManager.userProgress.levelProgress,
-                                lineWidth: 4,
-                                size: 40
-                            )
-                            
-                            Text("\(gamificationManager.userProgress.currentLevel)")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
-            
-            // Sidebar button (left side)
+        VStack(spacing: 10) {
             HStack {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
@@ -211,33 +174,94 @@ struct FlashcardView: View {
                         .font(.title2)
                         .foregroundColor(.white)
                 }
+                .frame(width: 60) // Fixed width for consistent spacing
                 
                 Spacer()
-            }
-            .padding(.horizontal, 20)
-            
-            // Centered topic title and cycling dots
-            VStack(spacing: 12) {
-                Text(topic.title)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
                 
-                // Cycling dot indicator (like TikTok)
-                HStack(spacing: 10) {
-                    ForEach(0..<5, id: \.self) { index in
-                        Circle()
-                            .fill(Color.white.opacity(index == dotIndex ? 1.0 : 0.3))
-                            .frame(width: index == dotIndex ? 10 : 8, height: index == dotIndex ? 10 : 8)
-                            .scaleEffect(index == dotIndex ? 1.2 : 1.0)
-                            .animation(.easeInOut(duration: 0.3), value: dotIndex)
+                // Perfectly centered topic title and cycling dots
+                VStack(spacing: 8) {
+                    Text(topic.title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                    
+                    // Cycling dot indicator (like TikTok)
+                    HStack(spacing: 8) {
+                        ForEach(0..<5, id: \.self) { index in
+                            Circle()
+                                .fill(Color.white.opacity(index == dotIndex ? 1.0 : 0.3))
+                                .frame(width: index == dotIndex ? 8 : 6, height: index == dotIndex ? 8 : 6)
+                                .scaleEffect(index == dotIndex ? 1.2 : 1.0)
+                                .animation(.easeInOut(duration: 0.3), value: dotIndex)
+                        }
                     }
                 }
+                
+                Spacer()
+                
+                // XP and Level Display with beautiful rectangle
+                HStack(spacing: 8) {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Level \(gamificationManager.userProgress.currentLevel)")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.yellow)
+                        
+                        Text("\(gamificationManager.userProgress.totalXP) XP")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                    
+                    ZStack {
+                        ProgressRing(
+                            progress: gamificationManager.userProgress.levelProgress,
+                            lineWidth: 3,
+                            size: 30
+                        )
+                        
+                        Text("\(gamificationManager.userProgress.currentLevel)")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 15)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.purple.opacity(0.3),
+                                    Color.blue.opacity(0.2)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 15)
+                                .stroke(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.yellow.opacity(0.4),
+                                            Color.purple.opacity(0.3)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
+                )
+                .shadow(color: .purple.opacity(0.3), radius: 5, x: 0, y: 2)
+                .frame(width: 120) // Fixed width to match left side
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 5)
         }
-        .padding(.bottom, 20)
+        .padding(.bottom, 15)
     }
     
     private func flashcardContent(card: Flashcard, relativeIndex: Int, geometry: GeometryProxy) -> some View {
@@ -285,11 +309,11 @@ struct FlashcardView: View {
             VStack(spacing: 30) {
                 // Card type indicator
                 HStack {
-                    Image(systemName: cardTypeIcon(for: card.type))
+                    Image(systemName: cardTypeIcon(for: card.type, showAnswer: showAnswer && isCurrentCard))
                         .font(.title2)
                         .foregroundColor(.white)
                     
-                    Text(card.type.rawValue.capitalized)
+                    Text(showAnswer && isCurrentCard ? "Answer" : card.type.rawValue.capitalized)
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.white.opacity(0.8))
@@ -476,9 +500,8 @@ struct FlashcardView: View {
                     cardRotation = showAnswer ? 180 : 0
                 }
                 
-                // Award XP only if this card hasn't been answered before
-                if showAnswer && !answeredCards.contains(card.id) {
-                    answeredCards.insert(card.id)
+                // Award XP for revealing answer
+                if showAnswer {
                     let timeToAnswer = answerStartTime?.timeIntervalSinceNow ?? 0
                     gamificationManager.awardXPForCardCompletion(
                         wasCorrect: true, // Assume correct for now
@@ -545,7 +568,37 @@ struct FlashcardView: View {
             Spacer()
             
             HStack {
-                // Like button at bottom left
+                // Back button at bottom left
+                Button(action: {
+                    topicManager.currentTopic = nil
+                }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "arrow.left")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                        
+                        Text("Back")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .padding(.horizontal, 25)
+                    .padding(.vertical, 15)
+                    .background(
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(Color.black.opacity(0.4))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 25)
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            )
+                    )
+                }
+                .buttonStyle(BouncyButtonStyle())
+                .frame(width: 120) // Fixed width
+                
+                Spacer()
+                
+                // Like button at bottom center - perfectly centered
                 Button(action: {
                     if let topic = topicManager.currentTopic {
                         topicManager.toggleTopicLike(topicId: topic.id)
@@ -567,8 +620,8 @@ struct FlashcardView: View {
                             .foregroundColor(topicManager.currentTopic?.isLiked == true ? .red : .white.opacity(0.8))
                             .animation(.easeInOut(duration: 0.2), value: topicManager.currentTopic?.isLiked)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 25)
+                    .padding(.vertical, 15)
                     .background(
                         RoundedRectangle(cornerRadius: 25)
                             .fill(Color.black.opacity(0.4))
@@ -582,34 +635,11 @@ struct FlashcardView: View {
                 
                 Spacer()
                 
-                // Back button at bottom right
-                Button(action: {
-                    topicManager.currentTopic = nil
-                }) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "arrow.left")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                        
-                        Text("Back")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 25)
-                            .fill(Color.black.opacity(0.4))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 25)
-                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                            )
-                    )
-                }
-                .buttonStyle(BouncyButtonStyle())
+                // Invisible spacer to balance the layout
+                Color.clear
+                    .frame(width: 120, height: 1)
             }
-            .padding(.horizontal, 25)
+            .padding(.horizontal, 20)
             .padding(.bottom, max(20, geometry.safeAreaInsets.bottom + 5))
         }
     }
@@ -620,7 +650,11 @@ struct FlashcardView: View {
         return topic.flashcards[currentCardIndex]
     }
     
-    private func cardTypeIcon(for type: FlashcardType) -> String {
+    private func cardTypeIcon(for type: FlashcardType, showAnswer: Bool) -> String {
+        if showAnswer {
+            return "lightbulb.fill"
+        }
+        
         switch type {
         case .definition: return "book.fill"
         case .question: return "questionmark.circle.fill"

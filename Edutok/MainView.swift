@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainView: View {
     @EnvironmentObject var topicManager: TopicManager
+    @EnvironmentObject var gamificationManager: GamificationManager
     @State private var topicInput = ""
     @State private var isLoading = false
     @State private var showSidebar = false
@@ -247,7 +248,7 @@ struct MainView: View {
                     Spacer()
                 }
                 
-                // Sidebar button
+                // Sidebar button and XP display - moved to very top
                 VStack {
                     HStack {
                         Button(action: {
@@ -260,14 +261,75 @@ struct MainView: View {
                                 .foregroundColor(.white)
                                 .padding()
                         }
+                        .padding(.top, 5) // Minimal top padding
+                        
                         Spacer()
+                        
+                        // XP and Level Display on main view with beautiful rectangle
+                        HStack(spacing: 8) {
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("Level \(gamificationManager.userProgress.currentLevel)")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.yellow)
+                                
+                                Text("\(gamificationManager.userProgress.totalXP) XP")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.9))
+                            }
+                            
+                            ZStack {
+                                ProgressRing(
+                                    progress: gamificationManager.userProgress.levelProgress,
+                                    lineWidth: 3,
+                                    size: 30
+                                )
+                                
+                                Text("\(gamificationManager.userProgress.currentLevel)")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.purple.opacity(0.3),
+                                            Color.blue.opacity(0.2)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .stroke(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [
+                                                    Color.yellow.opacity(0.4),
+                                                    Color.purple.opacity(0.3)
+                                                ]),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1
+                                        )
+                                )
+                        )
+                        .shadow(color: .purple.opacity(0.3), radius: 5, x: 0, y: 2)
+                        .padding(.trailing, 20)
+                        .padding(.top, 5)
                     }
                     Spacer()
                 }
                 
                 // Sidebar overlay
                 if showSidebar {
-                    Color.black.opacity(0.3)
+                    Color.black.opacity(0.95)
                         .ignoresSafeArea()
                         .onTapGesture {
                             withAnimation(.easeInOut(duration: 0.3)) {

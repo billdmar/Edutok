@@ -45,12 +45,14 @@ struct SidebarView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(topicManager.savedTopics) { topic in
-                            TopicRowView(topic: topic) {
+                            TopicRowView(topic: topic, onTap: {
                                 topicManager.currentTopic = topic
                                 withAnimation(.easeInOut(duration: 0.3)) {
                                     isShowing = false
                                 }
-                            }
+                            }, onDelete: {
+                                topicManager.deleteTopic(topic)
+                            })                    
                         }
                     }
                     .padding(.horizontal, 20)
@@ -111,13 +113,15 @@ struct SidebarView: View {
 struct TopicRowView: View {
     let topic: Topic
     let onTap: () -> Void
+    let onDelete: () -> Void
+    @State private var showDeleteAlert = false
     
     var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 5) {
-                        HStack {
+        HStack {
+            Button(action: onTap) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 5) {
                             Text(topic.title)
                                 .font(.headline)
                                 .fontWeight(.semibold)
@@ -125,80 +129,73 @@ struct TopicRowView: View {
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
                             
-                            // Like indicator
-                            if topic.isLiked {
-                                Image(systemName: "heart.fill")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
-                                    .scaleEffect(1.1)
-                                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: topic.isLiked)
-                            }
-                            
-                            Spacer()
-                        }
-                        
-                        HStack {
                             Text("\(topic.flashcards.count) cards")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.6))
+                        }
+                        
+                        Spacer()
+                        
+                        VStack {
+                            Text("\(topic.progressPercentage)%")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
                             
-                            if topic.isLiked {
-                                Text("• Liked")
-                                    .font(.caption)
-                                    .foregroundColor(.red.opacity(0.8))
-                                    .fontWeight(.medium)
-                            }
-                            
-                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.5))
                         }
                     }
                     
-                    VStack {
-                        Text("\(topic.progressPercentage)%")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.5))
-                    }
-                }
-                
-                // Progress bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.white.opacity(0.2))
-                            .frame(height: 4)
-                        
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(
-                                LinearGradient(
-                                    gradient: Gradient(colors: topic.isLiked ?
-                                        [Color.red.opacity(0.8), Color.pink] :
-                                        [Color.pink, Color.purple]
-                                    ),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                    // Progress bar
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color.white.opacity(0.2))
+                                .frame(height: 4)
+                            
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [Color.pink, Color.purple]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                                 )
-                            )
-                            .frame(width: geometry.size.width * CGFloat(topic.progressPercentage) / 100, height: 4)
+                                .frame(width: geometry.size.width * CGFloat(topic.progressPercentage) / 100, height: 4)
+                        }
                     }
+                    .frame(height: 4)
                 }
-                .frame(height: 4)
+                .padding(15)
+                .background(Color.white.opacity(0.05))
+                .cornerRadius(15)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
             }
-            .padding(15)
-            .background(
-                RoundedRectangle(cornerRadius: 15)
-                    .fill(Color.white.opacity(topic.isLiked ? 0.08 : 0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 15)
-                            .stroke(Color.white.opacity(topic.isLiked ? 0.2 : 0.1), lineWidth: 1)
-                    )
-            )
+            
+            // Delete button
+            Button(action: {
+                showDeleteAlert = true
+            }) {
+                Image(systemName: "trash")
+                    .font(.system(size: 16))
+                    .foregroundColor(.red.opacity(0.8))
+                    .padding(8)
+                    .background(Color.red.opacity(0.1))
+                    .clipShape(Circle())
+            }
         }
-        .scaleEffect(topic.isLiked ? 1.02 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: topic.isLiked)
+        .alert("Delete Topic", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                onDelete()
+            }
+        } message: {
+            Text("Are you sure you want to delete '\(topic.title)'? This action cannot be undone.")
+        }
     }
 }
