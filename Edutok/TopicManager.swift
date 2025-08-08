@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 
+
 @MainActor
 class TopicManager: ObservableObject {
     @Published var savedTopics: [Topic] = []
@@ -29,6 +30,8 @@ class TopicManager: ObservableObject {
             savedTopics.insert(newTopic, at: 0)
             currentTopic = newTopic
             saveTopics()
+            await FirebaseManager.shared.trackTopicExplored()
+
         } catch {
             print("Error generating flashcards: \(error)")
             // Create mock data as fallback
@@ -80,6 +83,7 @@ class TopicManager: ObservableObject {
                 }
                 
                 saveTopics()
+                await FirebaseManager.shared.trackTopicExplored()
             }
         } catch {
             print("Error generating more facts: \(error)")
@@ -340,6 +344,8 @@ class TopicManager: ObservableObject {
         }
         
         saveTopics()
+        Task {
+            await FirebaseManager.shared.trackCardFlipped()        }
     }
     
     func toggleBookmark(topicId: UUID, cardIndex: Int) {
@@ -380,4 +386,9 @@ class TopicManager: ObservableObject {
 enum APIError: Error {
     case invalidResponse
     case noData
+}
+// Card flipping tracking (for any card interaction)
+func trackCardFlip() {
+    Task {
+        await FirebaseManager.shared.trackCardFlipped()    }
 }

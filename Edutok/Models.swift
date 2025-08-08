@@ -23,13 +23,16 @@ struct Flashcard: Identifiable, Codable {
 
 // MARK: - Models/TopicModel.swift
 import Foundation
-
-struct Topic: Identifiable, Codable {
+struct Topic: Identifiable, Codable, Equatable {
     let id = UUID()
     let title: String
     var flashcards: [Flashcard]
     let createdAt: Date = Date()
-    var isLiked: Bool = false  // NEW: Track if topic is liked
+    var isLiked: Bool = false
+    
+    static func == (lhs: Topic, rhs: Topic) -> Bool {
+        lhs.id == rhs.id
+    }
     
     var progressPercentage: Int {
         guard !flashcards.isEmpty else { return 0 }

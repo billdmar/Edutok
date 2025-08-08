@@ -24,6 +24,7 @@ struct HeartButtonStyle: ButtonStyle {
 struct FlashcardView: View {
     @EnvironmentObject var topicManager: TopicManager
     @EnvironmentObject var gamificationManager: GamificationManager
+    @StateObject private var firebaseManager = FirebaseManager.shared
     @State private var currentCardIndex = 0
     @State private var dragOffset = CGSize.zero
     @State private var showAnswer = false
@@ -33,6 +34,7 @@ struct FlashcardView: View {
     @State private var dotIndex = 2 // Start at middle dot (0-4 range)
     @State private var cardTransitionDirection: CardTransitionDirection = .none
     @State private var answerStartTime: Date?
+    @State private var hasTrackedCardFlip = false
     @State private var cardXPAwarded: Set<UUID> = []
     
     var body: some View {
@@ -548,6 +550,14 @@ struct FlashcardView: View {
                 if !showAnswer {
                     // Record answer start time
                     answerStartTime = Date()
+                    
+                    // Track card flip in Firebase if not already tracked
+                    if !hasTrackedCardFlip {
+                        Task {
+                            await firebaseManager.trackCardFlipped()
+                        }
+                        hasTrackedCardFlip = true
+                    }
                 }
                 
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
@@ -735,7 +745,8 @@ struct FlashcardView: View {
             
             // Infinite scroll - wrap around to beginning
             currentCardIndex = (currentCardIndex + 1) % topic.flashcards.count
-            
+            hasTrackedCardFlip = false
+
             // Generate more facts when approaching the end
             if currentCardIndex >= topic.flashcards.count - 5 {
                 Task {
@@ -766,6 +777,8 @@ struct FlashcardView: View {
             
             // Infinite scroll - wrap around to end
             currentCardIndex = (currentCardIndex - 1 + topic.flashcards.count) % topic.flashcards.count
+            hasTrackedCardFlip = false
+
         }
         
         // Reset transition direction after animation

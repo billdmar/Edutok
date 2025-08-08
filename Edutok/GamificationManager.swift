@@ -13,6 +13,7 @@ class GamificationManager: ObservableObject {
     
     private let userDefaultsKey = "UserProgress"
     private let notificationCenter = UNUserNotificationCenter.current()
+   
     
     init() {
         loadProgress()
@@ -45,6 +46,11 @@ class GamificationManager: ObservableObject {
         if didLevelUp {
             showLevelUpAnimation()
             scheduleEncouragementNotification()
+            
+            // Track level up achievement in Firebase
+            Task {
+                await FirebaseManager.shared.trackAchievement("level_\(userProgress.currentLevel)")
+            }
         }
         
         saveProgress()
@@ -159,8 +165,12 @@ class GamificationManager: ObservableObject {
         
         // Add celebration particle effect
         addParticleEffect(.achievement)
-        
+        Task {
+            await FirebaseManager.shared.trackAchievement(achievement.rawValue)
+        }
+
         saveProgress()
+        
     }
     
     // MARK: - Particle Effects
