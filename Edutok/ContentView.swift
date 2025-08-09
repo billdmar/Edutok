@@ -2,7 +2,7 @@
 import SwiftUI
 
 enum AppSection {
-    case main, flashcards, stats
+    case main, flashcards, leaderboard, calendar
 }
 
 struct ContentView: View {
@@ -28,9 +28,15 @@ struct ContentView: View {
                     } else {
                         MainView()
                     }
-                case .stats:
+                case .leaderboard:
                     if firebaseManager.isAuthenticated {
-                        StatsSectionView()
+                        LeaderboardView()
+                    } else {
+                        AuthenticationRequiredView()
+                    }
+                case .calendar:
+                    if firebaseManager.isAuthenticated {
+                        StreakCalendarView()
                     } else {
                         AuthenticationRequiredView()
                     }
@@ -106,8 +112,28 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
             }
+            // Leaderboard button (left)
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    currentSection = .leaderboard
+                    topicManager.currentTopic = nil
+                }
+            }) {
+                VStack(spacing: 6) {
+                    Image(systemName: currentSection == .leaderboard ? "trophy.fill" : "trophy")
+                        .font(.title3)
+                        .foregroundColor(currentSection == .leaderboard ? .yellow : .white)
+                    
+                    Text("Leaderboard")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundColor(currentSection == .leaderboard ? .yellow : .white.opacity(0.8))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+            }
             
-            // Main/Learn button
+            // Main/Learn button (center)
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentSection = .main
@@ -128,22 +154,22 @@ struct ContentView: View {
                 .padding(.vertical, 12)
             }
             
-            // Stats button
+            // Calendar button (right)
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    currentSection = .stats
+                    currentSection = .calendar
                     topicManager.currentTopic = nil
                 }
             }) {
                 VStack(spacing: 6) {
                     ZStack {
-                        Image(systemName: currentSection == .stats ? "chart.bar.fill" : "chart.bar")
+                        Image(systemName: currentSection == .calendar ? "calendar.circle.fill" : "calendar.circle")
                             .font(.title3)
-                            .foregroundColor(currentSection == .stats ? .blue : .white)
+                            .foregroundColor(currentSection == .calendar ? .blue : .white)
                         
-                        // Notification badge for achievements or streaks
+                        // Notification badge for streaks
                         if let user = firebaseManager.currentUser,
-                           user.currentStreak > 0 || !user.dailyStats.isEmpty {
+                           user.currentStreak > 0 {
                             Circle()
                                 .fill(Color.red)
                                 .frame(width: 8, height: 8)
@@ -151,10 +177,10 @@ struct ContentView: View {
                         }
                     }
                     
-                    Text("Stats")
+                    Text("Calendar")
                         .font(.caption2)
                         .fontWeight(.medium)
-                        .foregroundColor(currentSection == .stats ? .blue : .white.opacity(0.8))
+                        .foregroundColor(currentSection == .calendar ? .blue : .white.opacity(0.8))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)

@@ -12,7 +12,7 @@ struct MainView: View {
     
     // Enhanced topic suggestions with better variety
     private let popularTopics = [
-        "Betta Fish Care", "Python Programming", "World War 2", "Photosynthesis",
+        "Python Programming", "World War 2", "Photosynthesis",
         "Machine Learning", "Spanish Verbs", "Ancient Rome", "Quantum Physics",
         "Shakespeare", "Cell Biology", "Jazz Music", "Renaissance Art",
         "Climate Change", "Cryptocurrency", "Greek Mythology", "Space Exploration"
@@ -204,6 +204,7 @@ struct MainView: View {
                     Spacer()
                     
                     // Enhanced popular topics section
+                    // Enhanced popular topics section
                     if !showSuggestions {
                         VStack(spacing: 15) {
                             HStack {
@@ -215,7 +216,7 @@ struct MainView: View {
                                 Spacer()
                             }
                             .padding(.horizontal, 30)
-                            
+                            .padding(.top, 20)
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
                                     ForEach(popularTopics.shuffled().prefix(8), id: \.self) { suggestion in
@@ -248,21 +249,9 @@ struct MainView: View {
                     Spacer()
                 }
                 
-                // Sidebar button and XP display - moved to very top
+                // XP display - moved to very top right corner
                 VStack {
                     HStack {
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                showSidebar = true
-                            }
-                        }) {
-                            Image(systemName: "line.3.horizontal")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .padding()
-                        }
-                        .padding(.top, 5) // Minimal top padding
-                        
                         Spacer()
                         
                         // XP and Level Display on main view with beautiful rectangle
@@ -326,25 +315,6 @@ struct MainView: View {
                     }
                     Spacer()
                 }
-                
-                // Sidebar overlay
-                                if showSidebar {
-                                    HStack(spacing: 0) {
-                                        SidebarView(isShowing: $showSidebar)
-                                            .frame(width: 280)
-                                            .transition(.move(edge: .leading))
-                                        
-                                        // Transparent overlay area - shows main view with slight dimming
-                                        Color.black.opacity(0.7)
-                                            .contentShape(Rectangle())
-                                            .onTapGesture {
-                                                withAnimation(.easeInOut(duration: 0.3)) {
-                                                    showSidebar = false
-                                                }
-                                            }
-                                    }
-                                    .zIndex(1000)
-                                }
             }
         }
         .onTapGesture {

@@ -40,7 +40,42 @@ class FirebaseManager: ObservableObject {
     }
     
     // MARK: - Authentication
-    
+    func signUpWithEmail(email: String, password: String, username: String) async throws {
+        let result = try await auth.createUser(withEmail: email, password: password)
+        
+        // Create user with custom username
+        let newUser = AppUser(
+            id: result.user.uid,
+            username: username,
+            totalCardsFlipped: 0,
+            totalTopicsExplored: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            lastActiveDate: Date(),
+            joinDate: Date(),
+            dailyStats: []
+        )
+        
+        try await saveUser(newUser)
+        await loadOrCreateUser(uid: result.user.uid)
+    }
+
+    func signInWithEmail(email: String, password: String) async throws {
+        let result = try await auth.signIn(withEmail: email, password: password)
+        await loadOrCreateUser(uid: result.user.uid)
+    }
+
+    func signInWithPhone(phoneNumber: String) async throws {
+        // TODO: Implement phone authentication
+        // This requires additional setup with Firebase Phone Auth
+        throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Phone authentication not yet implemented"])
+    }
+
+    func signInWithGoogle() async throws {
+        // TODO: Implement Google Sign-In
+        // This requires Google Sign-In SDK integration
+        throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In not yet implemented"])
+    }
     func signInAnonymously() async throws {
         let result = try await auth.signInAnonymously()
         await loadOrCreateUser(uid: result.user.uid)
