@@ -9,69 +9,86 @@ struct LeaderboardView: View {
     @State private var refreshTimer: Timer?
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Header with type selection
-                VStack(spacing: 20) {
-                    Text("Daily Leaderboard")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                    
-                    // Type toggle buttons
-                    HStack(spacing: 0) {
-                        ForEach(LeaderboardType.allCases, id: \.self) { type in
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    selectedType = type
-                                    loadLeaderboard()
-                                }
-                            }) {
-                                VStack(spacing: 8) {
-                                    Image(systemName: type.icon)
-                                        .font(.title2)
-                                    
-                                    Text(type.title)
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                        .multilineTextAlignment(.center)
-                                }
-                                .foregroundColor(selectedType == type ? .white : .white.opacity(0.6))
-                                .padding(.vertical, 15)
-                                .padding(.horizontal, 20)
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 15)
-                                        .fill(
-                                            selectedType == type
-                                            ? LinearGradient(colors: [.purple, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                            : LinearGradient(colors: [.clear], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                        )
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 15)
-                                                .stroke(Color.white.opacity(selectedType == type ? 0.3 : 0.1), lineWidth: 1)
-                                        )
-                                )
+        VStack(spacing: 0) {
+            // Simple header with toggle
+            VStack(spacing: 15) {
+                Text("Daily Leaderboard")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .padding(.top, 10)
+                
+                // Compact toggle
+                HStack(spacing: 0) {
+                    ForEach(LeaderboardType.allCases, id: \.self) { type in
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                selectedType = type
+                                loadLeaderboard()
                             }
+                        }) {
+                            VStack(spacing: 6) {
+                                Image(systemName: type.icon)
+                                    .font(.title3)
+                                
+                                Text(type == .cardsFlipped ? "Cards" : "Topics")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundColor(selectedType == type ? .white : .white.opacity(0.6))
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 20)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .fill(
+                                        selectedType == type
+                                        ? LinearGradient(colors: [.purple, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                        : LinearGradient(colors: [.clear], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 15)
+                                            .stroke(Color.white.opacity(selectedType == type ? 0.3 : 0.1), lineWidth: 1)
+                                    )
+                            )
                         }
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.white.opacity(0.05))
-                    )
-                    .padding(.horizontal, 20)
                 }
-                .padding(.vertical, 20)
-                
-                // Current user stats
-                if let user = firebaseManager.currentUser {
-                    currentUserStatsView(user: user)
-                }
-                
-                // Leaderboard list
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.white.opacity(0.05))
+                )
+                .padding(.horizontal, 20)
+            }
+            .padding(.bottom, 20)
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.8), Color.clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea(edges: .top)
+            )
+            
+            // Leaderboard list - takes up full remaining space
+            ScrollView {
                 LazyVStack(spacing: 12) {
+                    // Current user highlight at top
+                    if let user = firebaseManager.currentUser,
+                       let userEntry = leaderboardEntries.first(where: { $0.isCurrentUser }) {
+                        VStack(spacing: 10) {
+                            Text("Your Rank")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white.opacity(0.7))
+                            
+                            leaderboardRow(entry: userEntry)
+                        }
+                        .padding(.bottom, 15)
+                    }
+                    
                     if isLoading {
-                        ForEach(0..<10, id: \.self) { _ in
+                        ForEach(0..<15, id: \.self) { _ in
                             leaderboardLoadingRow()
                         }
                     } else if leaderboardEntries.isEmpty {
@@ -108,60 +125,6 @@ struct LeaderboardView: View {
         .onDisappear {
             stopRefreshTimer()
         }
-    }
-    
-    private func currentUserStatsView(user: AppUser) -> some View {
-        VStack(spacing: 15) {
-            HStack {
-                Text("Your Daily Stats")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Text("🔥 \(user.currentStreak) day streak")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.orange)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 15)
-                            .fill(Color.orange.opacity(0.2))
-                    )
-            }
-            
-            HStack(spacing: 20) {
-                StatCard(
-                    title: "Cards Flipped",
-                    value: user.todayStats?.cardsFlipped ?? 0,
-                    icon: "rectangle.stack.fill",
-                    color: .purple,
-                    isSelected: selectedType == .cardsFlipped
-                )
-                
-                StatCard(
-                    title: "Topics Explored",
-                    value: user.todayStats?.topicsExplored ?? 0,
-                    icon: "book.fill",
-                    color: .blue,
-                    isSelected: selectedType == .topicsExplored
-                )
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 15)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.white.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal, 20)
-        .padding(.bottom, 20)
     }
     
     private func leaderboardRow(entry: LeaderboardEntry) -> some View {
@@ -362,52 +325,5 @@ struct LeaderboardView: View {
     private func stopRefreshTimer() {
         refreshTimer?.invalidate()
         refreshTimer = nil
-    }
-}
-
-// MARK: - Stat Card Component
-struct StatCard: View {
-    let title: String
-    let value: Int
-    let icon: String
-    let color: Color
-    let isSelected: Bool
-    
-    var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(isSelected ? .white : .white.opacity(0.7))
-            
-            Text("\(value)")
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            
-            Text(title)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(.white.opacity(0.8))
-                .multilineTextAlignment(.center)
-        }
-        .padding(.vertical, 20)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 15)
-                .fill(
-                    isSelected
-                    ? LinearGradient(colors: [color.opacity(0.3), color.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    : LinearGradient(colors: [.clear], startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 15)
-                        .stroke(
-                            isSelected ? color.opacity(0.4) : Color.white.opacity(0.1),
-                            lineWidth: isSelected ? 2 : 1
-                        )
-                )
-        )
-        .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }

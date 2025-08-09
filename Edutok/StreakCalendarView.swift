@@ -272,6 +272,17 @@ struct StreakCalendarView: View {
                 .padding(.horizontal, 20)
             }
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 15)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 20)
     }
     
     private func achievementCard(achievement: CalendarAchievement) -> some View {

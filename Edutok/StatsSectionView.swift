@@ -173,11 +173,11 @@ struct StatsSectionView: View {
     private func quickStatsBar(user: AppUser) -> some View {
         HStack(spacing: 20) {
             QuickStatItem(
-                title: "Today",
-                value: "\((user.todayStats?.cardsFlipped ?? 0) + (user.todayStats?.topicsExplored ?? 0))",
-                subtitle: "activities",
-                icon: "bolt.fill",
-                color: .yellow
+                title: "Topics",
+                value: "\(user.todayStats?.topicsExplored ?? 0)",
+                subtitle: "explored",
+                icon: "book.fill",
+                color: .blue
             )
             
             Divider()
@@ -197,10 +197,10 @@ struct StatsSectionView: View {
                 .frame(height: 30)
             
             QuickStatItem(
-                title: "Total",
-                value: "\(user.totalCardsFlipped + user.totalTopicsExplored)",
-                subtitle: "activities",
-                icon: "star.fill",
+                title: "Cards",
+                value: "\(user.todayStats?.cardsFlipped ?? 0)",
+                subtitle: "flipped",
+                icon: "rectangle.stack.fill",
                 color: .purple
             )
         }

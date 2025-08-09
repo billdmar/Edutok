@@ -201,9 +201,7 @@ struct MainView: View {
                     }
                     .padding(.horizontal, 30)
                     
-                    Spacer()
-                    
-                    // Enhanced popular topics section
+                    // Enhanced popular topics section - moved up
                     if !showSuggestions {
                         VStack(spacing: 15) {
                             HStack {
@@ -243,9 +241,10 @@ struct MainView: View {
                             }
                         }
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        .padding(.bottom, 30) // Add bottom padding instead of top
                     }
                     
-                    Spacer()
+                    Spacer(minLength: 100) // Ensure space for nav bar
                 }
                 
                 // Sidebar button and XP display - moved to very top
@@ -328,23 +327,29 @@ struct MainView: View {
                 }
                 
                 // Sidebar overlay
-                                if showSidebar {
-                                    HStack(spacing: 0) {
-                                        SidebarView(isShowing: $showSidebar)
-                                            .frame(width: 280)
-                                            .transition(.move(edge: .leading))
-                                        
-                                        // Transparent overlay area - shows main view with slight dimming
-                                        Color.black.opacity(0.7)
-                                            .contentShape(Rectangle())
-                                            .onTapGesture {
-                                                withAnimation(.easeInOut(duration: 0.3)) {
-                                                    showSidebar = false
-                                                }
-                                            }
-                                    }
-                                    .zIndex(1000)
+                if showSidebar {
+                    ZStack {
+                        // Full screen dimming overlay
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    showSidebar = false
                                 }
+                            }
+                        
+                        // Sidebar positioned on left
+                        HStack {
+                            SidebarView(isShowing: $showSidebar)
+                                .frame(width: 280)
+                                .transition(.move(edge: .leading))
+                            
+                            Spacer()
+                        }
+                    }
+                    .zIndex(1000)
+                }
             }
         }
         .onTapGesture {
