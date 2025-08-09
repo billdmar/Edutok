@@ -27,7 +27,6 @@ enum StatsViewMode: String, CaseIterable {
 struct StatsSectionView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
     @State private var selectedMode: StatsViewMode = .calendar
-    @State private var showDebugView = false
     
     var body: some View {
         ZStack {
@@ -61,36 +60,6 @@ struct StatsSectionView: View {
                     removal: .move(edge: .leading).combined(with: .opacity)
                 ))
             }
-            
-            // Debug button (only in debug builds)
-            #if DEBUG
-            VStack {
-                HStack {
-                    Spacer()
-                    
-                    Button(action: {
-                        showDebugView = true
-                    }) {
-                        Image(systemName: "hammer.fill")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                            .padding(12)
-                            .background(
-                                Circle()
-                                    .fill(Color.red.opacity(0.8))
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                                    )
-                            )
-                    }
-                    .padding(.trailing, 20)
-                    .padding(.top, 20)
-                }
-                
-                Spacer()
-            }
-            #endif
         }
         .onAppear {
             // Ensure user is authenticated
@@ -99,9 +68,6 @@ struct StatsSectionView: View {
                     try? await firebaseManager.signInAnonymously()
                 }
             }
-        }
-        .sheet(isPresented: $showDebugView) {
-            DebugView()
         }
     }
     

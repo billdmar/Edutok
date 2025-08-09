@@ -9,66 +9,66 @@ struct LeaderboardView: View {
     @State private var refreshTimer: Timer?
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Header with type selection
-            VStack(spacing: 20) {
-                Text("Daily Leaderboard")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                
-                // Type toggle buttons
-                HStack(spacing: 0) {
-                    ForEach(LeaderboardType.allCases, id: \.self) { type in
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                selectedType = type
-                                loadLeaderboard()
+        ScrollView {
+            VStack(spacing: 0) {
+                // Header with type selection
+                VStack(spacing: 20) {
+                    Text("Daily Leaderboard")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    // Type toggle buttons
+                    HStack(spacing: 0) {
+                        ForEach(LeaderboardType.allCases, id: \.self) { type in
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    selectedType = type
+                                    loadLeaderboard()
+                                }
+                            }) {
+                                VStack(spacing: 8) {
+                                    Image(systemName: type.icon)
+                                        .font(.title2)
+                                    
+                                    Text(type.title)
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .foregroundColor(selectedType == type ? .white : .white.opacity(0.6))
+                                .padding(.vertical, 15)
+                                .padding(.horizontal, 20)
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .fill(
+                                            selectedType == type
+                                            ? LinearGradient(colors: [.purple, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                            : LinearGradient(colors: [.clear], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 15)
+                                                .stroke(Color.white.opacity(selectedType == type ? 0.3 : 0.1), lineWidth: 1)
+                                        )
+                                )
                             }
-                        }) {
-                            VStack(spacing: 8) {
-                                Image(systemName: type.icon)
-                                    .font(.title2)
-                                
-                                Text(type.title)
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .multilineTextAlignment(.center)
-                            }
-                            .foregroundColor(selectedType == type ? .white : .white.opacity(0.6))
-                            .padding(.vertical, 15)
-                            .padding(.horizontal, 20)
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                RoundedRectangle(cornerRadius: 15)
-                                    .fill(
-                                        selectedType == type
-                                        ? LinearGradient(colors: [.purple, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                        : LinearGradient(colors: [.clear], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 15)
-                                            .stroke(Color.white.opacity(selectedType == type ? 0.3 : 0.1), lineWidth: 1)
-                                    )
-                            )
                         }
                     }
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.white.opacity(0.05))
+                    )
+                    .padding(.horizontal, 20)
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.white.opacity(0.05))
-                )
-                .padding(.horizontal, 20)
-            }
-            .padding(.vertical, 20)
-            
-            // Current user stats
-            if let user = firebaseManager.currentUser {
-                currentUserStatsView(user: user)
-            }
-            
-            // Leaderboard list
-            ScrollView {
+                .padding(.vertical, 20)
+                
+                // Current user stats
+                if let user = firebaseManager.currentUser {
+                    currentUserStatsView(user: user)
+                }
+                
+                // Leaderboard list
                 LazyVStack(spacing: 12) {
                     if isLoading {
                         ForEach(0..<10, id: \.self) { _ in
@@ -83,10 +83,7 @@ struct LeaderboardView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 100)
-            }
-            .refreshable {
-                await refreshLeaderboard()
+                .padding(.bottom, 120) // Extra padding for floating nav
             }
         }
         .background(
@@ -101,6 +98,9 @@ struct LeaderboardView: View {
             )
             .ignoresSafeArea()
         )
+        .refreshable {
+            await refreshLeaderboard()
+        }
         .onAppear {
             loadLeaderboard()
             startRefreshTimer()
