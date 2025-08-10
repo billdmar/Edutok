@@ -12,30 +12,40 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 @main
 struct FlashTokApp: App {
-    // Register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
     @StateObject private var topicManager = TopicManager()
     @StateObject private var gamificationManager = GamificationManager()
     @StateObject private var firebaseManager = FirebaseManager.shared
+    @StateObject private var soundManager = SoundEffectsManager.shared        // NEW
+    @StateObject private var hapticManager = HapticFeedbackManager.shared     // NEW
+    @StateObject private var challengesManager = DailyChallengesManager.shared // NEW
+    @StateObject private var streakManager = StreakProtectionManager.shared   // NEW
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(topicManager)
                 .environmentObject(gamificationManager)
+                .environmentObject(soundManager)        // NEW
+                .environmentObject(hapticManager)       // NEW
+                .environmentObject(challengesManager)   // NEW
+                .environmentObject(streakManager)       // NEW
                 .preferredColorScheme(.dark)
                 .onAppear {
-                    // Schedule initial study reminders
-                    gamificationManager.scheduleStudyReminder()
-                    
-                    // Auto-authenticate user if not already authenticated
-                    if !firebaseManager.isAuthenticated {
-                        Task {
-                            try? await firebaseManager.signInAnonymously()
-                        }
-                    }
+                    setupInitialState()
                 }
+        }
+    }
+    
+    private func setupInitialState() {
+        gamificationManager.scheduleStudyReminder()
+        challengesManager.checkForNewDay()  // NEW
+        
+        if !firebaseManager.isAuthenticated {
+            Task {
+                try? await firebaseManager.signInAnonymously()
+            }
         }
     }
 }

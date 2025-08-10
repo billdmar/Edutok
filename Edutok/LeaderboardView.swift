@@ -7,30 +7,18 @@ struct LeaderboardView: View {
     @State private var leaderboardEntries: [LeaderboardEntry] = []
     @State private var isLoading = true
     @State private var refreshTimer: Timer?
-    @State private var showAuthView = false
     
     var body: some View {
-        Group {
-            if firebaseManager.isAuthenticated {
-                leaderboardContent()
-            } else {
-                AuthenticationPromptView()
-            }
-        }
-        .sheet(isPresented: $showAuthView) {
-            AuthenticationView()
-        }
-    }
-
-    private func leaderboardContent() -> some View {
-        VStack(spacing: 0) {            // Header with type selection
-            VStack(spacing: 20) {
+        VStack(spacing: 0) {
+            // Simple header with toggle
+            VStack(spacing: 15) {
                 Text("Daily Leaderboard")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
+                    .padding(.top, 10)
                 
-                // Type toggle buttons
+                // Compact toggle
                 HStack(spacing: 0) {
                     ForEach(LeaderboardType.allCases, id: \.self) { type in
                         Button(action: {
@@ -39,17 +27,16 @@ struct LeaderboardView: View {
                                 loadLeaderboard()
                             }
                         }) {
-                            VStack(spacing: 8) {
+                            VStack(spacing: 6) {
                                 Image(systemName: type.icon)
-                                    .font(.title2)
+                                    .font(.title3)
                                 
-                                Text(type.title)
+                                Text(type == .cardsFlipped ? "Cards" : "Topics")
                                     .font(.caption)
                                     .fontWeight(.semibold)
-                                    .multilineTextAlignment(.center)
                             }
                             .foregroundColor(selectedType == type ? .white : .white.opacity(0.6))
-                            .padding(.vertical, 15)
+                            .padding(.vertical, 12)
                             .padding(.horizontal, 20)
                             .frame(maxWidth: .infinity)
                             .background(
@@ -73,18 +60,35 @@ struct LeaderboardView: View {
                 )
                 .padding(.horizontal, 20)
             }
-            .padding(.vertical, 20)
+            .padding(.bottom, 20)
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.8), Color.clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea(edges: .top)
+            )
             
-            // Current user stats
-            if let user = firebaseManager.currentUser {
-                currentUserStatsView(user: user)
-            }
-            
-            // Leaderboard list
+            // Leaderboard list - takes up full remaining space
             ScrollView {
                 LazyVStack(spacing: 12) {
+                    // Current user highlight at top
+                    if let user = firebaseManager.currentUser,
+                       let userEntry = leaderboardEntries.first(where: { $0.isCurrentUser }) {
+                        VStack(spacing: 10) {
+                            Text("Your Rank")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white.opacity(0.7))
+                            
+                            leaderboardRow(entry: userEntry)
+                        }
+                        .padding(.bottom, 15)
+                    }
+                    
                     if isLoading {
-                        ForEach(0..<10, id: \.self) { _ in
+                        ForEach(0..<15, id: \.self) { _ in
                             leaderboardLoadingRow()
                         }
                     } else if leaderboardEntries.isEmpty {
@@ -96,10 +100,7 @@ struct LeaderboardView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 100)
-            }
-            .refreshable {
-                await refreshLeaderboard()
+                .padding(.bottom, 120) // Extra padding for floating nav
             }
         }
         .background(
@@ -114,6 +115,9 @@ struct LeaderboardView: View {
             )
             .ignoresSafeArea()
         )
+        .refreshable {
+            await refreshLeaderboard()
+        }
         .onAppear {
             loadLeaderboard()
             startRefreshTimer()
@@ -121,60 +125,6 @@ struct LeaderboardView: View {
         .onDisappear {
             stopRefreshTimer()
         }
-    }
-    
-    private func currentUserStatsView(user: AppUser) -> some View {
-        VStack(spacing: 15) {
-            HStack {
-                Text("Your Daily Stats")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Text("🔥 \(user.currentStreak) day streak")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.orange)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 15)
-                            .fill(Color.orange.opacity(0.2))
-                    )
-            }
-            
-            HStack(spacing: 20) {
-                StatCard(
-                    title: "Cards Flipped",
-                    value: user.todayStats?.cardsFlipped ?? 0,
-                    icon: "rectangle.stack.fill",
-                    color: .purple,
-                    isSelected: selectedType == .cardsFlipped
-                )
-                
-                StatCard(
-                    title: "Topics Explored",
-                    value: user.todayStats?.topicsExplored ?? 0,
-                    icon: "book.fill",
-                    color: .blue,
-                    isSelected: selectedType == .topicsExplored
-                )
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 15)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.white.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal, 20)
-        .padding(.bottom, 20)
     }
     
     private func leaderboardRow(entry: LeaderboardEntry) -> some View {
@@ -375,196 +325,5 @@ struct LeaderboardView: View {
     private func stopRefreshTimer() {
         refreshTimer?.invalidate()
         refreshTimer = nil
-    }
-}
-
-
-struct AuthenticationPromptView: View {
-    @StateObject private var firebaseManager = FirebaseManager.shared
-    @State private var showAuthView = false
-    
-    var body: some View {
-        VStack(spacing: 30) {
-            // Trophy animation
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.yellow.opacity(0.3), .orange.opacity(0.2)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 120, height: 120)
-                
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.yellow)
-            }
-            .shadow(color: .yellow.opacity(0.3), radius: 20, x: 0, y: 10)
-            
-            VStack(spacing: 15) {
-                Text("Join the Competition!")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                
-                Text("Sign up to compete on daily leaderboards, track your progress, and see how you rank against other learners!")
-                    .font(.body)
-                    .foregroundColor(.white.opacity(0.8))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
-            
-            VStack(spacing: 20) {
-                // Main sign up button
-                Button(action: {
-                    showAuthView = true
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "person.fill.badge.plus")
-                            .font(.title3)
-                        
-                        Text("Sign Up to Compete")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 30)
-                    .padding(.vertical, 15)
-                    .background(
-                        LinearGradient(
-                            colors: [.purple, .blue],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(25)
-                    .shadow(color: .purple.opacity(0.3), radius: 15, x: 0, y: 5)
-                }
-                
-                // Already have account button
-                Button(action: {
-                    showAuthView = true
-                }) {
-                    Text("Already have an account? Sign In")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white.opacity(0.8))
-                        .underline()
-                }
-                
-                // Guest option
-                Button(action: {
-                    Task {
-                        try? await firebaseManager.signInAnonymously()
-                    }
-                }) {
-                    Text("Continue as Guest (Limited Features)")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
-                }
-            }
-            
-            // Benefits preview
-            VStack(spacing: 15) {
-                Text("What you'll get:")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                
-                VStack(spacing: 12) {
-                    BenefitRow(icon: "trophy.fill", text: "Daily leaderboard rankings", color: .yellow)
-                    BenefitRow(icon: "chart.line.uptrend.xyaxis", text: "Progress tracking & analytics", color: .green)
-                    BenefitRow(icon: "flame.fill", text: "Learning streak monitoring", color: .orange)
-                    BenefitRow(icon: "star.fill", text: "Achievement badges", color: .purple)
-                }
-            }
-            .padding(.top, 20)
-        }
-        .padding(.horizontal, 30)
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.black,
-                    Color.purple.opacity(0.3),
-                    Color.black
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
-        .sheet(isPresented: $showAuthView) {
-            AuthenticationView()
-        }
-    }
-}
-
-struct BenefitRow: View {
-    let icon: String
-    let text: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(color)
-                .frame(width: 24)
-            
-            Text(text)
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.9))
-            
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-    }
-}
-// MARK: - Stat Card Component
-struct StatCard: View {
-    let title: String
-    let value: Int
-    let icon: String
-    let color: Color
-    let isSelected: Bool
-    
-    var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(isSelected ? .white : .white.opacity(0.7))
-            
-            Text("\(value)")
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            
-            Text(title)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(.white.opacity(0.8))
-                .multilineTextAlignment(.center)
-        }
-        .padding(.vertical, 20)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 15)
-                .fill(
-                    isSelected
-                    ? LinearGradient(colors: [color.opacity(0.3), color.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    : LinearGradient(colors: [.clear], startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 15)
-                        .stroke(
-                            isSelected ? color.opacity(0.4) : Color.white.opacity(0.1),
-                            lineWidth: isSelected ? 2 : 1
-                        )
-                )
-        )
-        .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }

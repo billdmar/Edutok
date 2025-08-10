@@ -12,37 +12,25 @@ struct StreakCalendarView: View {
     private let dateFormatter = DateFormatter()
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Title
-            VStack(spacing: 10) {
-                Text("Learning Calendar")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
+        ScrollView {
+            VStack(spacing: 20) {
+                // Header with month navigation
+                monthHeaderView()
                 
+                // Calendar grid
+                calendarGridView()
+                
+                // Current streak info
                 if let user = firebaseManager.currentUser {
-                    Text("Track your learning journey")
-                        .font(.headline)
-                        .foregroundColor(.white.opacity(0.8))
+                    streakInfoView(user: user)
                 }
+                
+                // Achievement timeline
+                achievementTimelineView()
+                
+                // Extra padding for floating nav
+                Color.clear.frame(height: 100)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 10)
-            
-            // Header with month navigation
-            monthHeaderView()
-            
-            // Calendar grid
-            calendarGridView()
-            
-            // Current streak info
-            if let user = firebaseManager.currentUser {
-                streakInfoView(user: user)
-            }
-            
-            // Achievement timeline
-            achievementTimelineView()
         }
         .background(
             LinearGradient(
@@ -240,7 +228,6 @@ struct StreakCalendarView: View {
                 )
         )
         .padding(.horizontal, 20)
-        .padding(.top, 20)
     }
     
     private func achievementTimelineView() -> some View {
@@ -285,8 +272,17 @@ struct StreakCalendarView: View {
                 .padding(.horizontal, 20)
             }
         }
-        .padding(.top, 20)
-        .padding(.bottom, 100)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 15)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 20)
     }
     
     private func achievementCard(achievement: CalendarAchievement) -> some View {
@@ -493,73 +489,76 @@ struct DayDetailView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                // Date header
-                Text(dayFormatter.string(from: dailyStat.date))
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                
-                // Activity stats
-                VStack(spacing: 15) {
-                    ActivityStatRow(
-                        icon: "rectangle.stack.fill",
-                        title: "Cards Flipped",
-                        value: dailyStat.cardsFlipped,
-                        color: .purple
-                    )
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Date header
+                    Text(dayFormatter.string(from: dailyStat.date))
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.top, 20)
                     
-                    ActivityStatRow(
-                        icon: "book.fill",
-                        title: "Topics Explored",
-                        value: dailyStat.topicsExplored,
-                        color: .blue
-                    )
-                }
-                .padding(.horizontal, 20)
-                
-                // Achievements
-                if !dailyStat.achievements.isEmpty {
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text("Achievements Unlocked")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
+                    // Activity stats
+                    VStack(spacing: 15) {
+                        ActivityStatRow(
+                            icon: "rectangle.stack.fill",
+                            title: "Cards Flipped",
+                            value: dailyStat.cardsFlipped,
+                            color: .purple
+                        )
                         
-                        ForEach(dailyStat.achievements, id: \.self) { achievementId in
-                            if let achievement = Achievement.allCases.first(where: { $0.rawValue == achievementId }) {
-                                HStack {
-                                    Text(achievement.emoji)
-                                        .font(.title2)
-                                    
-                                    VStack(alignment: .leading) {
-                                        Text(achievement.title)
-                                            .font(.headline)
-                                            .foregroundColor(.white)
-                                        
-                                        Text(achievement.description)
-                                            .font(.caption)
-                                            .foregroundColor(.white.opacity(0.7))
-                                    }
-                                    
-                                    Spacer()
-                                }
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: 15)
-                                        .fill(Color.yellow.opacity(0.1))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 15)
-                                                .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
-                                        )
-                                )
-                            }
-                        }
+                        ActivityStatRow(
+                            icon: "book.fill",
+                            title: "Topics Explored",
+                            value: dailyStat.topicsExplored,
+                            color: .blue
+                        )
                     }
                     .padding(.horizontal, 20)
+                    
+                    // Achievements
+                    if !dailyStat.achievements.isEmpty {
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text("Achievements Unlocked")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                            
+                            ForEach(dailyStat.achievements, id: \.self) { achievementId in
+                                if let achievement = Achievement.allCases.first(where: { $0.rawValue == achievementId }) {
+                                    HStack {
+                                        Text(achievement.emoji)
+                                            .font(.title2)
+                                        
+                                        VStack(alignment: .leading) {
+                                            Text(achievement.title)
+                                                .font(.headline)
+                                                .foregroundColor(.white)
+                                            
+                                            Text(achievement.description)
+                                                .font(.caption)
+                                                .foregroundColor(.white.opacity(0.7))
+                                        }
+                                        
+                                        Spacer()
+                                    }
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 15)
+                                            .fill(Color.yellow.opacity(0.1))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 15)
+                                                    .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    
+                    Color.clear.frame(height: 50) // Bottom padding
                 }
-                
-                Spacer()
             }
             .background(
                 LinearGradient(

@@ -37,6 +37,7 @@ struct FlashcardView: View {
     @State private var hasTrackedCardFlip = false
     @State private var cardXPAwarded: Set<UUID> = []
     
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -279,7 +280,138 @@ struct FlashcardView: View {
         }
         .padding(.bottom, 15)
     }
-    
+    private func enhancedHeaderView(topic: Topic, geometry: GeometryProxy) -> some View {
+            VStack(spacing: 10) {
+                HStack {
+                    // Menu button
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showSidebar = true
+                        }
+                    }) {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                    }
+                    .frame(width: 44, height: 44)
+                    
+                    Spacer()
+                    
+                    // Enhanced XP and Level Display with multipliers
+                    VStack(spacing: 8) {
+                        // Current XP and Level
+                        HStack(spacing: 8) {
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("Level \(gamificationManager.userProgress.currentLevel)")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.yellow)
+                                
+                                Text("\(gamificationManager.userProgress.totalXP) XP")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.9))
+                            }
+                            
+                            ZStack {
+                                ProgressRing(
+                                    progress: gamificationManager.userProgress.levelProgress,
+                                    lineWidth: 3,
+                                    size: 30
+                                )
+                                
+                                Text("\(gamificationManager.userProgress.currentLevel)")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        
+                        // Active Multipliers Display
+                        HStack(spacing: 6) {
+                            if gamificationManager.userProgress.comboXPMultiplier > 1.0 {
+                                Text("🔥×\(String(format: "%.1f", gamificationManager.userProgress.comboXPMultiplier))")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.orange)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(Color.orange.opacity(0.2))
+                                    )
+                            }
+                            
+                            if gamificationManager.userProgress.dailyXPMultiplier > 1.0 {
+                                Text("📅×\(String(format: "%.1f", gamificationManager.userProgress.dailyXPMultiplier))")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(Color.blue.opacity(0.2))
+                                    )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.purple.opacity(0.3),
+                                        Color.blue.opacity(0.2)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.yellow.opacity(0.4),
+                                                Color.purple.opacity(0.3)
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                    )
+                    .shadow(color: .purple.opacity(0.3), radius: 5, x: 0, y: 2)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 5)
+                
+                // Centered topic title and dots
+                VStack(spacing: 8) {
+                    Text(topic.title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                    
+                    // Cycling dot indicator
+                    HStack(spacing: 8) {
+                        ForEach(0..<5, id: \.self) { index in
+                            Circle()
+                                .fill(Color.white.opacity(index == dotIndex ? 1.0 : 0.3))
+                                .frame(width: index == dotIndex ? 8 : 6, height: index == dotIndex ? 8 : 6)
+                                .scaleEffect(index == dotIndex ? 1.2 : 1.0)
+                                .animation(.easeInOut(duration: 0.3), value: dotIndex)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.bottom, 15)
+        }
     private func flashcardContent(card: Flashcard, relativeIndex: Int, geometry: GeometryProxy) -> some View {
         let isCurrentCard = relativeIndex == 0
         let cardOffset = CGFloat(relativeIndex)
@@ -442,7 +574,11 @@ struct FlashcardView: View {
                         // Action buttons on card
                         HStack(spacing: 30) {
                             // Skip button with enhanced animations
-                                                        Button(action: {
+                            Button(action: {
+                                                            // Reset combo on skip
+                                                            gamificationManager.userProgress.resetCombo()
+                                                            gamificationManager.showComboDisplay = false
+                                                            
                                                             nextCard()
                                                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                                                             impactFeedback.impactOccurred()
@@ -485,23 +621,40 @@ struct FlashcardView: View {
                             
                             // Got it button
                             Button(action: {
-                                markAsUnderstood()
-                                nextCard()
-                                
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
-                                impactFeedback.impactOccurred()
-                            }) {
-                                VStack(spacing: 6) {
-                                                                    Image(systemName: "checkmark.circle.fill")
-                                                                        .font(.title2)
-                                                                        .foregroundColor(.white)
-                                                                        .symbolEffect(.pulse, options: .repeat(.continuous).speed(0.7))
-                                                                    
-                                                                    Text("Got it")
-                                                                        .font(.caption)
-                                                                        .fontWeight(.semibold)
-                                                                        .foregroundColor(.white.opacity(0.8))
-                                                                }
+                                                            // Enhanced XP and combo tracking
+                                                            let timeToAnswer = answerStartTime?.timeIntervalSinceNow ?? 0
+                                                            gamificationManager.awardXPForCardCompletion(
+                                                                wasCorrect: true,
+                                                                isFirstTry: true,
+                                                                timeToAnswer: abs(timeToAnswer)
+                                                            )
+                                                            
+                                                            markAsUnderstood()
+                                                            nextCard()
+                                                            
+                                                            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+                                                            impactFeedback.impactOccurred()
+                                                        }) {
+                                                            VStack(spacing: 6) {
+                                                                                                HStack(spacing: 4) {
+                                                                                                    Image(systemName: "checkmark.circle.fill")
+                                                                                                        .font(.title2)
+                                                                                                        .foregroundColor(.white)
+                                                                                                        .symbolEffect(.pulse, options: .repeat(.continuous).speed(0.7))
+                                                                                                    
+                                                                                                    if gamificationManager.userProgress.currentCombo > 2 {
+                                                                                                        Text("\(gamificationManager.userProgress.currentCombo)x")
+                                                                                                            .font(.caption)
+                                                                                                            .fontWeight(.bold)
+                                                                                                            .foregroundColor(.orange)
+                                                                                                    }
+                                                                                                }
+                                                                                                
+                                                                                                Text("Got it")
+                                                                                                    .font(.caption)
+                                                                                                    .fontWeight(.semibold)
+                                                                                                    .foregroundColor(.white.opacity(0.8))
+                                                                                            }
                                                                 .padding(.horizontal, 20)
                                                                 .padding(.vertical, 12)
                                                                 .background(
@@ -517,8 +670,11 @@ struct FlashcardView: View {
                                                                             RoundedRectangle(cornerRadius: 20)
                                                                                 .stroke(Color.white.opacity(0.4), lineWidth: 2)
                                                                         )
-                                                                        .shadow(color: .green.opacity(0.5), radius: 8, x: 0, y: 4)
-                                                                )
+                                                                        .shadow(
+                                                                                                                    color: gamificationManager.userProgress.currentCombo > 2 ?
+                                                                                                                        .orange.opacity(0.5) : .green.opacity(0.5),
+                                                                                                                    radius: 8, x: 0, y: 4
+                                                                                                                )
                             }
                             .scaleEffect(isCurrentCard ? 1.0 : 0.8)
                             .buttonStyle(BouncyButtonStyle())
@@ -565,12 +721,14 @@ struct FlashcardView: View {
                     cardRotation = showAnswer ? 180 : 0
                 }
                 
-                // Award XP for revealing answer (only once per card)
+                
+                // Enhanced XP and combo tracking
                                 if showAnswer && !cardXPAwarded.contains(card.id) {
                                     cardXPAwarded.insert(card.id)
                                     let timeToAnswer = answerStartTime?.timeIntervalSinceNow ?? 0
+                                    
                                     gamificationManager.awardXPForCardCompletion(
-                                        wasCorrect: true, // Assume correct for now
+                                        wasCorrect: true, // Assume correct for tap to reveal
                                         isFirstTry: true,
                                         timeToAnswer: abs(timeToAnswer)
                                     )
@@ -824,7 +982,52 @@ struct FlashcardView: View {
                     calculateOptimalFontSize()
                 }
         }
-        
+        // MARK: - Combo Display Component
+        struct ComboDisplay: View {
+            let combo: Int
+            let multiplier: Double
+            
+            var body: some View {
+                HStack(spacing: 10) {
+                    Text("🔥")
+                        .font(.title2)
+                        .scaleEffect(1.2)
+                    
+                    VStack(spacing: 2) {
+                        Text("\(combo) Combo!")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.orange)
+                        
+                        Text("×\(String(format: "%.1f", multiplier)) XP")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(
+                                                    RoundedRectangle(cornerRadius: 20)
+                                                        .fill(
+                                                            LinearGradient(
+                                                                gradient: Gradient(colors:
+                                                                    gamificationManager.userProgress.currentCombo > 2 ?
+                                                                        [Color.green, Color.mint, Color.orange] :
+                                                                        [Color.green, Color.mint]
+                                                                ),
+                                                                startPoint: .topLeading,
+                                                                endPoint: .bottomTrailing
+                                                            )
+                                                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.white.opacity(0.4), lineWidth: 2)
+                        )
+                )
+                .shadow(color: .orange.opacity(0.5), radius: 10, x: 0, y: 5)
+            }
+        }
         private func calculateOptimalFontSize() {
             let maxFontSize: CGFloat = 32
             let minFontSize: CGFloat = 8

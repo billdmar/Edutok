@@ -12,7 +12,7 @@ struct MainView: View {
     
     // Enhanced topic suggestions with better variety
     private let popularTopics = [
-        "Python Programming", "World War 2", "Photosynthesis",
+        "Betta Fish Care", "Python Programming", "World War 2", "Photosynthesis",
         "Machine Learning", "Spanish Verbs", "Ancient Rome", "Quantum Physics",
         "Shakespeare", "Cell Biology", "Jazz Music", "Renaissance Art",
         "Climate Change", "Cryptocurrency", "Greek Mythology", "Space Exploration"
@@ -201,10 +201,7 @@ struct MainView: View {
                     }
                     .padding(.horizontal, 30)
                     
-                    Spacer()
-                    
-                    // Enhanced popular topics section
-                    // Enhanced popular topics section
+                    // Enhanced popular topics section - moved up
                     if !showSuggestions {
                         VStack(spacing: 15) {
                             HStack {
@@ -216,7 +213,7 @@ struct MainView: View {
                                 Spacer()
                             }
                             .padding(.horizontal, 30)
-                            .padding(.top, 20)
+                            
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
                                     ForEach(popularTopics.shuffled().prefix(8), id: \.self) { suggestion in
@@ -244,14 +241,27 @@ struct MainView: View {
                             }
                         }
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        .padding(.bottom, 30) // Add bottom padding instead of top
                     }
                     
-                    Spacer()
+                    Spacer(minLength: 100) // Ensure space for nav bar
                 }
                 
-                // XP display - moved to very top right corner
+                // Sidebar button and XP display - moved to very top
                 VStack {
                     HStack {
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showSidebar = true
+                            }
+                        }) {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .padding()
+                        }
+                        .padding(.top, 5) // Minimal top padding
+                        
                         Spacer()
                         
                         // XP and Level Display on main view with beautiful rectangle
@@ -314,6 +324,31 @@ struct MainView: View {
                         .padding(.top, 5)
                     }
                     Spacer()
+                }
+                
+                // Sidebar overlay
+                if showSidebar {
+                    ZStack {
+                        // Full screen dimming overlay
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    showSidebar = false
+                                }
+                            }
+                        
+                        // Sidebar positioned on left
+                        HStack {
+                            SidebarView(isShowing: $showSidebar)
+                                .frame(width: 280)
+                                .transition(.move(edge: .leading))
+                            
+                            Spacer()
+                        }
+                    }
+                    .zIndex(1000)
                 }
             }
         }

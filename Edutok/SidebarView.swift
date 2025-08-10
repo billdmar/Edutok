@@ -3,8 +3,8 @@ import SwiftUI
 struct SidebarView: View {
     @Binding var isShowing: Bool
     @EnvironmentObject var topicManager: TopicManager
-    @StateObject private var firebaseManager = FirebaseManager.shared
-    @State private var showDebugView = false
+    @EnvironmentObject var gamificationManager: GamificationManager
+    @StateObject private var challengesManager = DailyChallengesManager()
     
     var body: some View {
         HStack(spacing: 0) {
@@ -192,7 +192,51 @@ struct SidebarView: View {
                 VStack(spacing: 15) {
                     Divider()
                         .background(Color.white.opacity(0.2))
-                    
+                    // Daily Challenges Button
+                                        NavigationLink(destination: DailyChallengesView()) {
+                                            HStack {
+                                                Text("🎯")
+                                                    .font(.title3)
+                                                Text("Daily Challenges")
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.white)
+                                                Spacer()
+                                                // Show completion badge
+                                                if challengesManager.completionPercentage > 0 {
+                                                    Text("\(Int(challengesManager.completionPercentage * 100))%")
+                                                        .font(.caption2)
+                                                        .fontWeight(.bold)
+                                                        .foregroundColor(.orange)
+                                                }
+                                            }
+                                            .padding(.horizontal, 15)
+                                            .padding(.vertical, 12)
+                                            .background(Color.white.opacity(0.1))
+                                            .cornerRadius(15)
+                                        }
+                                        .padding(.horizontal, 20)
+                                        
+                                        // Achievement Gallery Button
+                                        NavigationLink(destination: AchievementGalleryView()) {
+                                            HStack {
+                                                Text("🏆")
+                                                    .font(.title3)
+                                                Text("Achievements")
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.white)
+                                                Spacer()
+                                                // Show achievement count
+                                                Text("\(gamificationManager.userProgress.achievementsUnlocked.count)")
+                                                    .font(.caption2)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(.yellow)
+                                            }
+                                            .padding(.horizontal, 15)
+                                            .padding(.vertical, 12)
+                                            .background(Color.white.opacity(0.1))
+                                            .cornerRadius(15)
+                                        }
+                                        .padding(.horizontal, 20)
                     // Create new topic button
                     Button(action: {
                         topicManager.currentTopic = nil
