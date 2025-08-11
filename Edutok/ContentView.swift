@@ -92,26 +92,7 @@ struct ContentView: View {
     }
     
     private func floatingNavBar() -> some View {
-        HStack(spacing: 0) {
-            // Menu button
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    showSidebar = true
-                }
-            }) {
-                VStack(spacing: 6) {
-                    Image(systemName: "line.3.horizontal")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                    
-                    Text("Menu")
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white.opacity(0.8))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-            }
+            HStack(spacing: 0) {
             // Leaderboard button (left)
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {

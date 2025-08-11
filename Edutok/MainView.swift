@@ -15,7 +15,16 @@ struct MainView: View {
         "Python Programming", "World War 2", "Photosynthesis",
         "Machine Learning", "Spanish Verbs", "Ancient Rome", "Quantum Physics",
         "Shakespeare", "Cell Biology", "Jazz Music", "Renaissance Art",
-        "Climate Change", "Cryptocurrency", "Greek Mythology", "Space Exploration"
+        "Climate Change", "Cryptocurrency", "Greek Mythology", "Space Exploration",
+        "Human Anatomy", "French Cooking", "Stock Market", "Ancient Egypt",
+        "Artificial Intelligence", "Guitar Basics", "Marine Biology", "Photography",
+        "Meditation", "Economics", "Chess Strategy", "Japanese Culture",
+        "Nutrition", "Interior Design", "Dinosaurs", "Psychology",
+        "Solar System", "Digital Marketing", "Yoga", "History of Rock Music",
+        "Wine Tasting", "Creative Writing", "Chemistry Basics", "Architecture",
+        "Gardening", "Philosophy", "Astronomy", "Fitness Training",
+        "Cooking Techniques", "Art History", "Computer Science", "Languages",
+        "Music Theory", "Environmental Science", "Literature", "Mathematics"
     ]
     
     var body: some View {
@@ -204,7 +213,6 @@ struct MainView: View {
                     Spacer()
                     
                     // Enhanced popular topics section
-                    // Enhanced popular topics section
                     if !showSuggestions {
                         VStack(spacing: 15) {
                             HStack {
@@ -216,10 +224,10 @@ struct MainView: View {
                                 Spacer()
                             }
                             .padding(.horizontal, 30)
-                            .padding(.top, 20)
+                            
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
-                                    ForEach(popularTopics.shuffled().prefix(8), id: \.self) { suggestion in
+                                    ForEach(popularTopics.shuffled().prefix(12), id: \.self) { suggestion in
                                         Button(action: {
                                             topicInput = suggestion
                                         }) {
@@ -243,18 +251,41 @@ struct MainView: View {
                                 .padding(.horizontal, 30)
                             }
                         }
+                        .padding(.bottom, 120)
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                     
                     Spacer()
                 }
                 
-                // XP display - moved to very top right corner
+                // Menu button and XP display - top corners
                 VStack {
                     HStack {
+                        // Menu button in top left
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showSidebar = true
+                            }
+                        }) {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .padding(12)
+                                .background(
+                                    Circle()
+                                        .fill(Color.white.opacity(0.1))
+                                        .overlay(
+                                            Circle()
+                                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                        )
+                                )
+                        }
+                        .padding(.leading, 20)
+                        .padding(.top, 10)
+                        
                         Spacer()
                         
-                        // XP and Level Display on main view with beautiful rectangle
+                        // XP and Level Display
                         HStack(spacing: 8) {
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text("Level \(gamificationManager.userProgress.currentLevel)")
@@ -314,6 +345,25 @@ struct MainView: View {
                         .padding(.top, 5)
                     }
                     Spacer()
+                }
+                
+                // Sidebar overlay
+                if showSidebar {
+                    HStack(spacing: 0) {
+                        SidebarView(isShowing: $showSidebar)
+                            .frame(width: 280)
+                            .transition(.move(edge: .leading))
+                        
+                        // Transparent overlay area - shows main view with slight dimming
+                        Color.black.opacity(0.7)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    showSidebar = false
+                                }
+                            }
+                    }
+                    .zIndex(1000)
                 }
             }
         }

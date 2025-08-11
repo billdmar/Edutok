@@ -26,6 +26,7 @@ enum StatsViewMode: String, CaseIterable {
 
 struct StatsSectionView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
+    @EnvironmentObject var topicManager: TopicManager 
     @State private var selectedMode: StatsViewMode = .calendar
     
     var body: some View {
@@ -43,10 +44,44 @@ struct StatsSectionView: View {
             .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header with mode toggle
-                headerView()
-                
-                // Content based on selected mode
+                            // Back button
+                            HStack {
+                                Button(action: {
+                                    // Navigate back to main view by clearing currentTopic and switching section
+                                    topicManager.currentTopic = nil
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "arrow.left")
+                                            .font(.title3)
+                                            .foregroundColor(.white)
+                                        
+                                        Text("Back")
+                                            .font(.headline)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.white)
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .fill(Color.white.opacity(0.1))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 20)
+                                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                            )
+                                    )
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 10)
+                            .padding(.bottom, 15)
+                            
+                            // Header with mode toggle
+                            headerView()
+                            
+                            // Content based on selected mode
                 Group {
                     switch selectedMode {
                     case .calendar:

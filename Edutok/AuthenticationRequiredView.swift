@@ -3,6 +3,7 @@ import SwiftUI
 
 struct AuthenticationRequiredView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
+    @State private var showAuthenticationView = false
     
     var body: some View {
         VStack(spacing: 30) {
@@ -24,15 +25,13 @@ struct AuthenticationRequiredView: View {
             }
             
             Button(action: {
-                Task {
-                    try? await firebaseManager.signInAnonymously()
-                }
+                showAuthenticationView = true
             }) {
                 HStack(spacing: 12) {
                     Image(systemName: "person.fill.badge.plus")
                         .font(.title3)
                     
-                    Text("Join Now (Anonymous)")
+                    Text("Sign In / Sign Up")
                         .font(.headline)
                         .fontWeight(.semibold)
                 }
@@ -68,5 +67,8 @@ struct AuthenticationRequiredView: View {
             )
             .ignoresSafeArea()
         )
+        .sheet(isPresented: $showAuthenticationView) {
+            AuthenticationView()
+        }
     }
 }
