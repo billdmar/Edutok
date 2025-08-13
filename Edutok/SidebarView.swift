@@ -5,6 +5,7 @@ struct SidebarView: View {
     @EnvironmentObject var topicManager: TopicManager
     @StateObject private var firebaseManager = FirebaseManager.shared
     @State private var showDebugView = false
+    @State private var showCalendar = false  // Add this for calendar access
     
     var body: some View {
         HStack(spacing: 0) {
@@ -123,6 +124,65 @@ struct SidebarView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 50)
                 .padding(.bottom, 20)
+                
+                // Quick Actions Section - ADD THIS
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("Quick Actions")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // Calendar button
+                    Button(action: {
+                        showCalendar = true
+                    }) {
+                        HStack {
+                            Image(systemName: "calendar")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Learning Calendar")
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                                
+                                if let user = firebaseManager.currentUser {
+                                    Text("🔥 \(user.currentStreak) day streak")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 15)
+                        .background(
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(Color.white.opacity(0.1))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .padding(.bottom, 20)
+                
+                Divider()
+                    .background(Color.white.opacity(0.2))
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 
                 // Topics list
                 ScrollView {
@@ -299,6 +359,9 @@ struct SidebarView: View {
         }
         .sheet(isPresented: $showDebugView) {
             DebugView()
+        }
+        .fullScreenCover(isPresented: $showCalendar) {
+            StandaloneCalendarView(isShowing: $showCalendar)
         }
     }
 }
