@@ -132,7 +132,7 @@ struct StatsSectionView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 10)
+            .padding(.top, 20)
             
             // Mode toggle
             HStack(spacing: 0) {

@@ -12,50 +12,41 @@ struct StreakCalendarView: View {
     private let dateFormatter = DateFormatter()
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Title
-            VStack(spacing: 10) {
-                Text("Learning Calendar")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                
-                if let user = firebaseManager.currentUser {
-                    Text("Track your learning journey")
-                        .font(.headline)
-                        .foregroundColor(.white.opacity(0.8))
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    // Add top padding to prevent content cutoff
+                    Color.clear.frame(height: 20)
+                    
+                    // Header with month navigation
+                    monthHeaderView()
+                    
+                    // Calendar grid
+                    calendarGridView()
+                    
+                    // Current streak info
+                    if let user = firebaseManager.currentUser {
+                        streakInfoView(user: user)
+                    }
+                    
+                    // Achievement timeline
+                    achievementTimelineView()
+                    
+                    // Add bottom padding for navigation bar
+                    Color.clear.frame(height: 100)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 10)
-            
-            // Header with month navigation
-            monthHeaderView()
-            
-            // Calendar grid
-            calendarGridView()
-            
-            // Current streak info
-            if let user = firebaseManager.currentUser {
-                streakInfoView(user: user)
-            }
-            
-            // Achievement timeline
-            achievementTimelineView()
-        }
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.black,
-                    Color.purple.opacity(0.3),
-                    Color.black
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.black,
+                        Color.purple.opacity(0.3),
+                        Color.black
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
             )
-            .ignoresSafeArea()
-        )
         .sheet(isPresented: $showDayDetail) {
             if let stat = selectedDayStat {
                 DayDetailView(dailyStat: stat)
@@ -286,7 +277,6 @@ struct StreakCalendarView: View {
             }
         }
         .padding(.top, 20)
-        .padding(.bottom, 100)
     }
     
     private func achievementCard(achievement: CalendarAchievement) -> some View {
