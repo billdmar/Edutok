@@ -42,8 +42,9 @@ struct MainView: View {
                 )
                 .ignoresSafeArea()
                 
-                VStack(spacing: 30) {
+                VStack(spacing: 40) {
                     Spacer()
+                        .frame(height: 60) // Add extra top spacing to move content down
                     
                     // Logo and title
                     VStack(spacing: 20) {
@@ -77,6 +78,7 @@ struct MainView: View {
                     }
                     
                     Spacer()
+                        .frame(height: 40) // Reduce this spacer to bring content closer together
                     
                     // Enhanced input section
                     VStack(spacing: 20) {
@@ -211,6 +213,7 @@ struct MainView: View {
                     .padding(.horizontal, 30)
                     
                     Spacer()
+                        .frame(height: 30) // Reduce this spacer to bring content closer together
                     
                     // Enhanced popular topics section
                     if !showSuggestions {
@@ -251,11 +254,12 @@ struct MainView: View {
                                 .padding(.horizontal, 30)
                             }
                         }
-                        .padding(.bottom, 120)
+                        .padding(.bottom, 140) // Increase bottom padding to ensure no overlap with nav bar
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                     
                     Spacer()
+                        .frame(height: 20) // Add small spacer at bottom
                 }
                 
                 // Menu button and XP display - top corners
@@ -309,6 +313,14 @@ struct MainView: View {
                                     .font(.caption2)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
+                                
+                                // NEW: Notification badge for Phase 1 features
+                                if hasActivePhase1Features {
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 10, y: -10)
+                                }
                             }
                         }
                         .padding(.horizontal, 12)
@@ -375,6 +387,13 @@ struct MainView: View {
                 }
             }
         }
+    }
+    
+    // NEW: Computed property to check for active Phase 1 features
+    private var hasActivePhase1Features: Bool {
+        let hasUncompletedChallenges = gamificationManager.dailyChallenges.contains { !$0.isCompleted && !$0.isExpired }
+        let hasUnopenedMysteryBoxes = gamificationManager.availableMysteryBoxes.contains { !$0.isOpened }
+        return hasUncompletedChallenges || hasUnopenedMysteryBoxes
     }
     
     private func updateSearchSuggestions(for input: String) {

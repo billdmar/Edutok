@@ -15,11 +15,12 @@ class TopicManager: ObservableObject {
             // Generate initial batch of facts
             var initialFacts = try await fetchFlashcardsFromGemini(topic: topicTitle, batchNumber: 1)
             
-            // Generate images for each flashcard
+            // Generate unique images for each flashcard with variation
             for index in initialFacts.indices {
-                let imageURL = await ImageManager.shared.generateImageForFlashcard(
+                let imageURL = await ImageManager.shared.generateDiverseImageForFlashcard(
                     question: initialFacts[index].question,
-                    topic: topicTitle
+                    topic: topicTitle,
+                    variation: index
                 )
                 initialFacts[index].imageURL = imageURL
             }
@@ -30,15 +31,23 @@ class TopicManager: ObservableObject {
             currentTopic = newTopic
             saveTopics()
             await FirebaseManager.shared.trackTopicExplored()
+            
+            // NEW: Update challenge progress for topic exploration
+            updateTopicExplorationChallenge()
 
         } catch {
             print("Error generating flashcards: \(error)")
             // Create enhanced mock data as fallback
             var mockFlashcards = createEnhancedMockFlashcards(for: topicTitle)
             
-            // Add placeholder images for mock data
+            // Generate unique images for each mock flashcard with variation
             for index in mockFlashcards.indices {
-                mockFlashcards[index].imageURL = "https://source.unsplash.com/400x300/?education,\(topicTitle)"
+                let imageURL = await ImageManager.shared.generateDiverseImageForFlashcard(
+                    question: mockFlashcards[index].question,
+                    topic: topicTitle,
+                    variation: index
+                )
+                mockFlashcards[index].imageURL = imageURL
             }
             
             let newTopic = Topic(title: topicTitle, flashcards: mockFlashcards)
@@ -46,7 +55,20 @@ class TopicManager: ObservableObject {
             savedTopics.insert(newTopic, at: 0)
             currentTopic = newTopic
             saveTopics()
+            
+            // NEW: Update challenge progress for topic exploration
+            updateTopicExplorationChallenge()
         }
+    }
+    
+    // NEW: Helper function to update topic exploration challenge
+    private func updateTopicExplorationChallenge() {
+        // This will be called from the GamificationManager when it's available
+        // For now, we'll use a simple notification approach
+        NotificationCenter.default.post(
+            name: NSNotification.Name("TopicExplored"),
+            object: nil
+        )
     }
     
     func deleteTopic(_ topic: Topic) {
@@ -65,11 +87,12 @@ class TopicManager: ObservableObject {
             let batchNumber = (topic.flashcards.count / 15) + 2 // Generate next batch
             var newFacts = try await fetchFlashcardsFromGemini(topic: topic.title, batchNumber: batchNumber)
             
-            // Generate images for new facts
+            // Generate unique images for new facts with variation
             for index in newFacts.indices {
-                let imageURL = await ImageManager.shared.generateImageForFlashcard(
+                let imageURL = await ImageManager.shared.generateDiverseImageForFlashcard(
                     question: newFacts[index].question,
-                    topic: topic.title
+                    topic: topic.title,
+                    variation: (topic.flashcards.count + index) % 12
                 )
                 newFacts[index].imageURL = imageURL
             }
@@ -91,9 +114,14 @@ class TopicManager: ObservableObject {
             // Add enhanced mock facts as fallback
             var mockFacts = createEnhancedMockFlashcards(for: topic.title, batchNumber: (topic.flashcards.count / 15) + 2)
             
-            // Add placeholder images for mock facts
+            // Generate unique images for each mock flashcard with variation
             for index in mockFacts.indices {
-                mockFacts[index].imageURL = "https://source.unsplash.com/400x300/?education,\(topic.title)"
+                let imageURL = await ImageManager.shared.generateDiverseImageForFlashcard(
+                    question: mockFacts[index].question,
+                    topic: topic.title,
+                    variation: (topic.flashcards.count + index) % 12
+                )
+                mockFacts[index].imageURL = imageURL
             }
             
             if let topicIndex = savedTopics.firstIndex(where: { $0.id == topic.id }) {

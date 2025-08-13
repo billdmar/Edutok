@@ -141,7 +141,7 @@ struct FlashcardView: View {
                 // Achievement Overlay
                 if gamificationManager.shouldShowAchievement,
                    let achievement = gamificationManager.newAchievement {
-                    AchievementView(
+                    CustomAchievementView(
                         isShowing: $gamificationManager.shouldShowAchievement,
                         achievement: achievement
                     )

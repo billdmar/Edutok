@@ -9,6 +9,8 @@ struct UserProgress: Codable {
     var totalCardsCompleted: Int = 0
     var totalCorrectAnswers: Int = 0
     var achievementsUnlocked: [String] = []
+    var currentStreak: Int = 0
+    var xpGainedToday: Int = 0
     
     // Calculate XP needed for next level (exponential growth)
     var xpNeededForNextLevel: Int {

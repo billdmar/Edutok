@@ -3,9 +3,11 @@ import SwiftUI
 struct SidebarView: View {
     @Binding var isShowing: Bool
     @EnvironmentObject var topicManager: TopicManager
+    @EnvironmentObject var gamificationManager: GamificationManager
     @StateObject private var firebaseManager = FirebaseManager.shared
     @State private var showDebugView = false
     @State private var showCalendar = false  // Add this for calendar access
+    @State private var showPhase1Dashboard = false // Add this for Phase 1 Dashboard
     
     var body: some View {
         HStack(spacing: 0) {
@@ -134,6 +136,44 @@ struct SidebarView: View {
                             .foregroundColor(.white)
                         
                         Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // Phase 1 Dashboard button
+                    Button(action: {
+                        showPhase1Dashboard = true
+                    }) {
+                        HStack {
+                            Image(systemName: "trophy.fill")
+                                .font(.title2)
+                                .foregroundColor(.yellow)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Learning Dashboard")
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                                
+                                Text("Daily challenges & rewards")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 15)
+                        .background(
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(Color.white.opacity(0.1))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
+                                )
+                        )
                     }
                     .padding(.horizontal, 20)
                     
@@ -362,6 +402,9 @@ struct SidebarView: View {
         }
         .fullScreenCover(isPresented: $showCalendar) {
             StandaloneCalendarView(isShowing: $showCalendar)
+        }
+        .sheet(isPresented: $showPhase1Dashboard) {
+            Phase1DashboardView(gamificationManager: gamificationManager)
         }
     }
 }
