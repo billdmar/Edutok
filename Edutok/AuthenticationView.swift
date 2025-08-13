@@ -534,11 +534,13 @@ struct AuthenticationView: View {
     
     private func googleSignIn() {
         // TODO: Implement Google Sign-In
-        errorMessage = "Google Sign-In coming soon!"
+        // This requires additional setup with GoogleSignIn SDK
+        errorMessage = "Google Sign-In coming soon! Use email or anonymous for now."
     }
     
     private func anonymousSignIn() {
         isLoading = true
+        errorMessage = ""
         
         Task {
             do {
@@ -557,18 +559,48 @@ struct AuthenticationView: View {
     }
     
     private func phoneSignIn() {
-            isLoading = true
-            errorMessage = ""
-            
-            // Temporary implementation - phone auth coming soon
-            errorMessage = "Phone authentication coming soon!"
-            isLoading = false
+        isLoading = true
+        errorMessage = ""
+        
+        Task {
+            do {
+                verificationID = try await firebaseManager.signInWithPhone(phoneNumber: phoneNumber)
+                await MainActor.run {
+                    showingVerification = true
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Phone authentication error: \(error.localizedDescription)"
+                    isLoading = false
+                }
+            }
         }
+    }
     
     private func verifyPhoneCode() {
-            // Temporary implementation
-            errorMessage = "Phone verification coming soon!"
+        isLoading = true
+        errorMessage = ""
+        
+        Task {
+            do {
+                try await firebaseManager.verifyPhoneCode(
+                    verificationID: verificationID,
+                    verificationCode: verificationCode
+                )
+                await MainActor.run {
+                    showingVerification = false
+                    showingUsernamePrompt = true
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Verification failed: \(error.localizedDescription)"
+                    isLoading = false
+                }
+            }
         }
+    }
     
     private func saveUsername() {
         Task {
@@ -587,4 +619,8 @@ struct AuthenticationView: View {
         verificationCode = ""
         errorMessage = ""
     }
+}
+
+#Preview {
+    AuthenticationView()
 }

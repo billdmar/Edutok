@@ -39,45 +39,41 @@ class FirebaseManager: ObservableObject {
         }
     }
     
-    // MARK: - Authentication
-    func signUpWithEmail(email: String, password: String, username: String) async throws {
-        let result = try await auth.createUser(withEmail: email, password: password)
-        
-        // Create user with custom username
-        let newUser = AppUser(
-            id: result.user.uid,
-            username: username,
-            totalCardsFlipped: 0,
-            totalTopicsExplored: 0,
-            currentStreak: 0,
-            longestStreak: 0,
-            lastActiveDate: Date(),
-            joinDate: Date(),
-            dailyStats: []
-        )
-        
-        try await saveUser(newUser)
+    // MARK: - Authentication Methods
+    
+    func signInAnonymously() async throws {
+        let result = try await auth.signInAnonymously()
         await loadOrCreateUser(uid: result.user.uid)
     }
-
-    func signInWithEmail(email: String, password: String) async throws {
+    
+    func signIn(email: String, password: String) async throws {
         let result = try await auth.signIn(withEmail: email, password: password)
         await loadOrCreateUser(uid: result.user.uid)
     }
-
-    func signInWithPhone(phoneNumber: String) async throws {
-        // TODO: Implement phone authentication
-        // This requires additional setup with Firebase Phone Auth
-        throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Phone authentication not yet implemented"])
+    
+    func signUp(email: String, password: String) async throws {
+        let result = try await auth.createUser(withEmail: email, password: password)
+        await loadOrCreateUser(uid: result.user.uid)
     }
-
-    func signInWithGoogle() async throws {
-        // TODO: Implement Google Sign-In
-        // This requires Google Sign-In SDK integration
-        throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In not yet implemented"])
+    
+    func signInWithPhone(phoneNumber: String) async throws -> String {
+        // Note: Phone auth requires additional setup in Firebase Console
+        // and may not work in simulator
+        do {
+            let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
+            return verificationID
+        } catch {
+            throw error
+        }
     }
-    func signInAnonymously() async throws {
-        let result = try await auth.signInAnonymously()
+    
+    func verifyPhoneCode(verificationID: String, verificationCode: String) async throws {
+        let credential = PhoneAuthProvider.provider().credential(
+            withVerificationID: verificationID,
+            verificationCode: verificationCode
+        )
+        
+        let result = try await auth.signIn(with: credential)
         await loadOrCreateUser(uid: result.user.uid)
     }
     
@@ -85,6 +81,16 @@ class FirebaseManager: ObservableObject {
         try? auth.signOut()
         currentUser = nil
         isAuthenticated = false
+    }
+    
+    func updateUsername(_ newUsername: String) async {
+        guard var user = currentUser else { return }
+        
+        user.username = newUsername
+        currentUser = user
+        
+        // Save to Firestore
+        try? await saveUser(user)
     }
     
     // MARK: - User Management
@@ -98,7 +104,7 @@ class FirebaseManager: ObservableObject {
                 let data = document.data() ?? [:]
                 currentUser = AppUser(
                     id: uid,
-                    username: data["username"] as? String ?? "Anonymous",
+                    username: data["username"] as? String ?? generateRandomUsername(),
                     totalCardsFlipped: data["totalCardsFlipped"] as? Int ?? 0,
                     totalTopicsExplored: data["totalTopicsExplored"] as? Int ?? 0,
                     currentStreak: data["currentStreak"] as? Int ?? 0,
@@ -126,6 +132,19 @@ class FirebaseManager: ObservableObject {
             }
         } catch {
             print("Error loading/creating user: \(error)")
+            
+            // Create a local user if database fails
+            currentUser = AppUser(
+                id: uid,
+                username: generateRandomUsername(),
+                totalCardsFlipped: 0,
+                totalTopicsExplored: 0,
+                currentStreak: 0,
+                longestStreak: 0,
+                lastActiveDate: Date(),
+                joinDate: Date(),
+                dailyStats: []
+            )
         }
     }
     
