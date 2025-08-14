@@ -224,53 +224,28 @@ struct SidebarView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                 
-                // Topics list
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        // Section header
-                        HStack {
-                            Text("Recent Topics")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                            
-                            Spacer()
-                            
-                            Text("\(topicManager.savedTopics.count)")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white.opacity(0.6))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.white.opacity(0.1))
-                                )
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 10)
+                // Topics list MOVED TO TOP
+                VStack(alignment: .leading, spacing: 15) {
+                    HStack {
+                        Text("Recent Topics")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
                         
-                        if topicManager.savedTopics.isEmpty {
-                            VStack(spacing: 15) {
-                                Image(systemName: "brain.head.profile")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.white.opacity(0.3))
-                                
-                                VStack(spacing: 8) {
-                                    Text("No topics yet!")
-                                        .font(.headline)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white.opacity(0.8))
-                                    
-                                    Text("Start learning to see your topics here")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.6))
-                                        .multilineTextAlignment(.center)
-                                }
-                            }
-                            .padding(.vertical, 30)
-                            .padding(.horizontal, 20)
-                        } else {
+                        Spacer()
+                        
+                        Text("\(topicManager.savedTopics.count)")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Circle().fill(Color.white.opacity(0.2)))
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
                             ForEach(topicManager.savedTopics) { topic in
                                 TopicRowView(topic: topic, onTap: {
                                     topicManager.currentTopic = topic
@@ -282,18 +257,98 @@ struct SidebarView: View {
                                 })
                             }
                         }
+                        .padding(.horizontal, 20)
+                    }
+                    .frame(maxHeight: 200) // Limit height to make room for quick actions
+                }
+
+                Spacer()
+
+                // Quick Actions MOVED TO BOTTOM
+                VStack(alignment: .leading, spacing: 15) {
+                    Text("Quick Actions")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                    
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            // Navigate to stats/leaderboard
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isShowing = false
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "trophy.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.yellow)
+                                
+                                VStack(alignment: .leading) {
+                                    Text("Learning Dashboard")
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                    
+                                    Text("Daily challenges & rewards")
+                                        .font(.caption)
+                                        .foregroundColor(.white.opacity(0.7))
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 15)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(15)
+                        }
+                        
+                        Button(action: {
+                            // Navigate to calendar
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isShowing = false
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "calendar")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                                
+                                VStack(alignment: .leading) {
+                                    Text("Learning Calendar")
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                    
+                                    Text("🔥 14 day streak")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 15)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(15)
+                        }
                     }
                     .padding(.horizontal, 20)
                 }
-                
+
                 Spacer()
-                
-                // Footer with actions
+
+                // Footer
                 VStack(spacing: 15) {
                     Divider()
                         .background(Color.white.opacity(0.2))
                     
-                    // Create new topic button
                     Button(action: {
                         topicManager.currentTopic = nil
                         withAnimation(.easeInOut(duration: 0.3)) {
@@ -310,85 +365,28 @@ struct SidebarView: View {
                                 .foregroundColor(.white)
                             
                             Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.5))
                         }
                         .padding(.horizontal, 20)
                         .padding(.vertical, 15)
-                        .background(
-                            RoundedRectangle(cornerRadius: 15)
-                                .fill(Color.white.opacity(0.1))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 15)
-                                        .stroke(Color.pink.opacity(0.3), lineWidth: 1)
-                                )
-                        )
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(15)
                     }
-                    
-                    // Debug tools button (always visible, not just debug builds)
-                    Button(action: {
-                        showDebugView = true
-                    }) {
-                        HStack {
-                            Image(systemName: "hammer.fill")
-                                .font(.title3)
-                                .foregroundColor(.orange)
-                            
-                            Text("Debug Tools")
-                                .fontWeight(.medium)
-                                .foregroundColor(.white.opacity(0.9))
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                        .padding(.horizontal, 15)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.orange.opacity(0.1))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.orange.opacity(0.2), lineWidth: 1)
-                                )
-                        )
-                    }
-                    
-                    // Version info
-                    VStack(spacing: 5) {
-                        Text("FlashTok v1.0")
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                            .foregroundColor(.white.opacity(0.5))
-                        
-                        if firebaseManager.isAuthenticated {
-                            Text("Connected to Firebase")
-                                .font(.caption2)
-                                .foregroundColor(.green.opacity(0.7))
-                        } else {
-                            Text("Offline Mode")
-                                .font(.caption2)
-                                .foregroundColor(.yellow.opacity(0.7))
-                        }
-                    }
+                    .padding(.horizontal, 20)
                 }
-                .padding(.horizontal, 20)
                 .padding(.bottom, 30)
-            }
-            .frame(width: 280)
             .background(
                 LinearGradient(
                     gradient: Gradient(colors: [
                         Color.black.opacity(0.95),
-                        Color.purple.opacity(0.3),
+                        Color.purple.opacity(0.7),
                         Color.black.opacity(0.95)
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
+                )
+                .overlay(
+                    Rectangle()
+                        .fill(.ultraThinMaterial.opacity(0.8))
                 )
             )
             .ignoresSafeArea()

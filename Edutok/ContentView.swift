@@ -18,31 +18,74 @@ struct ContentView: View {
                 case .main:
                     if topicManager.currentTopic != nil {
                         FlashcardView()
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .trailing).combined(with: .opacity),
+                                removal: .move(edge: .leading).combined(with: .opacity)
+                            ))
                     } else {
                         MainView()
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .leading).combined(with: .opacity),
+                                removal: .move(edge: .trailing).combined(with: .opacity)
+                            ))
                     }
                 case .flashcards:
                     if topicManager.currentTopic != nil {
                         FlashcardView()
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .trailing).combined(with: .opacity),
+                                removal: .move(edge: .leading).combined(with: .opacity)
+                            ))
                     } else {
                         MainView()
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .leading).combined(with: .opacity),
+                                removal: .move(edge: .trailing).combined(with: .opacity)
+                            ))
                     }
-                case .leaderboard:
-                    LeaderboardWrapper()
-                case .calendar:
-                    StandaloneCalendarView(isShowing: .constant(true))
+                case .stats:
+                    if firebaseManager.isAuthenticated {
+                        StatsSectionView()
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .move(edge: .top).combined(with: .opacity)
+                            ))
+                    } else {
+                        AuthenticationView()
+                            .transition(.asymmetric(
+                                insertion: .scale.combined(with: .opacity),
+                                removal: .scale.combined(with: .opacity)
+                            ))
+                    }
                 }
             }
-            .animation(.easeInOut(duration: 0.3), value: currentSection)
+            .animation(.easeInOut(duration: 0.4), value: currentSection)
+            .animation(.easeInOut(duration: 0.3), value: topicManager.currentTopic)
+            .animation(.easeInOut(duration: 0.3), value: firebaseManager.isAuthenticated)
             
-            // Floating navigation bar at bottom (show for all main sections, hide only during flashcard study or when topic is selected)
-            if currentSection != .flashcards && topicManager.currentTopic == nil {
+            // Floating navigation bar at bottom (only when not in flashcard view and sidebar not showing)
+            if topicManager.currentTopic == nil && !showSidebar {
                 VStack {
                     Spacer()
                     floatingNavBar()
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-                .zIndex(1000) // Ensure nav bar appears above other content
+                .animation(.easeInOut(duration: 0.3), value: showSidebar)
+            }
+            
+            // Sidebar overlay
+            if showSidebar {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showSidebar = false
+                        }
+                    }
+                    .transition(.opacity)
+                
+                SidebarView(isShowing: $showSidebar)
+                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
         }
         .onAppear {
@@ -58,14 +101,19 @@ struct ContentView: View {
         .onChange(of: topicManager.currentTopic) { topic in
             // Automatically switch to flashcards section when a topic is selected
             if topic != nil {
-                withAnimation(.easeInOut(duration: 0.3)) {
+                withAnimation(.easeInOut(duration: 0.4)) {
                     currentSection = .flashcards
                 }
-            } else if currentSection == .flashcards {
-                // Return to main when exiting flashcard mode
-                withAnimation(.easeInOut(duration: 0.3)) {
+            } else {
+                withAnimation(.easeInOut(duration: 0.4)) {
                     currentSection = .main
                 }
+            }
+        }
+        .onChange(of: firebaseManager.isAuthenticated) { isAuth in
+            // Smooth transition when authentication state changes
+            withAnimation(.easeInOut(duration: 0.3)) {
+                // Trigger view update
             }
         }
     }

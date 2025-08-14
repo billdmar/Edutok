@@ -12,14 +12,116 @@ struct LeaderboardView: View {
     var body: some View {
         Group {
             if firebaseManager.isAuthenticated {
-                leaderboardContent()
+                authenticatedLeaderboardView()
             } else {
-                AuthenticationPromptView()
+                AuthenticationView()
             }
         }
-        .sheet(isPresented: $showAuthView) {
-            AuthenticationView()
+        .onAppear {
+            // Only try to load leaderboard if authenticated
+            if firebaseManager.isAuthenticated {
+                loadLeaderboard()
+                startRefreshTimer()
+            }
         }
+        .onDisappear {
+            stopRefreshTimer()
+        }
+    }
+
+    private func authenticatedLeaderboardView() -> some View {
+        VStack(spacing: 0) {
+            // Header with type selection
+            VStack(spacing: 20) {
+                Text("Daily Leaderboard")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                // Type toggle buttons
+                HStack(spacing: 0) {
+                    ForEach(LeaderboardType.allCases, id: \.self) { type in
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                selectedType = type
+                                loadLeaderboard()
+                            }
+                        }) {
+                            VStack(spacing: 8) {
+                                Image(systemName: type.icon)
+                                    .font(.title2)
+                                
+                                Text(type.title)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .foregroundColor(selectedType == type ? .white : .white.opacity(0.6))
+                            .padding(.vertical, 15)
+                            .padding(.horizontal, 20)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .fill(
+                                        selectedType == type
+                                        ? LinearGradient(colors: [.purple, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                        : LinearGradient(colors: [.clear], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 15)
+                                            .stroke(Color.white.opacity(selectedType == type ? 0.3 : 0.1), lineWidth: 1)
+                                    )
+                            )
+                        }
+                    }
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.white.opacity(0.05))
+                )
+                .padding(.horizontal, 20)
+            }
+            .padding(.vertical, 20)
+            
+            // Current user stats
+            if let user = firebaseManager.currentUser {
+                currentUserStatsView(user: user)
+            }
+            
+            // Leaderboard list
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    if isLoading {
+                        ForEach(0..<10, id: \.self) { _ in
+                            leaderboardLoadingRow()
+                        }
+                    } else if leaderboardEntries.isEmpty {
+                        emptyLeaderboardView()
+                    } else {
+                        ForEach(leaderboardEntries) { entry in
+                            leaderboardRow(entry: entry)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 100)
+            }
+            .refreshable {
+                await refreshLeaderboard()
+            }
+        }
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.black,
+                    Color.purple.opacity(0.3),
+                    Color.black
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        )
     }
 
     private func leaderboardContent() -> some View {

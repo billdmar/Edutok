@@ -89,31 +89,34 @@ struct FlashcardView: View {
                 }
                 
                 // Sidebar overlay
-                                if showSidebar {
-                                    ZStack {
-                                        // Full screen dimming overlay
-                                        Color.black.opacity(0.3)
-                                            .blur(radius: 2)
-                                            .ignoresSafeArea()
-                                            .contentShape(Rectangle())
-                                            .onTapGesture {
-                                                withAnimation(.easeInOut(duration: 0.3)) {
-                                                    showSidebar = false
-                                                }
-                                            }
-                                        
-                                        // Sidebar positioned on left
-                                        HStack {
-                                            SidebarView(isShowing: $showSidebar)
-                                                .frame(width: 280)
-                                                .transition(.move(edge: .leading))
-                                            
-                                            Spacer()
-                                        }
-                                    }
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .zIndex(1000)
+                // Sidebar overlay
+                if showSidebar {
+                    ZStack {
+                        // Full screen dimming overlay
+                        Color.black.opacity(0.4)
+                            .blur(radius: 2)
+                            .ignoresSafeArea()
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    showSidebar = false
                                 }
+                            }
+                            .transition(.opacity)
+                        
+                        // Sidebar positioned on left
+                        HStack {
+                            SidebarView(isShowing: $showSidebar)
+                                .frame(width: 280)
+                                .transition(.move(edge: .leading).combined(with: .opacity))
+                            
+                            Spacer()
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .zIndex(1000)
+                    .animation(.easeInOut(duration: 0.3), value: showSidebar)
+                }
                 
                 // XP Gain Animations
                 ForEach(gamificationManager.recentXPGains) { xpEvent in

@@ -144,7 +144,7 @@ struct MainView: View {
                     .padding(.bottom, 20)
                     
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 30) {
+                        VStack(spacing: 20) {
                             // Logo and title section with animation
                             VStack(spacing: 25) {
                                 ZStack {
