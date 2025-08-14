@@ -261,9 +261,9 @@ struct SidebarView: View {
                     }
                     .frame(maxHeight: 200) // Limit height to make room for quick actions
                 }
-
+                
                 Spacer()
-
+                
                 // Quick Actions MOVED TO BOTTOM
                 VStack(alignment: .leading, spacing: 15) {
                     Text("Quick Actions")
@@ -341,9 +341,9 @@ struct SidebarView: View {
                     }
                     .padding(.horizontal, 20)
                 }
-
+                
                 Spacer()
-
+                
                 // Footer
                 VStack(spacing: 15) {
                     Divider()
@@ -374,141 +374,142 @@ struct SidebarView: View {
                     .padding(.horizontal, 20)
                 }
                 .padding(.bottom, 30)
-            .background(
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.black.opacity(0.95),
-                        Color.purple.opacity(0.7),
-                        Color.black.opacity(0.95)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.black.opacity(0.95),
+                            Color.purple.opacity(0.7),
+                            Color.black.opacity(0.95)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .overlay(
+                        Rectangle()
+                            .fill(.ultraThinMaterial.opacity(0.8))
+                    )
                 )
-                .overlay(
-                    Rectangle()
-                        .fill(.ultraThinMaterial.opacity(0.8))
-                )
-            )
-            .ignoresSafeArea()
-        }
-        .sheet(isPresented: $showDebugView) {
-            DebugView()
-        }
-        .fullScreenCover(isPresented: $showCalendar) {
-            StandaloneCalendarView(isShowing: $showCalendar)
-        }
-        .sheet(isPresented: $showPhase1Dashboard) {
-            Phase1DashboardView(gamificationManager: gamificationManager)
+                .ignoresSafeArea()
+            }
+            .sheet(isPresented: $showDebugView) {
+                DebugView()
+            }
+            .fullScreenCover(isPresented: $showCalendar) {
+                StandaloneCalendarView(isShowing: $showCalendar)
+            }
+            .sheet(isPresented: $showPhase1Dashboard) {
+                Phase1DashboardView(gamificationManager: gamificationManager)
+            }
         }
     }
-}
-
-struct TopicRowView: View {
-    let topic: Topic
-    let onTap: () -> Void
-    let onDelete: () -> Void
-    @State private var showDeleteAlert = false
     
-    var body: some View {
-        HStack {
-            Button(action: onTap) {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(topic.title)
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                            
-                            HStack(spacing: 15) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "rectangle.stack.fill")
-                                        .font(.caption2)
-                                        .foregroundColor(.white.opacity(0.6))
-                                    
-                                    Text("\(topic.flashcards.count)")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.6))
-                                }
+    struct TopicRowView: View {
+        let topic: Topic
+        let onTap: () -> Void
+        let onDelete: () -> Void
+        @State private var showDeleteAlert = false
+        
+        var body: some View {
+            HStack {
+                Button(action: onTap) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(topic.title)
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
                                 
-                                if topic.isLiked {
+                                HStack(spacing: 15) {
                                     HStack(spacing: 4) {
-                                        Image(systemName: "heart.fill")
+                                        Image(systemName: "rectangle.stack.fill")
                                             .font(.caption2)
-                                            .foregroundColor(.red)
+                                            .foregroundColor(.white.opacity(0.6))
                                         
-                                        Text("Liked")
-                                            .font(.caption2)
-                                            .foregroundColor(.red.opacity(0.8))
+                                        Text("\(topic.flashcards.count)")
+                                            .font(.caption)
+                                            .foregroundColor(.white.opacity(0.6))
+                                    }
+                                    
+                                    if topic.isLiked {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "heart.fill")
+                                                .font(.caption2)
+                                                .foregroundColor(.red)
+                                            
+                                            Text("Liked")
+                                                .font(.caption2)
+                                                .foregroundColor(.red.opacity(0.8))
+                                        }
                                     }
                                 }
                             }
+                            
+                            Spacer()
+                            
+                            VStack(spacing: 5) {
+                                Text("\(topic.progressPercentage)%")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
                         }
                         
-                        Spacer()
-                        
-                        VStack(spacing: 5) {
-                            Text("\(topic.progressPercentage)%")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                    }
-                    
-                    // Progress bar
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.white.opacity(0.2))
-                                .frame(height: 4)
-                            
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color.pink, Color.purple]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
+                        // Progress bar
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Color.white.opacity(0.2))
+                                    .frame(height: 4)
+                                
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.pink, Color.purple]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
                                     )
-                                )
-                                .frame(width: geometry.size.width * CGFloat(topic.progressPercentage) / 100, height: 4)
+                                    .frame(width: geometry.size.width * CGFloat(topic.progressPercentage) / 100, height: 4)
+                            }
                         }
+                        .frame(height: 4)
                     }
-                    .frame(height: 4)
+                    .padding(15)
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(15)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 15)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    )
                 }
-                .padding(15)
-                .background(Color.white.opacity(0.05))
-                .cornerRadius(15)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 15)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                )
+                
+                // Delete button
+                Button(action: {
+                    showDeleteAlert = true
+                }) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16))
+                        .foregroundColor(.red.opacity(0.8))
+                        .padding(8)
+                        .background(Color.red.opacity(0.1))
+                        .clipShape(Circle())
+                }
             }
-            
-            // Delete button
-            Button(action: {
-                showDeleteAlert = true
-            }) {
-                Image(systemName: "trash")
-                    .font(.system(size: 16))
-                    .foregroundColor(.red.opacity(0.8))
-                    .padding(8)
-                    .background(Color.red.opacity(0.1))
-                    .clipShape(Circle())
+            .alert("Delete Topic", isPresented: $showDeleteAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    onDelete()
+                }
+            } message: {
+                Text("Are you sure you want to delete '\(topic.title)'? This action cannot be undone.")
             }
-        }
-        .alert("Delete Topic", isPresented: $showDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                onDelete()
-            }
-        } message: {
-            Text("Are you sure you want to delete '\(topic.title)'? This action cannot be undone.")
         }
     }
 }

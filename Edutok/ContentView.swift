@@ -9,68 +9,29 @@ struct ContentView: View {
     @EnvironmentObject var topicManager: TopicManager
     @StateObject private var firebaseManager = FirebaseManager.shared
     @State private var currentSection: AppSection = .main
+    @State private var showSidebar = false
     
     var body: some View {
         ZStack {
             // Main content based on current section
-            Group {
-                switch currentSection {
-                case .main:
-                    if topicManager.currentTopic != nil {
-                        FlashcardView()
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .trailing).combined(with: .opacity),
-                                removal: .move(edge: .leading).combined(with: .opacity)
-                            ))
-                    } else {
-                        MainView()
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .leading).combined(with: .opacity),
-                                removal: .move(edge: .trailing).combined(with: .opacity)
-                            ))
-                    }
-                case .flashcards:
-                    if topicManager.currentTopic != nil {
-                        FlashcardView()
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .trailing).combined(with: .opacity),
-                                removal: .move(edge: .leading).combined(with: .opacity)
-                            ))
-                    } else {
-                        MainView()
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .leading).combined(with: .opacity),
-                                removal: .move(edge: .trailing).combined(with: .opacity)
-                            ))
-                    }
-                case .stats:
-                    if firebaseManager.isAuthenticated {
-                        StatsSectionView()
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .bottom).combined(with: .opacity),
-                                removal: .move(edge: .top).combined(with: .opacity)
-                            ))
-                    } else {
-                        AuthenticationView()
-                            .transition(.asymmetric(
-                                insertion: .scale.combined(with: .opacity),
-                                removal: .scale.combined(with: .opacity)
-                            ))
-                    }
-                }
-            }
-            .animation(.easeInOut(duration: 0.4), value: currentSection)
-            .animation(.easeInOut(duration: 0.3), value: topicManager.currentTopic)
-            .animation(.easeInOut(duration: 0.3), value: firebaseManager.isAuthenticated)
+            mainContent
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.98)),
+                    removal: .opacity.combined(with: .scale(scale: 1.02))
+                ))
+                .animation(.easeInOut(duration: 0.4), value: currentSection)
             
-            // Floating navigation bar at bottom (only when not in flashcard view and sidebar not showing)
+            // Floating navigation bar at bottom (only when not in flashcard view AND sidebar is closed)
             if topicManager.currentTopic == nil && !showSidebar {
                 VStack {
                     Spacer()
                     floatingNavBar()
                 }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .animation(.easeInOut(duration: 0.3), value: showSidebar)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .move(edge: .bottom).combined(with: .opacity)
+                ))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showSidebar)
             }
             
             // Sidebar overlay
@@ -82,10 +43,9 @@ struct ContentView: View {
                             showSidebar = false
                         }
                     }
-                    .transition(.opacity)
                 
                 SidebarView(isShowing: $showSidebar)
-                    .transition(.move(edge: .leading).combined(with: .opacity))
+                    .transition(.move(edge: .leading))
             }
         }
         .onAppear {
@@ -98,61 +58,67 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: topicManager.currentTopic) { topic in
+        .onChange(of: topicManager.currentTopic) { newValue in
             // Automatically switch to flashcards section when a topic is selected
-            if topic != nil {
-                withAnimation(.easeInOut(duration: 0.4)) {
+            if newValue != nil {
+                withAnimation(.easeInOut(duration: 0.3)) {
                     currentSection = .flashcards
                 }
             } else {
-                withAnimation(.easeInOut(duration: 0.4)) {
+                withAnimation(.easeInOut(duration: 0.3)) {
                     currentSection = .main
                 }
             }
         }
-        .onChange(of: firebaseManager.isAuthenticated) { isAuth in
-            // Smooth transition when authentication state changes
-            withAnimation(.easeInOut(duration: 0.3)) {
-                // Trigger view update
+    }
+    
+    @ViewBuilder
+    private var mainContent: some View {
+        switch currentSection {
+        case .main:
+            if topicManager.currentTopic != nil {
+                FlashcardView()
+            } else {
+                MainView()
+            }
+        case .flashcards:
+            if topicManager.currentTopic != nil {
+                FlashcardView()
+            } else {
+                MainView()
+            }
+        case.stats:
+            if firebaseManager.isAuthenticated {
+                StatsSectionView()
+            } else {
+                AuthenticationRequiredView()
             }
         }
     }
     
     private func floatingNavBar() -> some View {
         HStack(spacing: 0) {
-            // Leaderboard button (left)
+            // Menu button
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    currentSection = .leaderboard
-                    topicManager.currentTopic = nil
+                    showSidebar = true
                 }
             }) {
                 VStack(spacing: 6) {
-                    ZStack {
-                        Image(systemName: currentSection == .leaderboard ? "trophy.fill" : "trophy")
-                            .font(.title3)
-                            .foregroundColor(currentSection == .leaderboard ? .yellow : .white)
-                        
-                        // Notification badge for achievements or streaks
-                        if let user = firebaseManager.currentUser,
-                           user.currentStreak > 0 || !user.dailyStats.isEmpty {
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 8, height: 8)
-                                .offset(x: 8, y: -8)
-                        }
-                    }
+                    Image(systemName: "line.3.horizontal")
+                        .font(.title3)
+                        .foregroundColor(.white)
                     
-                    Text("Leaderboard")
+                    Text("Menu")
                         .font(.caption2)
                         .fontWeight(.medium)
-                        .foregroundColor(currentSection == .leaderboard ? .yellow : .white.opacity(0.8))
+                        .foregroundColor(.white.opacity(0.8))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
             }
             
-            // Main/Learn button (center)
+            // Main/Learn button
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentSection = .main
@@ -173,32 +139,33 @@ struct ContentView: View {
                 .padding(.vertical, 12)
             }
             
-            // Calendar button (right)
+            // Stats button
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    currentSection = .calendar
+                    currentSection = .stats
                     topicManager.currentTopic = nil
                 }
             }) {
                 VStack(spacing: 6) {
                     ZStack {
-                        Image(systemName: currentSection == .calendar ? "calendar.circle.fill" : "calendar")
+                        Image(systemName: currentSection == .stats ? "chart.bar.fill" : "chart.bar")
                             .font(.title3)
-                            .foregroundColor(currentSection == .calendar ? .blue : .white)
+                            .foregroundColor(currentSection == .stats ? .blue : .white)
                         
-                        // Streak indicator
-                        if let user = firebaseManager.currentUser, user.currentStreak > 0 {
+                        // Notification badge for achievements or streaks
+                        if let user = firebaseManager.currentUser,
+                           user.currentStreak > 0 || !user.dailyStats.isEmpty {
                             Circle()
-                                .fill(Color.orange)
+                                .fill(Color.red)
                                 .frame(width: 8, height: 8)
                                 .offset(x: 8, y: -8)
                         }
                     }
                     
-                    Text("Calendar")
+                    Text("Stats")
                         .font(.caption2)
                         .fontWeight(.medium)
-                        .foregroundColor(currentSection == .calendar ? .blue : .white.opacity(0.8))
+                        .foregroundColor(currentSection == .stats ? .blue : .white.opacity(0.8))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
