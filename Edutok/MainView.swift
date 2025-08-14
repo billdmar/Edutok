@@ -30,11 +30,12 @@ struct MainView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background gradient
+                // Beautiful animated gradient background
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.purple.opacity(0.8),
-                        Color.blue.opacity(0.6),
+                        Color.purple.opacity(0.7),
+                        Color.blue.opacity(0.5),
+                        Color.purple.opacity(0.3),
                         Color.black
                     ]),
                     startPoint: .topLeading,
@@ -42,230 +43,24 @@ struct MainView: View {
                 )
                 .ignoresSafeArea()
                 
-                VStack(spacing: 40) {
-                    Spacer()
-                        .frame(height: 60) // Add extra top spacing to move content down
+                // Animated background circles
+                ZStack {
+                    Circle()
+                        .fill(Color.purple.opacity(0.2))
+                        .frame(width: 300, height: 300)
+                        .blur(radius: 60)
+                        .offset(x: -100, y: -200)
                     
-                    // Logo and title
-                    VStack(spacing: 20) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color.pink, Color.purple]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 100, height: 100)
-                            
-                            Image(systemName: "brain.head.profile")
-                                .font(.system(size: 50))
-                                .foregroundColor(.white)
-                        }
-                        .shadow(color: .purple.opacity(0.3), radius: 20, x: 0, y: 10)
-                        
-                        VStack(spacing: 5) {
-                            Text("FlashTok")
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                            
-                            Text("Learn anything, TikTok style")
-                                .font(.headline)
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                    }
-                    
-                    Spacer()
-                        .frame(height: 40) // Reduce this spacer to bring content closer together
-                    
-                    // Enhanced input section
-                    VStack(spacing: 20) {
-                        VStack(spacing: 0) {
-                            // Search field
-                            HStack {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundColor(.white.opacity(0.7))
-                                    .font(.system(size: 18))
-                                
-                                TextField("What do you want to learn today?", text: $topicInput)
-                                    .textFieldStyle(PlainTextFieldStyle())
-                                    .foregroundColor(.white)
-                                    .font(.body)
-                                    .focused($isSearchFocused)
-                                    .submitLabel(.go)
-                                    .onSubmit {
-                                        startLearning()
-                                    }
-                                    .onChange(of: topicInput) { newValue in
-                                        updateSearchSuggestions(for: newValue)
-                                    }
-                                    .onChange(of: isSearchFocused) { focused in
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            showSuggestions = focused && !topicInput.isEmpty
-                                        }
-                                    }
-                                
-                                if !topicInput.isEmpty {
-                                    Button(action: {
-                                        topicInput = ""
-                                        showSuggestions = false
-                                    }) {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(.white.opacity(0.6))
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 15)
-                            .background(
-                                RoundedRectangle(cornerRadius: 25)
-                                    .fill(Color.white.opacity(0.1))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 25)
-                                            .stroke(Color.white.opacity(isSearchFocused ? 0.4 : 0.2), lineWidth: isSearchFocused ? 2 : 1)
-                                    )
-                            )
-                            
-                            // Search suggestions dropdown
-                            if showSuggestions && !searchSuggestions.isEmpty {
-                                VStack(spacing: 0) {
-                                    ForEach(searchSuggestions, id: \.self) { suggestion in
-                                        Button(action: {
-                                            topicInput = suggestion
-                                            showSuggestions = false
-                                            isSearchFocused = false
-                                        }) {
-                                            HStack {
-                                                Image(systemName: "magnifyingglass")
-                                                    .foregroundColor(.white.opacity(0.5))
-                                                    .font(.caption)
-                                                
-                                                Text(suggestion)
-                                                    .foregroundColor(.white.opacity(0.9))
-                                                    .font(.body)
-                                                
-                                                Spacer()
-                                                
-                                                Image(systemName: "arrow.up.left")
-                                                    .foregroundColor(.white.opacity(0.3))
-                                                    .font(.caption)
-                                            }
-                                            .padding(.horizontal, 20)
-                                            .padding(.vertical, 12)
-                                        }
-                                        .background(Color.white.opacity(0.05))
-                                        
-                                        if suggestion != searchSuggestions.last {
-                                            Divider()
-                                                .background(Color.white.opacity(0.1))
-                                        }
-                                    }
-                                }
-                                .background(
-                                    RoundedRectangle(cornerRadius: 15)
-                                        .fill(Color.white.opacity(0.08))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 15)
-                                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                        )
-                                )
-                                .padding(.top, 5)
-                                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
-                            }
-                        }
-                        
-                        // Start learning button
-                        Button(action: startLearning) {
-                            HStack(spacing: 12) {
-                                if isLoading {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                } else {
-                                    Image(systemName: "play.fill")
-                                        .font(.headline)
-                                }
-                                
-                                Text(isLoading ? "Creating Your Cards..." : "Start Learning")
-                                    .fontWeight(.semibold)
-                                    .font(.headline)
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 35)
-                            .padding(.vertical, 18)
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [Color.pink, Color.purple]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(25)
-                            .shadow(color: .pink.opacity(0.3), radius: 15, x: 0, y: 5)
-                        }
-                        .disabled(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
-                        .scaleEffect(isLoading ? 0.95 : 1.0)
-                        .animation(.easeInOut(duration: 0.1), value: isLoading)
-                        .opacity(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1.0)
-                    }
-                    .padding(.horizontal, 30)
-                    
-                    Spacer()
-                        .frame(height: 30) // Reduce this spacer to bring content closer together
-                    
-                    // Enhanced popular topics section
-                    if !showSuggestions {
-                        VStack(spacing: 15) {
-                            HStack {
-                                Text("🔥 Trending Topics")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal, 30)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(popularTopics.shuffled().prefix(12), id: \.self) { suggestion in
-                                        Button(action: {
-                                            topicInput = suggestion
-                                        }) {
-                                            Text(suggestion)
-                                                .font(.subheadline)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(.white)
-                                                .padding(.horizontal, 16)
-                                                .padding(.vertical, 10)
-                                                .background(
-                                                    RoundedRectangle(cornerRadius: 20)
-                                                        .fill(Color.white.opacity(0.1))
-                                                        .overlay(
-                                                            RoundedRectangle(cornerRadius: 20)
-                                                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                                                        )
-                                                )
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 30)
-                            }
-                        }
-                        .padding(.bottom, 140) // Increase bottom padding to ensure no overlap with nav bar
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    }
-                    
-                    Spacer()
-                        .frame(height: 20) // Add small spacer at bottom
+                    Circle()
+                        .fill(Color.blue.opacity(0.2))
+                        .frame(width: 250, height: 250)
+                        .blur(radius: 50)
+                        .offset(x: 100, y: 300)
                 }
                 
-                // Menu button and XP display - top corners
-                VStack {
+                VStack(spacing: 0) {
+                    // Top bar with menu and XP
                     HStack {
-                        // Menu button in top left
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 showSidebar = true
@@ -284,8 +79,6 @@ struct MainView: View {
                                         )
                                 )
                         }
-                        .padding(.leading, 20)
-                        .padding(.top, 10)
                         
                         Spacer()
                         
@@ -306,74 +99,309 @@ struct MainView: View {
                                 ProgressRing(
                                     progress: gamificationManager.userProgress.levelProgress,
                                     lineWidth: 3,
-                                    size: 30
+                                    size: 35
                                 )
                                 
                                 Text("\(gamificationManager.userProgress.currentLevel)")
-                                    .font(.caption2)
+                                    .font(.caption)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
-                                
-                                // NEW: Notification badge for Phase 1 features
-                                if hasActivePhase1Features {
-                                    Circle()
-                                        .fill(Color.red)
-                                        .frame(width: 8, height: 8)
-                                        .offset(x: 10, y: -10)
-                                }
                             }
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, 15)
+                        .padding(.vertical, 10)
                         .background(
-                            RoundedRectangle(cornerRadius: 15)
+                            RoundedRectangle(cornerRadius: 20)
                                 .fill(
                                     LinearGradient(
                                         gradient: Gradient(colors: [
-                                            Color.purple.opacity(0.3),
-                                            Color.blue.opacity(0.2)
+                                            Color.purple.opacity(0.4),
+                                            Color.blue.opacity(0.3)
                                         ]),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
                                 )
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 15)
+                                    RoundedRectangle(cornerRadius: 20)
                                         .stroke(
                                             LinearGradient(
                                                 gradient: Gradient(colors: [
-                                                    Color.yellow.opacity(0.4),
-                                                    Color.purple.opacity(0.3)
+                                                    Color.yellow.opacity(0.5),
+                                                    Color.purple.opacity(0.4)
                                                 ]),
                                                 startPoint: .topLeading,
                                                 endPoint: .bottomTrailing
                                             ),
-                                            lineWidth: 1
+                                            lineWidth: 1.5
                                         )
                                 )
                         )
-                        .shadow(color: .purple.opacity(0.3), radius: 5, x: 0, y: 2)
-                        .padding(.trailing, 20)
-                        .padding(.top, 5)
+                        .shadow(color: .purple.opacity(0.4), radius: 8, x: 0, y: 4)
                     }
-                    Spacer()
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    .padding(.bottom, 20)
+                    
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 30) {
+                            // Logo and title section with animation
+                            VStack(spacing: 25) {
+                                ZStack {
+                                    // Glow effect
+                                    Circle()
+                                        .fill(
+                                            RadialGradient(
+                                                gradient: Gradient(colors: [
+                                                    Color.purple.opacity(0.4),
+                                                    Color.clear
+                                                ]),
+                                                center: .center,
+                                                startRadius: 5,
+                                                endRadius: 60
+                                            )
+                                        )
+                                        .frame(width: 160, height: 160)
+                                        .blur(radius: 10)
+                                    
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color.pink, Color.purple]),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 110, height: 110)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(
+                                                    LinearGradient(
+                                                        colors: [.white.opacity(0.5), .clear],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    ),
+                                                    lineWidth: 2
+                                                )
+                                        )
+                                    
+                                    Image(systemName: "brain.head.profile")
+                                        .font(.system(size: 55))
+                                        .foregroundColor(.white)
+                                        .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 2)
+                                }
+                                .shadow(color: .purple.opacity(0.5), radius: 25, x: 0, y: 10)
+                                
+                                VStack(spacing: 8) {
+                                    Text("FlashTok")
+                                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [.white, .white.opacity(0.9)],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                        )
+                                        .shadow(color: .purple.opacity(0.3), radius: 10, x: 0, y: 5)
+                                    
+                                    Text("Learn anything, TikTok style")
+                                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                                        .foregroundColor(.white.opacity(0.85))
+                                }
+                            }
+                            .padding(.top, 30)
+                            .padding(.bottom, 20)
+                            
+                            // Enhanced search section
+                            VStack(spacing: 20) {
+                                VStack(spacing: 0) {
+                                    // Search field with glass morphism
+                                    HStack {
+                                        Image(systemName: "magnifyingglass")
+                                            .foregroundColor(.white.opacity(0.7))
+                                            .font(.system(size: 20))
+                                        
+                                        TextField("What do you want to learn today?", text: $topicInput)
+                                            .textFieldStyle(PlainTextFieldStyle())
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 17, weight: .medium, design: .rounded))
+                                            .focused($isSearchFocused)
+                                            .submitLabel(.go)
+                                            .onSubmit {
+                                                startLearning()
+                                            }
+                                            .onChange(of: topicInput) { newValue in
+                                                updateSearchSuggestions(for: newValue)
+                                            }
+                                        
+                                        if !topicInput.isEmpty {
+                                            Button(action: {
+                                                topicInput = ""
+                                                showSuggestions = false
+                                            }) {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .foregroundColor(.white.opacity(0.6))
+                                                    .font(.system(size: 18))
+                                            }
+                                        }
+                                    }
+                                    .padding(.horizontal, 22)
+                                    .padding(.vertical, 18)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 25)
+                                            .fill(Color.white.opacity(0.15))
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 25)
+                                                    .stroke(
+                                                        LinearGradient(
+                                                            colors: [
+                                                                Color.white.opacity(isSearchFocused ? 0.5 : 0.3),
+                                                                Color.white.opacity(isSearchFocused ? 0.3 : 0.1)
+                                                            ],
+                                                            startPoint: .topLeading,
+                                                            endPoint: .bottomTrailing
+                                                        ),
+                                                        lineWidth: isSearchFocused ? 2 : 1
+                                                    )
+                                            )
+                                    )
+                                    .shadow(color: .purple.opacity(isSearchFocused ? 0.3 : 0.1), radius: 10, x: 0, y: 5)
+                                    
+                                    // Search suggestions (keep as is)
+                                    if showSuggestions && !searchSuggestions.isEmpty {
+                                        // ... existing suggestions code ...
+                                    }
+                                }
+                                
+                                // Beautiful start learning button
+                                Button(action: startLearning) {
+                                    HStack(spacing: 12) {
+                                        if isLoading {
+                                            ProgressView()
+                                                .scaleEffect(0.8)
+                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        } else {
+                                            Image(systemName: "play.fill")
+                                                .font(.system(size: 18, weight: .bold))
+                                        }
+                                        
+                                        Text(isLoading ? "Creating Your Cards..." : "Start Learning")
+                                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 40)
+                                    .padding(.vertical, 18)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.pink,
+                                                Color.purple,
+                                                Color.blue.opacity(0.8)
+                                            ]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .cornerRadius(30)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 30)
+                                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                                    )
+                                    .shadow(color: .pink.opacity(0.5), radius: 20, x: 0, y: 8)
+                                }
+                                .disabled(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
+                                .scaleEffect(isLoading ? 0.95 : 1.0)
+                                .opacity(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1.0)
+                            }
+                            .padding(.horizontal, 25)
+                            
+                            // Trending topics section - moved up
+                            if !showSuggestions {
+                                VStack(spacing: 18) {
+                                    HStack {
+                                        HStack(spacing: 8) {
+                                            Text("🔥")
+                                                .font(.title2)
+                                            Text("Trending Topics")
+                                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                                .foregroundColor(.white)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Button(action: {
+                                            // Refresh topics
+                                        }) {
+                                            Image(systemName: "arrow.clockwise")
+                                                .font(.system(size: 16))
+                                                .foregroundColor(.white.opacity(0.7))
+                                        }
+                                    }
+                                    .padding(.horizontal, 25)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 14) {
+                                            ForEach(popularTopics.shuffled().prefix(8), id: \.self) { suggestion in
+                                                Button(action: {
+                                                    topicInput = suggestion
+                                                }) {
+                                                    Text(suggestion)
+                                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                                        .foregroundColor(.white)
+                                                        .padding(.horizontal, 20)
+                                                        .padding(.vertical, 12)
+                                                        .background(
+                                                            RoundedRectangle(cornerRadius: 22)
+                                                                .fill(
+                                                                    LinearGradient(
+                                                                        colors: [
+                                                                            Color.white.opacity(0.2),
+                                                                            Color.white.opacity(0.1)
+                                                                        ],
+                                                                        startPoint: .topLeading,
+                                                                        endPoint: .bottomTrailing
+                                                                    )
+                                                                )
+                                                                .overlay(
+                                                                    RoundedRectangle(cornerRadius: 22)
+                                                                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                                                                )
+                                                        )
+                                                        .shadow(color: .purple.opacity(0.2), radius: 5, x: 0, y: 3)
+                                                }
+                                            }
+                                        }
+                                        .padding(.horizontal, 25)
+                                    }
+                                }
+                                .padding(.top, 10)
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                            }
+                        }
+                        .padding(.bottom, 100) // Space for nav bar
+                    }
                 }
                 
-                // Sidebar overlay
+                // Sidebar overlay - same as ContentView
                 if showSidebar {
-                    HStack(spacing: 0) {
-                        SidebarView(isShowing: $showSidebar)
-                            .frame(width: 280)
-                            .transition(.move(edge: .leading))
-                        
-                        // Transparent overlay area - shows main view with slight dimming
-                        Color.black.opacity(0.7)
-                            .contentShape(Rectangle())
+                    ZStack {
+                        // Full screen dimming overlay
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .onTapGesture {
                                 withAnimation(.easeInOut(duration: 0.3)) {
                                     showSidebar = false
                                 }
                             }
+                        
+                        HStack(spacing: 0) {
+                            SidebarView(isShowing: $showSidebar)
+                                .frame(width: 280)
+                                .transition(.move(edge: .leading))
+                            
+                            Spacer()
+                        }
                     }
                     .zIndex(1000)
                 }

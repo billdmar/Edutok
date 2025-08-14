@@ -383,16 +383,12 @@ struct SidebarView: View {
             .background(
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.black.opacity(0.999),
-                        Color.purple.opacity(0.4),
-                        Color.black.opacity(0.999)
+                        Color.black.opacity(0.95),
+                        Color.purple.opacity(0.3),
+                        Color.black.opacity(0.95)
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
-                )
-                .overlay(
-                    Rectangle()
-                        .fill(.ultraThinMaterial.opacity(0.6))
                 )
             )
             .ignoresSafeArea()

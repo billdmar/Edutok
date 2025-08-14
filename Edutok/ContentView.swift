@@ -35,8 +35,8 @@ struct ContentView: View {
             }
             .animation(.easeInOut(duration: 0.3), value: currentSection)
             
-            // Floating navigation bar at bottom (show for all main sections, hide only during flashcard study)
-            if currentSection != .flashcards {
+            // Floating navigation bar at bottom (show for all main sections, hide only during flashcard study or when topic is selected)
+            if currentSection != .flashcards && topicManager.currentTopic == nil {
                 VStack {
                     Spacer()
                     floatingNavBar()
