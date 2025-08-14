@@ -167,7 +167,7 @@ class GamificationManager: ObservableObject {
         availableMysteryBoxes = []
         
         // Generate 3-5 mystery boxes
-        let boxCount = Int.random(in: 3...5)
+        let boxCount = Int.random(in: 3)
         
         for _ in 0..<boxCount {
             let rarity = randomRarity()
