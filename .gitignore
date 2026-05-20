@@ -1,0 +1,46 @@
+# ─── Secrets ────────────────────────────────────────────────
+# Never commit API keys or service config to source control.
+Edutok/Secrets.swift
+Edutok/GoogleService-Info.plist
+*.xcconfig
+
+# ─── macOS ──────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# ─── Xcode ──────────────────────────────────────────────────
+## User settings
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+
+## Build generated
+build/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+## Various settings
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ─── Swift Package Manager ──────────────────────────────────
+# Note: Package.resolved is intentionally committed to pin dependency versions.
+.swiftpm/
+.build/
+
+# ─── CocoaPods / Carthage (if ever added) ──────────────────
+Pods/
+Carthage/Build/
