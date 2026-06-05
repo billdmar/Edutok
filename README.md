@@ -108,8 +108,16 @@ This project keeps all credentials out of version control:
 
 ## Screenshots
 
-> _Add screenshots or a short screen recording here — this is the single highest-impact
-> addition for showcasing the app to others._
+| Flashcard feed | Topic generation | Gamification |
+| :--: | :--: | :--: |
+| ![Feed](docs/feed.png) | ![Generate](docs/generate.png) | ![Gamification](docs/gamification.png) |
+
+| Streak calendar | Leaderboard |
+| :--: | :--: |
+| ![Streak](docs/streak.png) | ![Leaderboard](docs/leaderboard.png) |
+
+<!-- Capture in the iOS Simulator (File ▸ Save Screen / ⌘S), then drop the PNGs into
+     docs/ using the exact filenames above. See docs/SCREENSHOTS.md for the guide. -->
 
 ## License
 
