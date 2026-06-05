@@ -30,7 +30,7 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 | --------------- | ------------------------------------- |
 | UI              | SwiftUI (iOS 17+)                     |
 | Language        | Swift 5 / Xcode 16                    |
-| AI content      | Google Gemini (`gemini-1.5-flash`)    |
+| AI content      | Google Gemini (`gemini-1.5-flash-latest`)    |
 | Images          | Unsplash API                          |
 | Auth & database | Firebase Auth + Cloud Firestore       |
 | Architecture    | MVVM with `ObservableObject` managers |
