@@ -46,8 +46,9 @@ class ImageManager: ObservableObject {
         
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-            let (data, _) = try await URLSession.shared.data(from: url)
-            
+            // Send the POST `request` we just built (not a bare GET to `url`).
+            let (data, _) = try await URLSession.shared.data(for: request)
+
             struct GeminiResponse: Codable {
                 let candidates: [Candidate]
                 struct Candidate: Codable {
@@ -105,49 +106,58 @@ class ImageManager: ObservableObject {
         }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            // Surface API problems (401 invalid key, 403 rate-limited, etc.)
+            // instead of silently falling through to no image.
+            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                #if DEBUG
+                let body = String(data: data, encoding: .utf8) ?? ""
+                print("[Unsplash] HTTP \(http.statusCode): \(body.prefix(200))")
+                #endif
+                return nil
+            }
+
             struct UnsplashResponse: Codable {
                 let results: [Photo]
-                
+
                 struct Photo: Codable {
                     let urls: URLs
                     let id: String
-                    
+
                     struct URLs: Codable {
                         let regular: String
                         let small: String
                     }
                 }
             }
-            
-            let response = try JSONDecoder().decode(UnsplashResponse.self, from: data)
-            
-            if !response.results.isEmpty {
+
+            let unsplash = try JSONDecoder().decode(UnsplashResponse.self, from: data)
+
+            if !unsplash.results.isEmpty {
                 // Select a random photo from the results for more variety
-                let randomIndex = Int.random(in: 0..<min(response.results.count, 3))
-                let selectedPhoto = response.results[randomIndex]
+                let randomIndex = Int.random(in: 0..<min(unsplash.results.count, 3))
+                let selectedPhoto = unsplash.results[randomIndex]
                 let imageURL = selectedPhoto.urls.small
-                
+
                 // Cache both by keywords and by question
                 imageCache[keywords] = imageURL
                 if let question = question {
                     questionImageCache[cacheKey] = imageURL
                 }
-                
+
                 return imageURL
             }
         } catch {
+            #if DEBUG
             print("Error fetching from Unsplash: \(error)")
+            #endif
         }
-        
-        // Enhanced fallback with more variety
-        let fallbackURL = "https://source.unsplash.com/400x300/?\(encodedQuery)&\(Int.random(in: 1...1000))"
-        imageCache[keywords] = fallbackURL
-        if let question = question {
-            questionImageCache[cacheKey] = fallbackURL
-        }
-        return fallbackURL
+
+        // No image found. Return nil so the card shows its gradient placeholder.
+        // (The old source.unsplash.com fallback was removed — that service was
+        // permanently shut down by Unsplash and always failed to load.)
+        return nil
     }
     
     // Generate and fetch unique image for a flashcard
