@@ -36,7 +36,7 @@ struct FlashcardView: View {
     @State private var answerStartTime: Date?
     @State private var hasTrackedCardFlip = false
     @State private var cardXPAwarded: Set<UUID> = []
-    
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -51,14 +51,14 @@ struct FlashcardView: View {
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
-                
+
                 if let topic = topicManager.currentTopic,
                    !topic.flashcards.isEmpty {
-                    
+
                     VStack(spacing: 0) {
                         // Header
                         headerView(topic: topic, geometry: geometry)
-                        
+
                         // Infinite scroll flashcard stack
                         ZStack {
                             ForEach(Array(infiniteCards.enumerated()), id: \.offset) { index, card in
@@ -70,7 +70,7 @@ struct FlashcardView: View {
                         }
                         .frame(maxHeight: .infinity)
                         .clipped()
-                        
+
                         // Action overlay buttons (floating)
                         actionOverlayButtons(geometry: geometry)
                     }
@@ -80,14 +80,14 @@ struct FlashcardView: View {
                         ProgressView()
                             .scaleEffect(1.5)
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        
+
                         Text("Creating your flashcards...")
                             .foregroundColor(.white)
                             .font(.headline)
                             .padding(.top)
                     }
                 }
-                
+
                 // Sidebar overlay
                                 if showSidebar {
                                     ZStack {
@@ -101,34 +101,34 @@ struct FlashcardView: View {
                                                     showSidebar = false
                                                 }
                                             }
-                                        
+
                                         // Sidebar positioned on left
                                         HStack {
                                             SidebarView(isShowing: $showSidebar)
                                                 .frame(width: 280)
                                                 .transition(.move(edge: .leading))
-                                            
+
                                             Spacer()
                                         }
                                     }
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .zIndex(1000)
                                 }
-                
+
                 // XP Gain Animations
                 ForEach(gamificationManager.recentXPGains) { xpEvent in
                     XPGainView(xpEvent: xpEvent)
                         .position(x: geometry.size.width - 100, y: 100)
                         .zIndex(100)
                 }
-                
+
                 // Particle Effects
                 ForEach(gamificationManager.particleEffects) { effect in
                     ParticleSystemView(effect: effect)
                         .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
                         .zIndex(99)
                 }
-                
+
                 // Level Up Overlay
                 if gamificationManager.shouldShowLevelUp {
                     LevelUpView(
@@ -137,7 +137,7 @@ struct FlashcardView: View {
                     )
                     .zIndex(1000)
                 }
-                
+
                 // Achievement Overlay
                 if gamificationManager.shouldShowAchievement,
                    let achievement = gamificationManager.newAchievement {
@@ -148,37 +148,42 @@ struct FlashcardView: View {
                     .zIndex(1000)
                 }
             }
+            .onChange(of: topicManager.currentTopic?.id) { _ in
+                // Reset to the first card whenever the active topic changes,
+                // so currentCardIndex never points past the new topic's bounds.
+                currentCardIndex = 0
+            }
         }
     }
-    
+
     // Create infinite scrolling array
     private var infiniteCards: [Flashcard] {
         guard let topic = topicManager.currentTopic, !topic.flashcards.isEmpty else { return [] }
-        
+
         let cards = topic.flashcards
         let totalCards = cards.count
-        
+
         // Create array with previous, current, and next cards for smooth infinite scrolling
         var infiniteArray: [Flashcard] = []
-        
+
         // Previous card
         let prevIndex = (currentCardIndex - 1 + totalCards) % totalCards
         infiniteArray.append(cards[prevIndex])
-        
+
         // Current card
-        infiniteArray.append(cards[currentCardIndex])
-        
+        infiniteArray.append(cards[currentCardIndex % totalCards])
+
         // Next card
         let nextIndex = (currentCardIndex + 1) % totalCards
         infiniteArray.append(cards[nextIndex])
-        
+
         // Card after next (for smoother transitions)
         let afterNextIndex = (currentCardIndex + 2) % totalCards
         infiniteArray.append(cards[afterNextIndex])
-        
+
         return infiniteArray
     }
-    
+
     private func headerView(topic: Topic, geometry: GeometryProxy) -> some View {
         VStack(spacing: 10) {
             HStack {
@@ -193,9 +198,9 @@ struct FlashcardView: View {
                         .foregroundColor(.white)
                 }
                 .frame(width: 44, height: 44) // Fixed square button
-                
+
                 Spacer()
-                
+
                 // XP and Level Display
                 HStack(spacing: 8) {
                     VStack(alignment: .trailing, spacing: 4) {
@@ -203,19 +208,19 @@ struct FlashcardView: View {
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.yellow)
-                        
+
                         Text("\(gamificationManager.userProgress.totalXP) XP")
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.9))
                     }
-                    
+
                     ZStack {
                         ProgressRing(
                             progress: gamificationManager.userProgress.levelProgress,
                             lineWidth: 3,
                             size: 30
                         )
-                        
+
                         Text("\(gamificationManager.userProgress.currentLevel)")
                             .font(.caption2)
                             .fontWeight(.bold)
@@ -255,7 +260,7 @@ struct FlashcardView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 5)
-            
+
             // Centered topic title and dots - now in separate layer
             VStack(spacing: 8) {
                 Text(topic.title)
@@ -263,7 +268,7 @@ struct FlashcardView: View {
                     .foregroundColor(.white)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
-                
+
                 // Cycling dot indicator
                 HStack(spacing: 8) {
                     ForEach(0..<5, id: \.self) { index in
@@ -279,14 +284,14 @@ struct FlashcardView: View {
         }
         .padding(.bottom, 15)
     }
-    
+
     private func flashcardContent(card: Flashcard, relativeIndex: Int, geometry: GeometryProxy) -> some View {
         let isCurrentCard = relativeIndex == 0
         let cardOffset = CGFloat(relativeIndex)
-        
+
         // ⚠️ OPACITY CONTROL SECTION - ADJUST HERE TO CHANGE BACKGROUND CARD VISIBILITY ⚠️
         let cardOpacity = isCurrentCard ? 1.0 : max(0.3 - (abs(cardOffset) * 0.15), 0.1)
-        
+
         // TikTok-style transition offsets
         let transitionOffset: CGFloat = {
             switch cardTransitionDirection {
@@ -298,7 +303,7 @@ struct FlashcardView: View {
                 return 0
             }
         }()
-        
+
         return ZStack {
             RoundedRectangle(cornerRadius: 25)
                 .fill(
@@ -321,22 +326,21 @@ struct FlashcardView: View {
                     x: 0,
                     y: isCurrentCard ? 15 : 5
                 )
-            
-        
+
             VStack(spacing: 30) {
                 // Card type indicator
                 HStack {
                     Image(systemName: cardTypeIcon(for: card.type, showAnswer: showAnswer && isCurrentCard))
                         .font(.title2)
                         .foregroundColor(.white)
-                    
+
                     Text(showAnswer && isCurrentCard ? "Answer" : card.type.rawValue.capitalized)
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.white.opacity(0.8))
-                    
+
                     Spacer()
-                    
+
                     if card.isBookmarked {
                         Image(systemName: "bookmark.fill")
                             .font(.title3)
@@ -349,13 +353,10 @@ struct FlashcardView: View {
                     .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
                     axis: (x: 0, y: 1, z: 0)
                 )
-                
-               
-                
-                
+
                 // Card content with boundary-based auto-sizing
                                 VStack(spacing: 15) {
-                                    
+
                                                         AutoSizedText(
                                                             text: card.question,
                                                             maxWidth: geometry.size.width - 100, // More conservative padding
@@ -363,7 +364,7 @@ struct FlashcardView: View {
                                                             fontWeight: .bold,
                                                             color: .white
                                                         )
-                                    
+
                                     // Image display (now at bottom, only on question side)
                                     if !showAnswer && isCurrentCard && card.imageURL != nil {
                                         AsyncImageLoader(url: card.imageURL)
@@ -376,14 +377,12 @@ struct FlashcardView: View {
                                             .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
                                             .transition(.opacity.combined(with: .scale))
                                     }
-                                    
+
                                     if showAnswer && isCurrentCard {
                                         Divider()
                                             .background(Color.white.opacity(0.3))
                                             .padding(.horizontal, 10)
-                                        
-                                      
-                                        
+
                                                                 AutoSizedText(
                                                                     text: card.answer,
                                                                     maxWidth: geometry.size.width - 100, // More conservative padding
@@ -399,9 +398,9 @@ struct FlashcardView: View {
                     .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
                     axis: (x: 0, y: 1, z: 0)
                 )
-                
+
                 Spacer()
-                
+
                 // Tap to reveal hint
                 if !showAnswer && isCurrentCard {
                     VStack(spacing: 10) {
@@ -410,7 +409,7 @@ struct FlashcardView: View {
                                                     .foregroundColor(.white.opacity(0.8))
                                                     .symbolEffect(.pulse, options: .repeat(.continuous).speed(0.8))
                                                     .shadow(color: .white.opacity(0.3), radius: 5, x: 0, y: 0)
-                        
+
                         Text("Tap to reveal answer")
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.6))
@@ -428,7 +427,7 @@ struct FlashcardView: View {
                                 .font(.title3)
                                 .foregroundColor(.white.opacity(0.4))
                                 .scaleEffect(1.2)
-                            
+
                             Text("Swipe up for next card")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.6))
@@ -438,7 +437,7 @@ struct FlashcardView: View {
                             axis: (x: 0, y: 1, z: 0)
                         )
                         .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: showAnswer)
-                        
+
                         // Action buttons on card
                         HStack(spacing: 30) {
                             // Skip button with enhanced animations
@@ -452,7 +451,7 @@ struct FlashcardView: View {
                                                                                                     .font(.title2)
                                                                                                     .foregroundColor(.white)
                                                                                                     .symbolEffect(.bounce, options: .repeat(.continuous).speed(0.5))
-                                                                                                
+
                                                                                                 Text("Skip")
                                                                                                     .font(.caption)
                                                                                                     .fontWeight(.semibold)
@@ -482,12 +481,12 @@ struct FlashcardView: View {
                                 .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
                                 axis: (x: 0, y: 1, z: 0)
                             )
-                            
+
                             // Got it button
                             Button(action: {
                                 markAsUnderstood()
                                 nextCard()
-                                
+
                                 let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
                                 impactFeedback.impactOccurred()
                             }) {
@@ -496,7 +495,7 @@ struct FlashcardView: View {
                                                                         .font(.title2)
                                                                         .foregroundColor(.white)
                                                                         .symbolEffect(.pulse, options: .repeat(.continuous).speed(0.7))
-                                                                    
+
                                                                     Text("Got it")
                                                                         .font(.caption)
                                                                         .fontWeight(.semibold)
@@ -550,7 +549,7 @@ struct FlashcardView: View {
                 if !showAnswer {
                     // Record answer start time
                     answerStartTime = Date()
-                    
+
                     // Track card flip in Firebase if not already tracked
                     if !hasTrackedCardFlip {
                         Task {
@@ -559,12 +558,12 @@ struct FlashcardView: View {
                         hasTrackedCardFlip = true
                     }
                 }
-                
+
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     showAnswer.toggle()
                     cardRotation = showAnswer ? 180 : 0
                 }
-                
+
                 // Award XP for revealing answer (only once per card)
                                 if showAnswer && !cardXPAwarded.contains(card.id) {
                                     cardXPAwarded.insert(card.id)
@@ -575,7 +574,7 @@ struct FlashcardView: View {
                                         timeToAnswer: abs(timeToAnswer)
                                     )
                                 }
-                
+
                 // Haptic feedback
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
@@ -590,7 +589,7 @@ struct FlashcardView: View {
                 .onEnded { gesture in
                     let swipeThreshold: CGFloat = 50
                     let velocityThreshold: CGFloat = 500
-                    
+
                     // Vertical swipe detection (infinite scroll)
                     if gesture.translation.height < -swipeThreshold || gesture.predictedEndTranslation.height < -velocityThreshold {
                         // Swipe up - next card
@@ -611,7 +610,7 @@ struct FlashcardView: View {
                     } else if gesture.translation.width < -swipeThreshold * 2 {
                         // Swipe left - bookmark
                         toggleBookmark()
-                        
+
                         // Return to center with bounce
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                             dragOffset = CGSize.zero
@@ -628,11 +627,11 @@ struct FlashcardView: View {
             : nil
         )
     }
-    
+
     private func actionOverlayButtons(geometry: GeometryProxy) -> some View {
         VStack {
             Spacer()
-            
+
             HStack {
                 // Back button at bottom left
                 Button(action: {
@@ -642,7 +641,7 @@ struct FlashcardView: View {
                         Image(systemName: "arrow.left")
                             .font(.title2)
                             .foregroundColor(.white)
-                        
+
                         Text("Back")
                             .font(.caption)
                             .fontWeight(.semibold)
@@ -661,14 +660,14 @@ struct FlashcardView: View {
                 }
                 .buttonStyle(BouncyButtonStyle())
                 .frame(width: 120) // Fixed width
-                
+
                 Spacer()
-                
+
                 // Like button at bottom center - perfectly centered
                 Button(action: {
                     if let topic = topicManager.currentTopic {
                         topicManager.toggleTopicLike(topicId: topic.id)
-                        
+
                         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
                         impactFeedback.impactOccurred()
                     }
@@ -679,7 +678,7 @@ struct FlashcardView: View {
                             .foregroundColor(topicManager.currentTopic?.isLiked == true ? .red : .white)
                             .scaleEffect(topicManager.currentTopic?.isLiked == true ? 1.2 : 1.0)
                             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: topicManager.currentTopic?.isLiked)
-                        
+
                         Text(topicManager.currentTopic?.isLiked == true ? "Liked" : "Like")
                             .font(.caption)
                             .fontWeight(.semibold)
@@ -698,9 +697,9 @@ struct FlashcardView: View {
                     )
                 }
                 .buttonStyle(HeartButtonStyle())
-                
+
                 Spacer()
-                
+
                 // Invisible spacer to balance the layout
                 Color.clear
                     .frame(width: 120, height: 1)
@@ -709,18 +708,18 @@ struct FlashcardView: View {
             .padding(.bottom, max(20, geometry.safeAreaInsets.bottom + 5))
         }
     }
-    
+
     private var currentCard: Flashcard? {
         guard let topic = topicManager.currentTopic,
               currentCardIndex < topic.flashcards.count else { return nil }
         return topic.flashcards[currentCardIndex]
     }
-    
+
     private func cardTypeIcon(for type: FlashcardType, showAnswer: Bool) -> String {
         if showAnswer {
             return "lightbulb.fill"
         }
-        
+
         switch type {
         case .definition: return "book.fill"
         case .question: return "questionmark.circle.fill"
@@ -728,21 +727,21 @@ struct FlashcardView: View {
         case .fillblank: return "pencil.circle.fill"
         }
     }
-    
+
     private func nextCard() {
         guard let topic = topicManager.currentTopic else { return }
-        
+
         // Set transition direction from top
         cardTransitionDirection = .fromTop
-        
+
         withAnimation(.easeInOut(duration: 0.3)) {
             showAnswer = false
             cardRotation = 0
             dragOffset = CGSize.zero
-            
+
             // Cycle dot to the left (next position)
             dotIndex = (dotIndex + 1) % 5
-            
+
             // Infinite scroll - wrap around to beginning
             currentCardIndex = (currentCardIndex + 1) % topic.flashcards.count
             hasTrackedCardFlip = false
@@ -754,47 +753,47 @@ struct FlashcardView: View {
                 }
             }
         }
-        
+
         // Reset transition direction after animation
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             cardTransitionDirection = .none
         }
     }
-    
+
     private func previousCard() {
         guard let topic = topicManager.currentTopic else { return }
-        
+
         // Set transition direction from bottom
         cardTransitionDirection = .fromBottom
-        
+
         withAnimation(.easeInOut(duration: 0.3)) {
             showAnswer = false
             cardRotation = 0
             dragOffset = CGSize.zero
-            
+
             // Cycle dot to the right (previous position)
             dotIndex = (dotIndex - 1 + 5) % 5
-            
+
             // Infinite scroll - wrap around to end
             currentCardIndex = (currentCardIndex - 1 + topic.flashcards.count) % topic.flashcards.count
             hasTrackedCardFlip = false
 
         }
-        
+
         // Reset transition direction after animation
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             cardTransitionDirection = .none
         }
     }
-    
+
     private func markAsUnderstood() {
         guard let topic = topicManager.currentTopic else { return }
         topicManager.markCardAsUnderstood(topicId: topic.id, cardIndex: currentCardIndex)
-        
+
         // Award XP for understanding the card
         gamificationManager.awardXP(.perfectCard)
     }
-    
+
     private func toggleBookmark() {
         guard let topic = topicManager.currentTopic else { return }
         topicManager.toggleBookmark(topicId: topic.id, cardIndex: currentCardIndex)
@@ -806,9 +805,9 @@ struct FlashcardView: View {
         let maxHeight: CGFloat
         let fontWeight: Font.Weight
         let color: Color
-        
+
         @State private var fontSize: CGFloat = 20
-        
+
         var body: some View {
             Text(text)
                 .font(.system(size: fontSize, weight: fontWeight))
@@ -824,20 +823,20 @@ struct FlashcardView: View {
                     calculateOptimalFontSize()
                 }
         }
-        
+
         private func calculateOptimalFontSize() {
             let maxFontSize: CGFloat = 32
             let minFontSize: CGFloat = 8
             var bestSize: CGFloat = minFontSize
-            
+
             // Binary search for the optimal font size
             var low: CGFloat = minFontSize
             var high: CGFloat = maxFontSize
-            
+
             while high - low > 0.5 {
                 let mid = (low + high) / 2
                 let textSize = measureText(fontSize: mid)
-                
+
                 if textSize.width <= maxWidth && textSize.height <= maxHeight {
                     bestSize = mid
                     low = mid
@@ -845,7 +844,7 @@ struct FlashcardView: View {
                     high = mid - 0.5
                 }
             }
-            
+
             // Final verification and adjustment
             var finalSize = bestSize
             while finalSize > minFontSize {
@@ -855,41 +854,41 @@ struct FlashcardView: View {
                 }
                 finalSize -= 0.5
             }
-            
+
             fontSize = max(finalSize, minFontSize)
         }
-        
+
         private func measureText(fontSize: CGFloat) -> CGSize {
             let font = UIFont.systemFont(ofSize: fontSize, weight: uiFontWeight(from: fontWeight))
-            
+
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.alignment = .center
             paragraphStyle.lineBreakMode = .byWordWrapping
-            
+
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: font,
                 .paragraphStyle: paragraphStyle
             ]
-            
+
             let attributedString = NSAttributedString(string: text, attributes: attributes)
-            
+
             // Use a slightly smaller width for measurement to account for padding
             let constraintWidth = maxWidth - 4
             let constraintSize = CGSize(width: constraintWidth, height: CGFloat.greatestFiniteMagnitude)
-            
+
             let boundingRect = attributedString.boundingRect(
                 with: constraintSize,
                 options: [.usesLineFragmentOrigin, .usesFontLeading],
                 context: nil
             )
-            
+
             // Add small buffer to ensure no truncation
             return CGSize(
                 width: ceil(boundingRect.width) + 2,
                 height: ceil(boundingRect.height) + 2
             )
         }
-        
+
         private func uiFontWeight(from fontWeight: Font.Weight) -> UIFont.Weight {
             switch fontWeight {
             case .ultraLight: return .ultraLight

@@ -1,30 +1,38 @@
-// FirebaseManager.swift
+/// FirebaseManager.swift
+///
+/// Single entry point for authentication and Firestore persistence. Configures
+/// Firebase once at init, listens for auth state changes, and loads-or-creates the
+/// signed-in user's profile document. Also tracks daily activity stats (cards flipped,
+/// topics explored, streaks) and maintains the per-day leaderboards. All Firestore
+/// writes are best-effort (`try?`) so transient backend failures never crash the app;
+/// a local fallback user is created if the profile can't be loaded.
 import Foundation
 import FirebaseCore
 import FirebaseFirestore
 import FirebaseAuth
 
+/// Shared, main-actor singleton wrapping Firebase Auth and Firestore for the app.
 @MainActor
 class FirebaseManager: ObservableObject {
     static let shared = FirebaseManager()
-    
+
     private let db = Firestore.firestore()
     private let auth = Auth.auth()
-    
+
     @Published var currentUser: AppUser?
     @Published var isAuthenticated = false
-    
+
     private init() {
         // Configure Firebase
         configureFirebase()
         setupAuthListener()
     }
-    
+
     private func configureFirebase() {
         guard FirebaseApp.app() == nil else { return }
         FirebaseApp.configure()
     }
-    
+
     private func setupAuthListener() {
         auth.addStateDidChangeListener { [weak self] _, user in
             Task { @MainActor in
@@ -38,24 +46,25 @@ class FirebaseManager: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Authentication Methods
-    
+
+    /// Signs in anonymously and loads or creates the backing user profile.
     func signInAnonymously() async throws {
         let result = try await auth.signInAnonymously()
         await loadOrCreateUser(uid: result.user.uid)
     }
-    
+
     func signIn(email: String, password: String) async throws {
         let result = try await auth.signIn(withEmail: email, password: password)
         await loadOrCreateUser(uid: result.user.uid)
     }
-    
+
     func signUp(email: String, password: String) async throws {
         let result = try await auth.createUser(withEmail: email, password: password)
         await loadOrCreateUser(uid: result.user.uid)
     }
-    
+
     func signInWithPhone(phoneNumber: String) async throws -> String {
         // Note: Phone auth requires additional setup in Firebase Console
         // and may not work in simulator
@@ -66,39 +75,42 @@ class FirebaseManager: ObservableObject {
             throw error
         }
     }
-    
+
     func verifyPhoneCode(verificationID: String, verificationCode: String) async throws {
         let credential = PhoneAuthProvider.provider().credential(
             withVerificationID: verificationID,
             verificationCode: verificationCode
         )
-        
+
         let result = try await auth.signIn(with: credential)
         await loadOrCreateUser(uid: result.user.uid)
     }
-    
+
     func signOut() {
         try? auth.signOut()
         currentUser = nil
         isAuthenticated = false
     }
-    
+
     func updateUsername(_ newUsername: String) async {
         guard var user = currentUser else { return }
-        
-        user.username = newUsername
+
+        // Cap username length before persisting to keep stored/leaderboard values bounded.
+        user.username = String(newUsername.prefix(30))
         currentUser = user
-        
+
         // Save to Firestore
         try? await saveUser(user)
     }
-    
+
     // MARK: - User Management
-    
+
+    /// Loads the Firestore profile for `uid`, creating a new one if absent. On any
+    /// error, falls back to an in-memory user so the app remains usable offline.
     private func loadOrCreateUser(uid: String) async {
         do {
             let document = try await db.collection("users").document(uid).getDocument()
-            
+
             if document.exists {
                 // Load existing user
                 let data = document.data() ?? [:]
@@ -126,13 +138,13 @@ class FirebaseManager: ObservableObject {
                     joinDate: Date(),
                     dailyStats: []
                 )
-                
+
                 try await saveUser(newUser)
                 currentUser = newUser
             }
         } catch {
             print("Error loading/creating user: \(error)")
-            
+
             // Create a local user if database fails
             currentUser = AppUser(
                 id: uid,
@@ -147,7 +159,7 @@ class FirebaseManager: ObservableObject {
             )
         }
     }
-    
+
     private func loadDailyStats(from data: [[String: Any]]) -> [DailyStat] {
         return data.compactMap { dict in
             guard let dateTimestamp = dict["date"] as? Timestamp,
@@ -155,7 +167,7 @@ class FirebaseManager: ObservableObject {
                   let topicsExplored = dict["topicsExplored"] as? Int else {
                 return nil
             }
-            
+
             return DailyStat(
                 date: dateTimestamp.dateValue(),
                 cardsFlipped: cardsFlipped,
@@ -164,7 +176,7 @@ class FirebaseManager: ObservableObject {
             )
         }
     }
-    
+
     private func saveUser(_ user: AppUser) async throws {
         let userData: [String: Any] = [
             "username": user.username,
@@ -183,20 +195,22 @@ class FirebaseManager: ObservableObject {
                 ]
             }
         ]
-        
+
         try await db.collection("users").document(user.id).setData(userData)
     }
-    
+
     // MARK: - Daily Stats Tracking
-    
+
+    /// Records one card flip: bumps totals and today's daily stat, refreshes the
+    /// streak, persists the user, and updates the cards-flipped leaderboard.
     func trackCardFlipped() async {
         guard var user = currentUser else { return }
-        
+
         let today = Calendar.current.startOfDay(for: Date())
-        
+
         // Update total
         user.totalCardsFlipped += 1
-        
+
         // Update or create daily stat
         if let todayIndex = user.dailyStats.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: today) }) {
             user.dailyStats[todayIndex].cardsFlipped += 1
@@ -209,25 +223,25 @@ class FirebaseManager: ObservableObject {
             )
             user.dailyStats.append(newDailyStat)
         }
-        
+
         // Update streak
         updateStreak(for: &user)
-        
+
         currentUser = user
         try? await saveUser(user)
-        
+
         // Update leaderboard
         await updateDailyLeaderboard(user: user, type: .cardsFlipped)
     }
-    
+
     func trackTopicExplored() async {
         guard var user = currentUser else { return }
-        
+
         let today = Calendar.current.startOfDay(for: Date())
-        
+
         // Update total
         user.totalTopicsExplored += 1
-        
+
         // Update or create daily stat
         if let todayIndex = user.dailyStats.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: today) }) {
             user.dailyStats[todayIndex].topicsExplored += 1
@@ -240,22 +254,22 @@ class FirebaseManager: ObservableObject {
             )
             user.dailyStats.append(newDailyStat)
         }
-        
+
         // Update streak
         updateStreak(for: &user)
-        
+
         currentUser = user
         try? await saveUser(user)
-        
+
         // Update leaderboard
         await updateDailyLeaderboard(user: user, type: .topicsExplored)
     }
-    
+
     func trackAchievement(_ achievement: String) async {
         guard var user = currentUser else { return }
-        
+
         let today = Calendar.current.startOfDay(for: Date())
-        
+
         // Update or create daily stat
         if let todayIndex = user.dailyStats.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: today) }) {
             if !user.dailyStats[todayIndex].achievements.contains(achievement) {
@@ -270,20 +284,20 @@ class FirebaseManager: ObservableObject {
             )
             user.dailyStats.append(newDailyStat)
         }
-        
+
         currentUser = user
         try? await saveUser(user)
     }
-    
+
     private func updateStreak(for user: inout AppUser) {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
-        
+
         // Check if user was active yesterday or today
         let hasActivityToday = user.dailyStats.contains { calendar.isDate($0.date, inSameDayAs: today) && ($0.cardsFlipped > 0 || $0.topicsExplored > 0) }
         let hasActivityYesterday = user.dailyStats.contains { calendar.isDate($0.date, inSameDayAs: yesterday) && ($0.cardsFlipped > 0 || $0.topicsExplored > 0) }
-        
+
         if hasActivityToday {
             if hasActivityYesterday || user.currentStreak == 0 {
                 user.currentStreak += 1
@@ -292,48 +306,50 @@ class FirebaseManager: ObservableObject {
         } else {
             user.currentStreak = 0
         }
-        
+
         user.lastActiveDate = Date()
     }
-    
+
     // MARK: - Leaderboard Management
-    
+
     private func updateDailyLeaderboard(user: AppUser, type: LeaderboardType) async {
         let today = Calendar.current.startOfDay(for: Date())
         let dateString = DateFormatter.yyyyMMdd.string(from: today)
-        
+
         let todayStats = user.dailyStats.first { Calendar.current.isDate($0.date, inSameDayAs: today) }
         let value = type == .cardsFlipped ? (todayStats?.cardsFlipped ?? 0) : (todayStats?.topicsExplored ?? 0)
-        
+
         let leaderboardEntry: [String: Any] = [
             "userId": user.id,
             "username": user.username,
             "value": value,
             "timestamp": Timestamp(date: Date())
         ]
-        
+
         let collectionName = type == .cardsFlipped ? "daily_cards_leaderboard" : "daily_topics_leaderboard"
-        
+
         try? await db.collection(collectionName).document("\(dateString)_\(user.id)").setData(leaderboardEntry)
     }
-    
+
+    /// Fetches today's top leaderboard entries for the given type, filters to today's
+    /// documents, flags the current user, and assigns 1-based ranks by descending value.
     func fetchDailyLeaderboard(type: LeaderboardType) async throws -> [LeaderboardEntry] {
             let today = Calendar.current.startOfDay(for: Date())
             let dateString = DateFormatter.yyyyMMdd.string(from: today)
-            
+
             let collectionName = type == .cardsFlipped ? "daily_cards_leaderboard" : "daily_topics_leaderboard"
-            
+
             let snapshot = try await db.collection(collectionName)
                 .whereField("userId", isNotEqualTo: "")
                 .order(by: "value", descending: true)
                 .limit(to: 50)
                 .getDocuments()
-            
+
             let currentUserId = currentUser?.id
-            
+
             // First, create the initial entries
             var entries: [LeaderboardEntry] = []
-            
+
             for document in snapshot.documents {
                 let data = document.data()
                 guard let userId = data["userId"] as? String,
@@ -342,7 +358,7 @@ class FirebaseManager: ObservableObject {
                       document.documentID.hasPrefix(dateString) else {
                     continue
                 }
-                
+
                 let entry = LeaderboardEntry(
                     userId: userId,
                     username: username,
@@ -352,7 +368,7 @@ class FirebaseManager: ObservableObject {
                 )
                 entries.append(entry)
             }
-            
+
             // Now assign ranks
             let rankedEntries = entries.enumerated().map { index, entry in
                 LeaderboardEntry(
@@ -363,20 +379,20 @@ class FirebaseManager: ObservableObject {
                     isCurrentUser: entry.isCurrentUser
                 )
             }
-            
+
             return rankedEntries
         }
-    
+
     // MARK: - Utility
-    
+
     private func generateRandomUsername() -> String {
         let adjectives = ["Swift", "Bright", "Quick", "Smart", "Clever", "Sharp", "Wise", "Bold", "Fast", "Keen"]
         let nouns = ["Learner", "Student", "Scholar", "Thinker", "Explorer", "Genius", "Mind", "Brain", "Seeker", "Master"]
-        
+
         let randomAdjective = adjectives.randomElement() ?? "Smart"
         let randomNoun = nouns.randomElement() ?? "Learner"
         let randomNumber = Int.random(in: 100...999)
-        
+
         return "\(randomAdjective)\(randomNoun)\(randomNumber)"
     }
 }
