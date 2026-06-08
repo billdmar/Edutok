@@ -292,17 +292,20 @@ class FirebaseManager: ObservableObject {
     private func updateStreak(for user: inout AppUser) {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
 
         // Check if user was active yesterday or today
         let hasActivityToday = user.dailyStats.contains { calendar.isDate($0.date, inSameDayAs: today) && ($0.cardsFlipped > 0 || $0.topicsExplored > 0) }
         let hasActivityYesterday = user.dailyStats.contains { calendar.isDate($0.date, inSameDayAs: yesterday) && ($0.cardsFlipped > 0 || $0.topicsExplored > 0) }
 
         if hasActivityToday {
-            if hasActivityYesterday || user.currentStreak == 0 {
+            if hasActivityYesterday {
                 user.currentStreak += 1
-                user.longestStreak = max(user.longestStreak, user.currentStreak)
+            } else {
+                // Gap (or fresh start): restart the streak at 1.
+                user.currentStreak = 1
             }
+            user.longestStreak = max(user.longestStreak, user.currentStreak)
         } else {
             user.currentStreak = 0
         }

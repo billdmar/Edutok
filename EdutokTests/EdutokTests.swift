@@ -7,6 +7,7 @@
 //  with no Firebase or network dependency.
 //
 
+import Foundation
 import Testing
 
 @testable import Edutok
@@ -106,5 +107,22 @@ struct EdutokTests {
         #expect(BoxRarity.common.xpRange.upperBound <= BoxRarity.rare.xpRange.upperBound)
         #expect(BoxRarity.rare.xpRange.upperBound <= BoxRarity.epic.xpRange.upperBound)
         #expect(BoxRarity.epic.xpRange.upperBound <= BoxRarity.legendary.xpRange.upperBound)
+    }
+
+    @Test func everyBoxRarityHasAPositiveNonEmptyRange() {
+        // randomRarity() draws an XP amount from rarity.xpRange, so each case must
+        // expose a valid (non-empty, positive) range for that draw to be safe.
+        for rarity in BoxRarity.allCases {
+            #expect(rarity.xpRange.lowerBound <= rarity.xpRange.upperBound)
+            #expect(rarity.xpRange.lowerBound > 0)
+        }
+    }
+
+    @Test func boxRarityRangeLowerBoundsEscalateWithRarity() {
+        // The lower bound should also climb with rarity, mirroring the rarity
+        // partitions randomRarity() maps onto (common -> rare -> epic -> legendary).
+        #expect(BoxRarity.common.xpRange.lowerBound <= BoxRarity.rare.xpRange.lowerBound)
+        #expect(BoxRarity.rare.xpRange.lowerBound <= BoxRarity.epic.xpRange.lowerBound)
+        #expect(BoxRarity.epic.xpRange.lowerBound <= BoxRarity.legendary.xpRange.lowerBound)
     }
 }
