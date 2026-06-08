@@ -4,7 +4,7 @@ struct Phase1DashboardView: View {
     @ObservedObject var gamificationManager: GamificationManager
     @State private var showDailyChallenges = false
     @State private var showEnhancedAchievements = false
-    
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -19,7 +19,7 @@ struct Phase1DashboardView: View {
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
-                
+
                 ScrollView {
                     VStack(spacing: 25) {
                         // Header
@@ -28,13 +28,13 @@ struct Phase1DashboardView: View {
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
-                            
+
                             Text("Track your progress and unlock rewards!")
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.8))
                         }
                         .padding(.top, 20)
-                        
+
                         // Daily Challenges Section
                         VStack(spacing: 15) {
                             HStack {
@@ -42,16 +42,16 @@ struct Phase1DashboardView: View {
                                     .font(.title2)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
-                                
+
                                 Spacer()
-                                
+
                                 Button("View All") {
                                     showDailyChallenges = true
                                 }
                                 .font(.subheadline)
                                 .foregroundColor(.purple)
                             }
-                            
+
                             // Challenge preview cards
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 15) {
@@ -63,7 +63,7 @@ struct Phase1DashboardView: View {
                             }
                         }
                         .padding(.horizontal, 20)
-                        
+
                         // Mystery Boxes Section
                         if !gamificationManager.availableMysteryBoxes.isEmpty {
                             VStack(spacing: 15) {
@@ -72,9 +72,9 @@ struct Phase1DashboardView: View {
                                         .font(.title2)
                                         .fontWeight(.bold)
                                         .foregroundColor(.white)
-                                    
+
                                     Spacer()
-                                    
+
                                     Text("\(gamificationManager.availableMysteryBoxes.filter { !$0.isOpened }.count) remaining")
                                         .font(.caption)
                                         .foregroundColor(.yellow)
@@ -83,7 +83,7 @@ struct Phase1DashboardView: View {
                                         .background(Color.yellow.opacity(0.2))
                                         .cornerRadius(8)
                                 }
-                                
+
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 15) {
                                         ForEach(gamificationManager.availableMysteryBoxes) { box in
@@ -97,7 +97,7 @@ struct Phase1DashboardView: View {
                             }
                             .padding(.horizontal, 20)
                         }
-                        
+
                         // Enhanced Achievements Section
                         VStack(spacing: 15) {
                             HStack {
@@ -105,16 +105,16 @@ struct Phase1DashboardView: View {
                                     .font(.title2)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
-                                
+
                                 Spacer()
-                                
+
                                 Button("View All") {
                                     showEnhancedAchievements = true
                                 }
                                 .font(.subheadline)
                                 .foregroundColor(.purple)
                             }
-                            
+
                             // Achievement preview cards
                             let unlockedAchievements = gamificationManager.enhancedAchievements.filter { $0.isUnlocked }
                             if unlockedAchievements.isEmpty {
@@ -131,14 +131,14 @@ struct Phase1DashboardView: View {
                             }
                         }
                         .padding(.horizontal, 20)
-                        
+
                         // Quick Stats Section
                         VStack(spacing: 15) {
                             Text("Quick Stats")
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
-                            
+
                             HStack(spacing: 20) {
                                 StatPreviewCard(
                                     title: "Level",
@@ -146,14 +146,14 @@ struct Phase1DashboardView: View {
                                     icon: "star.fill",
                                     color: .yellow
                                 )
-                                
+
                                 StatPreviewCard(
                                     title: "XP Today",
                                     value: "\(gamificationManager.userProgress.xpGainedToday)",
                                     icon: "bolt.fill",
                                     color: .orange
                                 )
-                                
+
                                 StatPreviewCard(
                                     title: "Streak",
                                     value: "\(gamificationManager.userProgress.currentStreak) days",
@@ -163,7 +163,7 @@ struct Phase1DashboardView: View {
                             }
                         }
                         .padding(.horizontal, 20)
-                        
+
                         Spacer(minLength: 100)
                     }
                 }
@@ -182,13 +182,13 @@ struct Phase1DashboardView: View {
             }
         }
     }
-    
+
     private func emptyAchievementsView() -> some View {
         VStack(spacing: 15) {
             Image(systemName: "trophy")
                 .font(.system(size: 40))
                 .foregroundColor(.white.opacity(0.3))
-            
+
             Text("No achievements unlocked yet")
                 .font(.subheadline)
                 .foregroundColor(.white.opacity(0.6))
@@ -204,39 +204,39 @@ struct Phase1DashboardView: View {
 
 struct ChallengePreviewCard: View {
     let challenge: DailyChallenge
-    
+
     var body: some View {
         VStack(spacing: 12) {
             HStack {
                 Image(systemName: challenge.type.icon)
                     .foregroundColor(Color(challenge.type.color))
                     .font(.title2)
-                
+
                 Spacer()
-                
+
                 Text("+\(challenge.xpReward)")
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundColor(.yellow)
             }
-            
+
             Text(challenge.title)
                 .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.leading)
                 .lineLimit(2)
-            
+
             ProgressView(value: challenge.progressPercentage)
                 .progressViewStyle(LinearProgressViewStyle(tint: challenge.isCompleted ? .green : .purple))
-            
+
             HStack {
                 Text("\(challenge.currentValue)/\(challenge.targetValue)")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
-                
+
                 Spacer()
-                
+
                 if challenge.isCompleted {
                     Text("✓")
                         .font(.caption)
@@ -268,7 +268,7 @@ struct ChallengePreviewCard: View {
 struct MysteryBoxPreviewCard: View {
     let box: MysteryBox
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 12) {
@@ -285,7 +285,7 @@ struct MysteryBoxPreviewCard: View {
                             )
                         )
                         .frame(width: 50, height: 50)
-                    
+
                     if box.isOpened {
                         Text("+\(box.xpAmount)")
                             .font(.caption2)
@@ -298,12 +298,12 @@ struct MysteryBoxPreviewCard: View {
                             .foregroundColor(.white)
                     }
                 }
-                
+
                 Text(box.isOpened ? "Opened" : "Tap to Open")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
-                
+
                 Text(box.rarity.rawValue.capitalized)
                     .font(.caption2)
                     .foregroundColor(Color(box.rarity.color))
@@ -336,7 +336,7 @@ struct MysteryBoxPreviewCard: View {
 
 struct AchievementPreviewCard: View {
     let achievement: EnhancedAchievement
-    
+
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
@@ -352,19 +352,19 @@ struct AchievementPreviewCard: View {
                         )
                     )
                     .frame(width: 50, height: 50)
-                
+
                 Image(systemName: achievement.icon)
                     .font(.title3)
                     .foregroundColor(.white)
             }
-            
+
             Text(achievement.title)
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
-            
+
             Text("+\(achievement.xpReward) XP")
                 .font(.caption2)
                 .foregroundColor(.yellow)
@@ -388,18 +388,18 @@ struct StatPreviewCard: View {
     let value: String
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
-            
+
             Text(value)
                 .font(.title3)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
-            
+
             Text(title)
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.7))
@@ -420,4 +420,4 @@ struct StatPreviewCard: View {
 
 #Preview {
     Phase1DashboardView(gamificationManager: GamificationManager())
-} 
+}

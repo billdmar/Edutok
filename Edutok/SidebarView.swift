@@ -8,7 +8,7 @@ struct SidebarView: View {
     @State private var showDebugView = false
     @State private var showCalendar = false  // Add this for calendar access
     @State private var showPhase1Dashboard = false // Add this for Phase 1 Dashboard
-    
+
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
@@ -26,16 +26,16 @@ struct SidebarView: View {
                                     .font(.title)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
-                                
+
                                 Text("Your Learning Journey")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.7))
                             }
                         }
                         .buttonStyle(PlainButtonStyle())
-                        
+
                         Spacer()
-                        
+
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 isShowing = false
@@ -46,7 +46,7 @@ struct SidebarView: View {
                                 .foregroundColor(.white)
                         }
                     }
-                    
+
                     // User stats summary (if authenticated)
                     if let user = firebaseManager.currentUser {
                         VStack(spacing: 10) {
@@ -55,27 +55,27 @@ struct SidebarView: View {
                                     Text("Welcome back!")
                                         .font(.caption)
                                         .foregroundColor(.white.opacity(0.7))
-                                    
+
                                     Text(user.username)
                                         .font(.headline)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.white)
                                 }
-                                
+
                                 Spacer()
-                                
+
                                 VStack(alignment: .trailing, spacing: 4) {
                                     Text("🔥 \(user.currentStreak)")
                                         .font(.caption)
                                         .fontWeight(.bold)
                                         .foregroundColor(.orange)
-                                    
+
                                     Text("streak")
                                         .font(.caption2)
                                         .foregroundColor(.white.opacity(0.6))
                                 }
                             }
-                            
+
                             // Quick stats
                             HStack {
                                 VStack {
@@ -83,19 +83,19 @@ struct SidebarView: View {
                                         .font(.title3)
                                         .fontWeight(.bold)
                                         .foregroundColor(.purple)
-                                    
+
                                     Text("Cards")
                                         .font(.caption2)
                                         .foregroundColor(.white.opacity(0.6))
                                 }
                                 .frame(maxWidth: .infinity)
-                                
+
                                 VStack {
                                     Text("\(user.totalTopicsExplored)")
                                         .font(.title3)
                                         .fontWeight(.bold)
                                         .foregroundColor(.blue)
-                                    
+
                                     Text("Topics")
                                         .font(.caption2)
                                         .foregroundColor(.white.opacity(0.6))
@@ -119,14 +119,14 @@ struct SidebarView: View {
                                 )
                         )
                     }
-                    
+
                     Divider()
                         .background(Color.white.opacity(0.2))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 50)
                 .padding(.bottom, 20)
-                
+
                 // Quick Actions Section - ADD THIS
                 VStack(spacing: 12) {
                     HStack {
@@ -134,11 +134,11 @@ struct SidebarView: View {
                             .font(.headline)
                             .fontWeight(.semibold)
                             .foregroundColor(.white)
-                        
+
                         Spacer()
                     }
                     .padding(.horizontal, 20)
-                    
+
                     // Phase 1 Dashboard button
                     Button(action: {
                         showPhase1Dashboard = true
@@ -147,19 +147,19 @@ struct SidebarView: View {
                             Image(systemName: "trophy.fill")
                                 .font(.title2)
                                 .foregroundColor(.yellow)
-                            
+
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Learning Dashboard")
                                     .fontWeight(.semibold)
                                     .foregroundColor(.white)
-                                
+
                                 Text("Daily challenges & rewards")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.7))
                             }
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.5))
@@ -176,7 +176,7 @@ struct SidebarView: View {
                         )
                     }
                     .padding(.horizontal, 20)
-                    
+
                     // Calendar button
                     Button(action: {
                         showCalendar = true
@@ -185,21 +185,21 @@ struct SidebarView: View {
                             Image(systemName: "calendar")
                                 .font(.title2)
                                 .foregroundColor(.blue)
-                            
+
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Learning Calendar")
                                     .fontWeight(.semibold)
                                     .foregroundColor(.white)
-                                
+
                                 if let user = firebaseManager.currentUser {
                                     Text("🔥 \(user.currentStreak) day streak")
                                         .font(.caption)
                                         .foregroundColor(.orange)
                                 }
                             }
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.5))
@@ -218,12 +218,12 @@ struct SidebarView: View {
                     .padding(.horizontal, 20)
                 }
                 .padding(.bottom, 20)
-                
+
                 Divider()
                     .background(Color.white.opacity(0.2))
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
-                
+
                 // Topics list
                 ScrollView {
                     LazyVStack(spacing: 12) {
@@ -233,9 +233,9 @@ struct SidebarView: View {
                                 .font(.headline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
-                            
+
                             Spacer()
-                            
+
                             Text("\(topicManager.savedTopics.count)")
                                 .font(.caption)
                                 .fontWeight(.bold)
@@ -249,19 +249,19 @@ struct SidebarView: View {
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 10)
-                        
+
                         if topicManager.savedTopics.isEmpty {
                             VStack(spacing: 15) {
                                 Image(systemName: "brain.head.profile")
                                     .font(.system(size: 40))
                                     .foregroundColor(.white.opacity(0.3))
-                                
+
                                 VStack(spacing: 8) {
                                     Text("No topics yet!")
                                         .font(.headline)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.white.opacity(0.8))
-                                    
+
                                     Text("Start learning to see your topics here")
                                         .font(.caption)
                                         .foregroundColor(.white.opacity(0.6))
@@ -285,14 +285,14 @@ struct SidebarView: View {
                     }
                     .padding(.horizontal, 20)
                 }
-                
+
                 Spacer()
-                
+
                 // Footer with actions
                 VStack(spacing: 15) {
                     Divider()
                         .background(Color.white.opacity(0.2))
-                    
+
                     // Create new topic button
                     Button(action: {
                         topicManager.currentTopic = nil
@@ -304,13 +304,13 @@ struct SidebarView: View {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
                                 .foregroundColor(.pink)
-                            
+
                             Text("Learn Something New")
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.5))
@@ -326,7 +326,7 @@ struct SidebarView: View {
                                 )
                         )
                     }
-                    
+
                     // Debug tools button (always visible, not just debug builds)
                     Button(action: {
                         showDebugView = true
@@ -335,13 +335,13 @@ struct SidebarView: View {
                             Image(systemName: "hammer.fill")
                                 .font(.title3)
                                 .foregroundColor(.orange)
-                            
+
                             Text("Debug Tools")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white.opacity(0.9))
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "chevron.right")
                                 .font(.caption2)
                                 .foregroundColor(.white.opacity(0.5))
@@ -357,14 +357,14 @@ struct SidebarView: View {
                                 )
                         )
                     }
-                    
+
                     // Version info
                     VStack(spacing: 5) {
                         Text("FlashTok v1.0")
                             .font(.caption2)
                             .fontWeight(.medium)
                             .foregroundColor(.white.opacity(0.5))
-                        
+
                         if firebaseManager.isAuthenticated {
                             Text("Connected to Firebase")
                                 .font(.caption2)
@@ -410,7 +410,7 @@ struct TopicRowView: View {
     let onTap: () -> Void
     let onDelete: () -> Void
     @State private var showDeleteAlert = false
-    
+
     var body: some View {
         HStack {
             Button(action: onTap) {
@@ -423,24 +423,24 @@ struct TopicRowView: View {
                                 .foregroundColor(.white)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
-                            
+
                             HStack(spacing: 15) {
                                 HStack(spacing: 4) {
                                     Image(systemName: "rectangle.stack.fill")
                                         .font(.caption2)
                                         .foregroundColor(.white.opacity(0.6))
-                                    
+
                                     Text("\(topic.flashcards.count)")
                                         .font(.caption)
                                         .foregroundColor(.white.opacity(0.6))
                                 }
-                                
+
                                 if topic.isLiked {
                                     HStack(spacing: 4) {
                                         Image(systemName: "heart.fill")
                                             .font(.caption2)
                                             .foregroundColor(.red)
-                                        
+
                                         Text("Liked")
                                             .font(.caption2)
                                             .foregroundColor(.red.opacity(0.8))
@@ -448,28 +448,28 @@ struct TopicRowView: View {
                                 }
                             }
                         }
-                        
+
                         Spacer()
-                        
+
                         VStack(spacing: 5) {
                             Text("\(topic.progressPercentage)%")
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
-                            
+
                             Image(systemName: "chevron.right")
                                 .font(.caption2)
                                 .foregroundColor(.white.opacity(0.5))
                         }
                     }
-                    
+
                     // Progress bar
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(Color.white.opacity(0.2))
                                 .frame(height: 4)
-                            
+
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(
                                     LinearGradient(
@@ -491,7 +491,7 @@ struct TopicRowView: View {
                         .stroke(Color.white.opacity(0.1), lineWidth: 1)
                 )
             }
-            
+
             // Delete button
             Button(action: {
                 showDeleteAlert = true

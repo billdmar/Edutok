@@ -8,7 +8,7 @@ struct LeaderboardView: View {
     @State private var isLoading = true
     @State private var refreshTimer: Timer?
     @State private var showAuthView = false
-    
+
     var body: some View {
         Group {
             if firebaseManager.isAuthenticated {
@@ -29,7 +29,7 @@ struct LeaderboardView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
-                
+
                 // Type toggle buttons
                 HStack(spacing: 0) {
                     ForEach(LeaderboardType.allCases, id: \.self) { type in
@@ -42,7 +42,7 @@ struct LeaderboardView: View {
                             VStack(spacing: 8) {
                                 Image(systemName: type.icon)
                                     .font(.title2)
-                                
+
                                 Text(type.title)
                                     .font(.caption)
                                     .fontWeight(.semibold)
@@ -74,12 +74,12 @@ struct LeaderboardView: View {
                 .padding(.horizontal, 20)
             }
             .padding(.vertical, 20)
-            
+
             // Current user stats
             if let user = firebaseManager.currentUser {
                 currentUserStatsView(user: user)
             }
-            
+
             // Leaderboard list
             ScrollView {
                 LazyVStack(spacing: 12) {
@@ -122,7 +122,7 @@ struct LeaderboardView: View {
             stopRefreshTimer()
         }
     }
-    
+
     private func currentUserStatsView(user: AppUser) -> some View {
         VStack(spacing: 15) {
             HStack {
@@ -130,9 +130,9 @@ struct LeaderboardView: View {
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
-                
+
                 Spacer()
-                
+
                 Text("🔥 \(user.currentStreak) day streak")
                     .font(.caption)
                     .fontWeight(.bold)
@@ -144,7 +144,7 @@ struct LeaderboardView: View {
                             .fill(Color.orange.opacity(0.2))
                     )
             }
-            
+
             HStack(spacing: 20) {
                 StatCard(
                     title: "Cards Flipped",
@@ -153,7 +153,7 @@ struct LeaderboardView: View {
                     color: .purple,
                     isSelected: selectedType == .cardsFlipped
                 )
-                
+
                 StatCard(
                     title: "Topics Explored",
                     value: user.todayStats?.topicsExplored ?? 0,
@@ -176,7 +176,7 @@ struct LeaderboardView: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
     }
-    
+
     private func leaderboardRow(entry: LeaderboardEntry) -> some View {
         HStack(spacing: 15) {
             // Rank
@@ -184,7 +184,7 @@ struct LeaderboardView: View {
                 Circle()
                     .fill(rankColor(entry.rank))
                     .frame(width: 40, height: 40)
-                
+
                 if entry.rank <= 3 {
                     Text(rankEmoji(entry.rank))
                         .font(.title3)
@@ -195,7 +195,7 @@ struct LeaderboardView: View {
                         .foregroundColor(.white)
                 }
             }
-            
+
             // User info
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
@@ -203,7 +203,7 @@ struct LeaderboardView: View {
                         .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
-                    
+
                     if entry.isCurrentUser {
                         Text("(You)")
                             .font(.caption)
@@ -211,14 +211,14 @@ struct LeaderboardView: View {
                             .foregroundColor(.yellow)
                     }
                 }
-                
+
                 Text("\(entry.value) \(selectedType == .cardsFlipped ? "cards" : "topics")")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
             }
-            
+
             Spacer()
-            
+
             // Value badge
             Text("\(entry.value)")
                 .font(.title2)
@@ -262,25 +262,25 @@ struct LeaderboardView: View {
             radius: entry.isCurrentUser ? 8 : 0
         )
     }
-    
+
     private func leaderboardLoadingRow() -> some View {
         HStack(spacing: 15) {
             Circle()
                 .fill(Color.white.opacity(0.1))
                 .frame(width: 40, height: 40)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color.white.opacity(0.1))
                     .frame(width: 120, height: 20)
-                
+
                 RoundedRectangle(cornerRadius: 6)
                     .fill(Color.white.opacity(0.1))
                     .frame(width: 80, height: 14)
             }
-            
+
             Spacer()
-            
+
             RoundedRectangle(cornerRadius: 15)
                 .fill(Color.white.opacity(0.1))
                 .frame(width: 60, height: 35)
@@ -293,18 +293,18 @@ struct LeaderboardView: View {
         )
         .redacted(reason: .placeholder)
     }
-    
+
     private func emptyLeaderboardView() -> some View {
         VStack(spacing: 20) {
             Image(systemName: "trophy")
                 .font(.system(size: 60))
                 .foregroundColor(.white.opacity(0.3))
-            
+
             Text("No data yet today")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .foregroundColor(.white.opacity(0.7))
-            
+
             Text("Start learning to appear on the leaderboard!")
                 .font(.body)
                 .foregroundColor(.white.opacity(0.5))
@@ -312,7 +312,7 @@ struct LeaderboardView: View {
         }
         .padding(.top, 50)
     }
-    
+
     private func rankColor(_ rank: Int) -> LinearGradient {
         switch rank {
         case 1:
@@ -325,7 +325,7 @@ struct LeaderboardView: View {
             return LinearGradient(colors: [.purple.opacity(0.6), .blue.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
     }
-    
+
     private func rankEmoji(_ rank: Int) -> String {
         switch rank {
         case 1: return "🥇"
@@ -334,14 +334,14 @@ struct LeaderboardView: View {
         default: return ""
         }
     }
-    
+
     private func loadLeaderboard() {
         isLoading = true
-        
+
         Task {
             do {
                 let entries = try await firebaseManager.fetchDailyLeaderboard(type: selectedType)
-                
+
                 await MainActor.run {
                     leaderboardEntries = entries
                     isLoading = false
@@ -354,7 +354,7 @@ struct LeaderboardView: View {
             }
         }
     }
-    
+
     private func refreshLeaderboard() async {
         do {
             let entries = try await firebaseManager.fetchDailyLeaderboard(type: selectedType)
@@ -363,7 +363,7 @@ struct LeaderboardView: View {
             print("Error refreshing leaderboard: \(error)")
         }
     }
-    
+
     private func startRefreshTimer() {
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
             Task {
@@ -371,18 +371,17 @@ struct LeaderboardView: View {
             }
         }
     }
-    
+
     private func stopRefreshTimer() {
         refreshTimer?.invalidate()
         refreshTimer = nil
     }
 }
 
-
 struct AuthenticationPromptView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
     @State private var showAuthView = false
-    
+
     var body: some View {
         VStack(spacing: 30) {
             // Trophy animation
@@ -396,26 +395,26 @@ struct AuthenticationPromptView: View {
                         )
                     )
                     .frame(width: 120, height: 120)
-                
+
                 Image(systemName: "trophy.fill")
                     .font(.system(size: 60))
                     .foregroundColor(.yellow)
             }
             .shadow(color: .yellow.opacity(0.3), radius: 20, x: 0, y: 10)
-            
+
             VStack(spacing: 15) {
                 Text("Join the Competition!")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
-                
+
                 Text("Sign up to compete on daily leaderboards, track your progress, and see how you rank against other learners!")
                     .font(.body)
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }
-            
+
             VStack(spacing: 20) {
                 // Main sign up button
                 Button(action: {
@@ -424,7 +423,7 @@ struct AuthenticationPromptView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "person.fill.badge.plus")
                             .font(.title3)
-                        
+
                         Text("Sign Up to Compete")
                             .font(.headline)
                             .fontWeight(.semibold)
@@ -442,7 +441,7 @@ struct AuthenticationPromptView: View {
                     .cornerRadius(25)
                     .shadow(color: .purple.opacity(0.3), radius: 15, x: 0, y: 5)
                 }
-                
+
                 // Already have account button
                 Button(action: {
                     showAuthView = true
@@ -453,7 +452,7 @@ struct AuthenticationPromptView: View {
                         .foregroundColor(.white.opacity(0.8))
                         .underline()
                 }
-                
+
                 // Guest option
                 Button(action: {
                     Task {
@@ -465,14 +464,14 @@ struct AuthenticationPromptView: View {
                         .foregroundColor(.white.opacity(0.6))
                 }
             }
-            
+
             // Benefits preview
             VStack(spacing: 15) {
                 Text("What you'll get:")
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
-                
+
                 VStack(spacing: 12) {
                     BenefitRow(icon: "trophy.fill", text: "Daily leaderboard rankings", color: .yellow)
                     BenefitRow(icon: "chart.line.uptrend.xyaxis", text: "Progress tracking & analytics", color: .green)
@@ -505,18 +504,18 @@ struct BenefitRow: View {
     let icon: String
     let text: String
     let color: Color
-    
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundColor(color)
                 .frame(width: 24)
-            
+
             Text(text)
                 .font(.subheadline)
                 .foregroundColor(.white.opacity(0.9))
-            
+
             Spacer()
         }
         .padding(.horizontal, 20)
@@ -529,18 +528,18 @@ struct StatCard: View {
     let icon: String
     let color: Color
     let isSelected: Bool
-    
+
     var body: some View {
         VStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(isSelected ? .white : .white.opacity(0.7))
-            
+
             Text("\(value)")
                 .font(.title)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
-            
+
             Text(title)
                 .font(.caption)
                 .fontWeight(.medium)

@@ -4,7 +4,7 @@ struct EnhancedAchievementsView: View {
     @ObservedObject var gamificationManager: GamificationManager
     @Environment(\.dismiss) private var dismiss
     @State private var selectedCategory: AchievementCategory = .learning
-    
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -19,7 +19,7 @@ struct EnhancedAchievementsView: View {
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
-                
+
                 VStack(spacing: 20) {
                     // Header
                     VStack(spacing: 10) {
@@ -27,14 +27,14 @@ struct EnhancedAchievementsView: View {
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
-                        
+
                         Text("Unlock achievements to earn XP and show off your progress!")
                             .font(.subheadline)
                             .foregroundColor(.white.opacity(0.8))
                             .multilineTextAlignment(.center)
                     }
                     .padding(.top, 20)
-                    
+
                     // Category selector
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 15) {
@@ -52,12 +52,12 @@ struct EnhancedAchievementsView: View {
                         }
                         .padding(.horizontal, 20)
                     }
-                    
+
                     // Achievements list
                     ScrollView {
                         LazyVStack(spacing: 15) {
                             let filteredAchievements = gamificationManager.enhancedAchievements.filter { $0.category == selectedCategory }
-                            
+
                             if filteredAchievements.isEmpty {
                                 emptyCategoryView()
                             } else {
@@ -68,7 +68,7 @@ struct EnhancedAchievementsView: View {
                         }
                         .padding(.horizontal, 20)
                     }
-                    
+
                     Spacer()
                 }
             }
@@ -83,18 +83,18 @@ struct EnhancedAchievementsView: View {
             }
         }
     }
-    
+
     private func emptyCategoryView() -> some View {
         VStack(spacing: 20) {
             Image(systemName: "trophy")
                 .font(.system(size: 60))
                 .foregroundColor(.white.opacity(0.3))
-            
+
             Text("No achievements in this category yet")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .foregroundColor(.white.opacity(0.7))
-            
+
             Text("Keep learning to unlock more achievements!")
                 .font(.body)
                 .foregroundColor(.white.opacity(0.5))
@@ -108,7 +108,7 @@ struct CategoryButton: View {
     let category: AchievementCategory
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(category.displayName)
@@ -137,7 +137,7 @@ struct CategoryButton: View {
 
 struct AchievementCard: View {
     let achievement: EnhancedAchievement
-    
+
     var body: some View {
         HStack(spacing: 20) {
             // Achievement icon
@@ -160,12 +160,12 @@ struct AchievementCard: View {
                         )
                     )
                     .frame(width: 60, height: 60)
-                
+
                 Image(systemName: achievement.displayIcon)
                     .font(.title2)
                     .foregroundColor(achievement.isUnlocked ? .white : .white.opacity(0.5))
             }
-            
+
             // Achievement details
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -173,9 +173,9 @@ struct AchievementCard: View {
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
-                    
+
                     Spacer()
-                    
+
                     if achievement.isUnlocked {
                         Text("+\(achievement.xpReward)")
                             .font(.title3)
@@ -183,12 +183,12 @@ struct AchievementCard: View {
                             .foregroundColor(.yellow)
                     }
                 }
-                
+
                 Text(achievement.description)
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.leading)
-                
+
                 HStack {
                     // Rarity badge
                     Text(achievement.rarity.rawValue.capitalized)
@@ -199,7 +199,7 @@ struct AchievementCard: View {
                         .padding(.vertical, 4)
                         .background(Color(achievement.rarity.color).opacity(0.3))
                         .cornerRadius(8)
-                    
+
                     // Category badge
                     Text(achievement.category.displayName)
                         .font(.caption2)
@@ -209,9 +209,9 @@ struct AchievementCard: View {
                         .padding(.vertical, 4)
                         .background(Color.white.opacity(0.1))
                         .cornerRadius(8)
-                    
+
                     Spacer()
-                    
+
                     if achievement.isUnlocked {
                         Text("Unlocked")
                             .font(.caption)
@@ -257,4 +257,4 @@ struct AchievementCard: View {
 
 #Preview {
     EnhancedAchievementsView(gamificationManager: GamificationManager())
-} 
+}
