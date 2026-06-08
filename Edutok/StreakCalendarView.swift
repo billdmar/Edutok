@@ -316,15 +316,17 @@ struct StreakCalendarView: View {
     private var calendarDays: [CalendarDay] {
         guard let user = firebaseManager.currentUser else { return [] }
 
-        let monthRange = calendar.range(of: .day, in: .month, for: currentMonth)!
-        let firstDay = calendar.dateInterval(of: .month, for: currentMonth)!.start
+        guard let monthRange = calendar.range(of: .day, in: .month, for: currentMonth),
+              let firstDay = calendar.dateInterval(of: .month, for: currentMonth)?.start else {
+            return []
+        }
         let firstWeekday = calendar.component(.weekday, from: firstDay)
 
         var days: [CalendarDay] = []
 
         // Add previous month padding days
         for i in 1..<firstWeekday {
-            let date = calendar.date(byAdding: .day, value: -(firstWeekday - i), to: firstDay)!
+            guard let date = calendar.date(byAdding: .day, value: -(firstWeekday - i), to: firstDay) else { continue }
             days.append(CalendarDay(
                 date: date,
                 dailyStat: user.statsFor(date: date),
@@ -335,7 +337,7 @@ struct StreakCalendarView: View {
 
         // Add current month days
         for day in 1...monthRange.count {
-            let date = calendar.date(byAdding: .day, value: day - 1, to: firstDay)!
+            guard let date = calendar.date(byAdding: .day, value: day - 1, to: firstDay) else { continue }
             days.append(CalendarDay(
                 date: date,
                 dailyStat: user.statsFor(date: date),
@@ -347,7 +349,7 @@ struct StreakCalendarView: View {
         // Add next month padding days to complete the grid
         let remainingDays = 42 - days.count // 6 weeks * 7 days
         for i in 1...remainingDays {
-            let date = calendar.date(byAdding: .day, value: monthRange.count + i - 1, to: firstDay)!
+            guard let date = calendar.date(byAdding: .day, value: monthRange.count + i - 1, to: firstDay) else { continue }
             days.append(CalendarDay(
                 date: date,
                 dailyStat: user.statsFor(date: date),

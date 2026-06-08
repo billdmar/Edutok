@@ -63,8 +63,8 @@ class GamificationManager: ObservableObject {
             forName: NSNotification.Name("TopicExplored"),
             object: nil,
             queue: .main
-        ) { _ in
-            self.updateChallengeProgress(type: .topicsExplored)
+        ) { [weak self] _ in
+            self?.updateChallengeProgress(type: .topicsExplored)
         }
     }
 
@@ -121,7 +121,7 @@ class GamificationManager: ObservableObject {
     func updateChallengeProgress(type: ChallengeType, value: Int = 1) {
         for index in dailyChallenges.indices {
             if dailyChallenges[index].type == type && !dailyChallenges[index].isCompleted {
-                dailyChallenges[index].currentValue += value
+                dailyChallenges[index].currentValue = min(dailyChallenges[index].currentValue + value, dailyChallenges[index].targetValue)
 
                 // Check if challenge is completed
                 if dailyChallenges[index].currentValue >= dailyChallenges[index].targetValue {
@@ -199,9 +199,9 @@ class GamificationManager: ObservableObject {
         let random = Double.random(in: 0...1)
 
         switch random {
-        case 0...0.5: return .common      // 50% chance
-        case 0.5...0.8: return .rare      // 30% chance
-        case 0.8...0.95: return .epic     // 15% chance
+        case 0..<0.5: return .common      // 50% chance
+        case 0.5..<0.8: return .rare      // 30% chance
+        case 0.8..<0.95: return .epic     // 15% chance
         default: return .legendary         // 5% chance
         }
     }
