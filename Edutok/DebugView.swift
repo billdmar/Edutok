@@ -6,24 +6,24 @@ struct DebugView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var debugLog: [String] = []
     @State private var isLoading = false
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
                     // Header
                     headerSection()
-                    
+
                     // Current User Info
                     if let user = firebaseManager.currentUser {
                         currentUserSection(user: user)
                     } else {
                         noUserSection()
                     }
-                    
+
                     // Action Buttons
                     actionButtonsSection()
-                    
+
                     // Debug Log
                     debugLogSection()
                 }
@@ -51,7 +51,7 @@ struct DebugView: View {
                     }
                     .foregroundColor(.white)
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Clear Log") {
                         debugLog.removeAll()
@@ -69,18 +69,18 @@ struct DebugView: View {
             }
         }
     }
-    
+
     private func headerSection() -> some View {
         VStack(spacing: 15) {
             Image(systemName: "hammer.fill")
                 .font(.system(size: 50))
                 .foregroundColor(.red)
-            
+
             Text("Firebase Debug Console")
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
-            
+
             Text("Test Firebase functionality and tracking")
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.7))
@@ -88,7 +88,7 @@ struct DebugView: View {
         }
         .padding(.vertical, 20)
     }
-    
+
     private func currentUserSection(user: AppUser) -> some View {
         VStack(alignment: .leading, spacing: 15) {
             HStack {
@@ -96,9 +96,9 @@ struct DebugView: View {
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
-                
+
                 Spacer()
-                
+
                 Circle()
                     .fill(Color.green)
                     .frame(width: 10, height: 10)
@@ -109,7 +109,7 @@ struct DebugView: View {
                             .offset(x: 25)
                     )
             }
-            
+
             VStack(spacing: 12) {
                 DebugInfoRow(label: "ID", value: user.id)
                 DebugInfoRow(label: "Username", value: user.username)
@@ -120,7 +120,7 @@ struct DebugView: View {
                 DebugInfoRow(label: "Join Date", value: formatDate(user.joinDate))
                 DebugInfoRow(label: "Last Active", value: formatDate(user.lastActiveDate))
                 DebugInfoRow(label: "Daily Stats Count", value: "\(user.dailyStats.count)")
-                
+
                 if let todayStats = user.todayStats {
                     DebugInfoRow(label: "Today Cards", value: "\(todayStats.cardsFlipped)")
                     DebugInfoRow(label: "Today Topics", value: "\(todayStats.topicsExplored)")
@@ -140,21 +140,21 @@ struct DebugView: View {
                 )
         )
     }
-    
+
     private func noUserSection() -> some View {
         VStack(spacing: 15) {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
                 .font(.system(size: 40))
                 .foregroundColor(.red)
-            
+
             Text("No User Authenticated")
                 .font(.headline)
                 .foregroundColor(.white)
-            
+
             Text("Sign in to test user functionality")
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.7))
-            
+
             Button("Sign In Anonymously") {
                 signInAnonymously()
             }
@@ -170,65 +170,65 @@ struct DebugView: View {
                 )
         )
     }
-    
+
     private func actionButtonsSection() -> some View {
         VStack(spacing: 15) {
             Text("Test Actions")
                 .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundColor(.white)
-            
+
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 15) {
                 // Card tracking
                 Button("Track 1 Card Flipped") {
                     trackCardFlipped()
                 }
                 .buttonStyle(DebugButtonStyle(color: .purple))
-                
+
                 Button("Track 5 Cards Flipped") {
                     trackMultipleCards(5)
                 }
                 .buttonStyle(DebugButtonStyle(color: .purple))
-                
+
                 // Topic tracking
                 Button("Track 1 Topic Explored") {
                     trackTopicExplored()
                 }
                 .buttonStyle(DebugButtonStyle(color: .blue))
-                
+
                 Button("Track 3 Topics Explored") {
                     trackMultipleTopics(3)
                 }
                 .buttonStyle(DebugButtonStyle(color: .blue))
-                
+
                 // Achievement tracking
                 Button("Award First Card Achievement") {
                     trackAchievement(.firstCard)
                 }
                 .buttonStyle(DebugButtonStyle(color: .yellow))
-                
+
                 Button("Award Scholar Achievement") {
                     trackAchievement(.scholar)
                 }
                 .buttonStyle(DebugButtonStyle(color: .yellow))
-                
+
                 // Leaderboard testing
                 Button("Fetch Cards Leaderboard") {
                     fetchLeaderboard(.cardsFlipped)
                 }
                 .buttonStyle(DebugButtonStyle(color: .green))
-                
+
                 Button("Fetch Topics Leaderboard") {
                     fetchLeaderboard(.topicsExplored)
                 }
                 .buttonStyle(DebugButtonStyle(color: .green))
-                
+
                 // Reset actions
                 Button("Sign Out") {
                     signOut()
                 }
                 .buttonStyle(DebugButtonStyle(color: .red))
-                
+
                 Button("Reset Daily Stats") {
                     resetDailyStats()
                 }
@@ -247,7 +247,7 @@ struct DebugView: View {
         .disabled(isLoading)
         .opacity(isLoading ? 0.6 : 1.0)
     }
-    
+
     private func debugLogSection() -> some View {
         VStack(alignment: .leading, spacing: 15) {
             HStack {
@@ -255,14 +255,14 @@ struct DebugView: View {
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
-                
+
                 Spacer()
-                
+
                 Text("\(debugLog.count) entries")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.6))
             }
-            
+
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(Array(debugLog.enumerated().reversed()), id: \.offset) { index, entry in
@@ -271,12 +271,12 @@ struct DebugView: View {
                                 .font(.caption2)
                                 .foregroundColor(.white.opacity(0.5))
                                 .frame(width: 30, alignment: .trailing)
-                            
+
                             Text(entry)
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.8))
                                 .multilineTextAlignment(.leading)
-                            
+
                             Spacer()
                         }
                         .padding(.horizontal, 10)
@@ -300,13 +300,13 @@ struct DebugView: View {
                 )
         )
     }
-    
+
     // MARK: - Debug Actions
-    
+
     private func signInAnonymously() {
         isLoading = true
         addToLog("Attempting anonymous sign in...")
-        
+
         Task {
             do {
                 try await firebaseManager.signInAnonymously()
@@ -323,10 +323,10 @@ struct DebugView: View {
             }
         }
     }
-    
+
     private func trackCardFlipped() {
         addToLog("Tracking 1 card flipped...")
-        
+
         Task {
             await firebaseManager.trackCardFlipped()
             await MainActor.run {
@@ -338,10 +338,10 @@ struct DebugView: View {
             }
         }
     }
-    
+
     private func trackMultipleCards(_ count: Int) {
         addToLog("Tracking \(count) cards flipped...")
-        
+
         Task {
             for i in 1...count {
                 await firebaseManager.trackCardFlipped()
@@ -355,10 +355,10 @@ struct DebugView: View {
             }
         }
     }
-    
+
     private func trackTopicExplored() {
         addToLog("Tracking 1 topic explored...")
-        
+
         Task {
             await firebaseManager.trackTopicExplored()
             await MainActor.run {
@@ -370,10 +370,10 @@ struct DebugView: View {
             }
         }
     }
-    
+
     private func trackMultipleTopics(_ count: Int) {
         addToLog("Tracking \(count) topics explored...")
-        
+
         Task {
             for i in 1...count {
                 await firebaseManager.trackTopicExplored()
@@ -387,10 +387,10 @@ struct DebugView: View {
             }
         }
     }
-    
+
     private func trackAchievement(_ achievement: Achievement) {
         addToLog("Tracking achievement: \(achievement.title)")
-        
+
         Task {
             await firebaseManager.trackAchievement(achievement.rawValue)
             await MainActor.run {
@@ -398,10 +398,10 @@ struct DebugView: View {
             }
         }
     }
-    
+
     private func fetchLeaderboard(_ type: LeaderboardType) {
         addToLog("Fetching \(type.title) leaderboard...")
-        
+
         Task {
             do {
                 let entries = try await firebaseManager.fetchDailyLeaderboard(type: type)
@@ -420,21 +420,21 @@ struct DebugView: View {
             }
         }
     }
-    
+
     private func signOut() {
         addToLog("Signing out...")
         firebaseManager.signOut()
         addToLog("✅ Signed out successfully")
     }
-    
+
     private func resetDailyStats() {
         guard var user = firebaseManager.currentUser else {
             addToLog("❌ No user to reset stats for")
             return
         }
-        
+
         addToLog("Resetting daily stats...")
-        
+
         // Reset today's stats
         let today = Calendar.current.startOfDay(for: Date())
         if let todayIndex = user.dailyStats.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: today) }) {
@@ -442,18 +442,18 @@ struct DebugView: View {
             user.dailyStats[todayIndex].topicsExplored = 0
             user.dailyStats[todayIndex].achievements = []
         }
-        
+
         // Note: In a real app, you'd save this back to Firebase
         addToLog("✅ Daily stats reset (local only - not saved to Firebase)")
     }
-    
+
     // MARK: - Helper Functions
-    
+
     private func addToLog(_ message: String) {
         let timestamp = DateFormatter.timeFormatter.string(from: Date())
         debugLog.append("[\(timestamp)] \(message)")
     }
-    
+
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
@@ -467,19 +467,19 @@ struct DebugView: View {
 struct DebugInfoRow: View {
     let label: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(label)
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.7))
                 .frame(width: 100, alignment: .leading)
-            
+
             Text(value)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.white)
-            
+
             Spacer()
         }
     }
@@ -487,7 +487,7 @@ struct DebugInfoRow: View {
 
 struct DebugButtonStyle: ButtonStyle {
     let color: Color
-    
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.caption)

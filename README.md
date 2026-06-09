@@ -5,7 +5,7 @@
 Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized, AI-generated flashcards — wrapped in streaks, achievements, and a leaderboard to make learning genuinely addictive.
 
 ![Swift](https://img.shields.io/badge/Swift-5-orange?logo=swift&logoColor=white)
-![iOS](https://img.shields.io/badge/iOS-17%2B-000000?logo=apple&logoColor=white)
+![iOS](https://img.shields.io/badge/iOS-18.5%2B-000000?logo=apple&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0071e3)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-FFCA28?logo=firebase&logoColor=black)
 ![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=google&logoColor=white)
@@ -28,7 +28,7 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 
 | Area            | Technology                            |
 | --------------- | ------------------------------------- |
-| UI              | SwiftUI (iOS 17+)                     |
+| UI              | SwiftUI (iOS 18.5+)                   |
 | Language        | Swift 5 / Xcode 16                    |
 | AI content      | Google Gemini (`gemini-1.5-flash-latest`)    |
 | Images          | Unsplash API                          |
@@ -59,12 +59,44 @@ Edutok/
 └── Models.swift               # Core data models
 ```
 
+## Engineering decisions
+
+A few choices worth calling out:
+
+- **Domain-driven `@MainActor` managers instead of one massive view model.** State is
+  split across `TopicManager`, `ImageManager`, `FirebaseManager`, and `GamificationManager`
+  — each owns a single domain and is injected into the SwiftUI tree. All are `@MainActor`,
+  so published state mutates on the main thread and the UI updates without data races. This
+  keeps each concern isolated and made the gamification logic unit-testable on its own.
+- **Resilient AI integration.** Flashcards come from Google Gemini (`gemini-1.5-flash-latest`)
+  over its REST endpoint, generated in **batches of 15** with a prompt whose depth and topic
+  aspect vary by batch number, so an "endless" feed keeps getting deeper instead of repeating.
+  Because LLMs wrap JSON in markdown fences and prose, the raw response is sanitized before
+  decoding into typed `Codable` structs, the HTTP status is checked, and the request has a
+  20-second timeout. Any network or decode failure falls back to deterministic mock cards, so
+  the feed is never empty and the app degrades gracefully offline.
+- **Gamification modeled as pure, testable logic.** Leveling uses an explicit quadratic XP
+  curve — `((n-1)² · 50) + ((n-1) · 50)` XP to reach level _n_ (so L2 = 100, L3 = 300,
+  L4 = 600). `UserProgress.addXP` is a pure mutating function that returns whether the user
+  leveled up, which drives the celebration animation. Mystery-box rewards use a deliberate
+  variable-ratio schedule (50% common / 30% rare / 15% epic / 5% legendary) — a real
+  behavioral-design choice, documented in [docs/gamification-design.md](docs/gamification-design.md).
+- **Why SwiftUI + Firebase.** SwiftUI for declarative, animation-rich UI (the swipe feed and
+  particle effects); Firebase Auth + Firestore for zero-backend auth, cross-device sync, and
+  the global leaderboard without standing up a server.
+
+## Testing
+
+Core domain logic is covered by unit tests in `EdutokTests` — the XP/leveling math
+(thresholds, level-up detection, progress), topic progress calculation, and the mystery-box
+reward ranges — so the gamification rules are verified independently of the UI.
+
 ## Getting started
 
 ### Prerequisites
 
 - Xcode 16 or later
-- An iOS 17+ simulator or device
+- An iOS 18.5+ simulator or device
 - API keys for Google Gemini and Unsplash
 - A Firebase project (iOS app)
 
@@ -108,6 +140,10 @@ This project keeps all credentials out of version control:
 
 ## Screenshots
 
+> 📸 Screenshots are being captured in the iOS Simulator and will land here shortly.
+> See [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) for the capture plan.
+
+<!-- Uncomment once the PNGs are committed to docs/.
 | Flashcard feed | Topic generation | Gamification |
 | :--: | :--: | :--: |
 | ![Feed](docs/feed.png) | ![Generate](docs/generate.png) | ![Gamification](docs/gamification.png) |
@@ -115,9 +151,16 @@ This project keeps all credentials out of version control:
 | Streak calendar | Leaderboard |
 | :--: | :--: |
 | ![Streak](docs/streak.png) | ![Leaderboard](docs/leaderboard.png) |
+-->
 
-<!-- Capture in the iOS Simulator (File ▸ Save Screen / ⌘S), then drop the PNGs into
-     docs/ using the exact filenames above. See docs/SCREENSHOTS.md for the guide. -->
+## Roadmap
+
+- [x] AI flashcard generation, swipe feed, gamification, global leaderboard
+- [ ] Study groups & social features
+- [ ] Skill trees / topic specializations
+- [ ] On-device personalization of card difficulty
+
+See the [gamification design notes](docs/gamification-design.md) for the full plan.
 
 ## License
 

@@ -16,24 +16,24 @@ struct AuthenticationView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var verificationID = ""
-    
+
     enum AuthMode {
         case signIn, signUp
-        
+
         var title: String {
             switch self {
             case .signIn: return "Sign In"
             case .signUp: return "Sign Up"
             }
         }
-        
+
         var alternateText: String {
             switch self {
             case .signIn: return "Don't have an account?"
             case .signUp: return "Already have an account?"
             }
         }
-        
+
         var alternateAction: String {
             switch self {
             case .signIn: return "Sign Up"
@@ -41,7 +41,7 @@ struct AuthenticationView: View {
             }
         }
     }
-    
+
     var body: some View {
         ZStack {
             // Background
@@ -55,7 +55,7 @@ struct AuthenticationView: View {
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
-            
+
             ScrollView {
                 VStack(spacing: 30) {
                     // Header
@@ -63,12 +63,12 @@ struct AuthenticationView: View {
                         Image(systemName: "person.crop.circle.fill.badge.plus")
                             .font(.system(size: 60))
                             .foregroundColor(.purple)
-                        
+
                         Text("Join FlashTok")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
-                        
+
                         Text("Create an account to compete on leaderboards and track your progress")
                             .font(.body)
                             .foregroundColor(.white.opacity(0.8))
@@ -76,7 +76,7 @@ struct AuthenticationView: View {
                             .padding(.horizontal, 40)
                     }
                     .padding(.top, 50)
-                    
+
                     // Auth Mode Toggle
                     HStack(spacing: 0) {
                         ForEach([AuthMode.signIn, AuthMode.signUp], id: \.self) { mode in
@@ -104,37 +104,37 @@ struct AuthenticationView: View {
                             .fill(Color.white.opacity(0.1))
                     )
                     .padding(.horizontal, 30)
-                    
+
                     // Authentication Methods
                     VStack(spacing: 20) {
                         // Email/Password Section
                         authFieldsSection()
-                        
+
                         // Divider
                         HStack {
                             Rectangle()
                                 .fill(Color.white.opacity(0.3))
                                 .frame(height: 1)
-                            
+
                             Text("OR")
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white.opacity(0.6))
                                 .padding(.horizontal, 15)
-                            
+
                             Rectangle()
                                 .fill(Color.white.opacity(0.3))
                                 .frame(height: 1)
                         }
                         .padding(.horizontal, 30)
-                        
+
                         // Social Login Buttons
                         socialLoginSection()
-                        
+
                         // Phone Login
                         phoneLoginSection()
                     }
-                    
+
                     // Error Message
                     if !errorMessage.isEmpty {
                         Text(errorMessage)
@@ -142,13 +142,13 @@ struct AuthenticationView: View {
                             .foregroundColor(.red)
                             .padding(.horizontal, 30)
                     }
-                    
+
                     // Auth Mode Switch
                     HStack {
                         Text(authMode.alternateText)
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.7))
-                        
+
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 authMode = authMode == .signIn ? .signUp : .signIn
@@ -164,12 +164,12 @@ struct AuthenticationView: View {
                     .padding(.bottom, 50)
                 }
             }
-            
+
             // Close button
             VStack {
                 HStack {
                     Spacer()
-                    
+
                     Button(action: {
                         dismiss()
                     }) {
@@ -182,7 +182,7 @@ struct AuthenticationView: View {
                     .padding(.trailing, 20)
                     .padding(.top, 20)
                 }
-                
+
                 Spacer()
             }
         }
@@ -193,7 +193,7 @@ struct AuthenticationView: View {
             usernamePromptView()
         }
     }
-    
+
     private func authFieldsSection() -> some View {
         VStack(spacing: 15) {
             // Email Field
@@ -201,7 +201,7 @@ struct AuthenticationView: View {
                 Image(systemName: "envelope")
                     .foregroundColor(.white.opacity(0.7))
                     .frame(width: 20)
-                
+
                 TextField("Email", text: $email)
                     .textFieldStyle(PlainTextFieldStyle())
                     .foregroundColor(.white)
@@ -218,13 +218,13 @@ struct AuthenticationView: View {
                             .stroke(Color.white.opacity(0.2), lineWidth: 1)
                     )
             )
-            
+
             // Password Field
             HStack {
                 Image(systemName: "lock")
                     .foregroundColor(.white.opacity(0.7))
                     .frame(width: 20)
-                
+
                 SecureField("Password", text: $password)
                     .textFieldStyle(PlainTextFieldStyle())
                     .foregroundColor(.white)
@@ -239,7 +239,7 @@ struct AuthenticationView: View {
                             .stroke(Color.white.opacity(0.2), lineWidth: 1)
                     )
             )
-            
+
             // Email/Password Login Button
             Button(action: emailPasswordAuth) {
                 HStack {
@@ -251,7 +251,7 @@ struct AuthenticationView: View {
                         Image(systemName: "envelope.fill")
                             .font(.headline)
                     }
-                    
+
                     Text(authMode.title + " with Email")
                         .fontWeight(.semibold)
                         .font(.headline)
@@ -273,7 +273,7 @@ struct AuthenticationView: View {
         }
         .padding(.horizontal, 30)
     }
-    
+
     private func socialLoginSection() -> some View {
         VStack(spacing: 15) {
             // Google Sign In Button
@@ -281,7 +281,7 @@ struct AuthenticationView: View {
                 HStack {
                     Image(systemName: "globe")
                         .font(.headline)
-                    
+
                     Text("Continue with Google")
                         .fontWeight(.semibold)
                         .font(.headline)
@@ -298,13 +298,13 @@ struct AuthenticationView: View {
                 )
                 .cornerRadius(25)
             }
-            
+
             // Anonymous Sign In Button
             Button(action: anonymousSignIn) {
                 HStack {
                     Image(systemName: "person.fill.questionmark")
                         .font(.headline)
-                    
+
                     Text("Continue Anonymously")
                         .fontWeight(.semibold)
                         .font(.headline)
@@ -324,7 +324,7 @@ struct AuthenticationView: View {
         }
         .padding(.horizontal, 30)
     }
-    
+
     private func phoneLoginSection() -> some View {
         VStack(spacing: 15) {
             // Phone Number Field
@@ -332,7 +332,7 @@ struct AuthenticationView: View {
                 Image(systemName: "phone")
                     .foregroundColor(.white.opacity(0.7))
                     .frame(width: 20)
-                
+
                 TextField("Phone Number (+1234567890)", text: $phoneNumber)
                     .textFieldStyle(PlainTextFieldStyle())
                     .foregroundColor(.white)
@@ -348,13 +348,13 @@ struct AuthenticationView: View {
                             .stroke(Color.white.opacity(0.2), lineWidth: 1)
                     )
             )
-            
+
             // Phone Sign In Button
             Button(action: phoneSignIn) {
                 HStack {
                     Image(systemName: "phone.fill")
                         .font(.headline)
-                    
+
                     Text("Sign In with Phone")
                         .fontWeight(.semibold)
                         .font(.headline)
@@ -376,7 +376,7 @@ struct AuthenticationView: View {
         }
         .padding(.horizontal, 30)
     }
-    
+
     private func verificationCodeView() -> some View {
         NavigationView {
             VStack(spacing: 30) {
@@ -384,7 +384,7 @@ struct AuthenticationView: View {
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
-                
+
                 TextField("123456", text: $verificationCode)
                     .textFieldStyle(PlainTextFieldStyle())
                     .foregroundColor(.white)
@@ -397,7 +397,7 @@ struct AuthenticationView: View {
                             .fill(Color.white.opacity(0.1))
                     )
                     .padding(.horizontal, 40)
-                
+
                 Button(action: verifyPhoneCode) {
                     Text("Verify")
                         .fontWeight(.semibold)
@@ -409,7 +409,7 @@ struct AuthenticationView: View {
                         .cornerRadius(25)
                 }
                 .disabled(verificationCode.isEmpty)
-                
+
                 Spacer()
             }
             .padding(.top, 50)
@@ -432,7 +432,7 @@ struct AuthenticationView: View {
             }
         }
     }
-    
+
     private func usernamePromptView() -> some View {
         NavigationView {
             VStack(spacing: 30) {
@@ -440,18 +440,18 @@ struct AuthenticationView: View {
                     Image(systemName: "person.circle.fill")
                         .font(.system(size: 60))
                         .foregroundColor(.purple)
-                    
+
                     Text("Choose Your Username")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
-                    
+
                     Text("This is how you'll appear on leaderboards")
                         .font(.body)
                         .foregroundColor(.white.opacity(0.8))
                         .multilineTextAlignment(.center)
                 }
-                
+
                 TextField("Username", text: $username)
                     .textFieldStyle(PlainTextFieldStyle())
                     .foregroundColor(.white)
@@ -466,7 +466,7 @@ struct AuthenticationView: View {
                             )
                     )
                     .padding(.horizontal, 40)
-                
+
                 Button(action: saveUsername) {
                     Text("Continue")
                         .fontWeight(.semibold)
@@ -484,7 +484,7 @@ struct AuthenticationView: View {
                         .cornerRadius(25)
                 }
                 .disabled(username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                
+
                 Spacer()
             }
             .padding(.top, 50)
@@ -500,13 +500,13 @@ struct AuthenticationView: View {
         }
         .interactiveDismissDisabled()
     }
-    
+
     // MARK: - Authentication Methods
-    
+
     private func emailPasswordAuth() {
         isLoading = true
         errorMessage = ""
-        
+
         Task {
             do {
                 if authMode == .signUp {
@@ -514,7 +514,7 @@ struct AuthenticationView: View {
                 } else {
                     try await firebaseManager.signIn(email: email, password: password)
                 }
-                
+
                 await MainActor.run {
                     if authMode == .signUp {
                         showingUsernamePrompt = true
@@ -531,17 +531,17 @@ struct AuthenticationView: View {
             }
         }
     }
-    
+
     private func googleSignIn() {
         // TODO: Implement Google Sign-In
         // This requires additional setup with GoogleSignIn SDK
         errorMessage = "Google Sign-In coming soon! Use email or anonymous for now."
     }
-    
+
     private func anonymousSignIn() {
         isLoading = true
         errorMessage = ""
-        
+
         Task {
             do {
                 try await firebaseManager.signInAnonymously()
@@ -557,11 +557,11 @@ struct AuthenticationView: View {
             }
         }
     }
-    
+
     private func phoneSignIn() {
         isLoading = true
         errorMessage = ""
-        
+
         Task {
             do {
                 verificationID = try await firebaseManager.signInWithPhone(phoneNumber: phoneNumber)
@@ -577,11 +577,11 @@ struct AuthenticationView: View {
             }
         }
     }
-    
+
     private func verifyPhoneCode() {
         isLoading = true
         errorMessage = ""
-        
+
         Task {
             do {
                 try await firebaseManager.verifyPhoneCode(
@@ -601,7 +601,7 @@ struct AuthenticationView: View {
             }
         }
     }
-    
+
     private func saveUsername() {
         Task {
             await firebaseManager.updateUsername(username.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -611,7 +611,7 @@ struct AuthenticationView: View {
             }
         }
     }
-    
+
     private func clearFields() {
         email = ""
         password = ""

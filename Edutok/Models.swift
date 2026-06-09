@@ -14,32 +14,31 @@ struct Flashcard: Identifiable, Codable {
     let answer: String
     var isUnderstood: Bool = false
     var isBookmarked: Bool = false
-    var imageURL: String? = nil  // NEW: Image URL for the flashcard
-    
+    var imageURL: String?  // NEW: Image URL for the flashcard
+
     enum CodingKeys: String, CodingKey {
         case type, question, answer, isUnderstood, isBookmarked, imageURL
     }
 }
 
 // MARK: - Models/TopicModel.swift
-import Foundation
 struct Topic: Identifiable, Codable, Equatable {
     let id = UUID()
     let title: String
     var flashcards: [Flashcard]
     let createdAt: Date = Date()
     var isLiked: Bool = false
-    
+
     static func == (lhs: Topic, rhs: Topic) -> Bool {
         lhs.id == rhs.id
     }
-    
+
     var progressPercentage: Int {
         guard !flashcards.isEmpty else { return 0 }
         let understoodCount = flashcards.filter { $0.isUnderstood }.count
         return Int((Double(understoodCount) / Double(flashcards.count)) * 100)
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case title, flashcards, createdAt, isLiked
     }
@@ -65,12 +64,12 @@ struct DailyChallenge: Identifiable, Codable {
     var isCompleted: Bool
     let type: ChallengeType
     let expiresAt: Date
-    
+
     var progressPercentage: Double {
         guard targetValue > 0 else { return 0 }
         return min(Double(currentValue) / Double(targetValue), 1.0)
     }
-    
+
     var isExpired: Bool {
         Date() > expiresAt
     }
@@ -82,7 +81,7 @@ enum ChallengeType: String, CaseIterable, Codable {
     case topicsExplored = "topics_explored"
     case perfectCards = "perfect_cards"
     case studyTime = "study_time"
-    
+
     var icon: String {
         switch self {
         case .cardsCompleted: return "rectangle.stack.fill"
@@ -92,7 +91,7 @@ enum ChallengeType: String, CaseIterable, Codable {
         case .studyTime: return "clock.fill"
         }
     }
-    
+
     var color: String {
         switch self {
         case .cardsCompleted: return "purple"
@@ -110,7 +109,7 @@ struct MysteryBox: Identifiable, Codable {
     let rarity: BoxRarity
     var isOpened: Bool
     var openedAt: Date?
-    
+
     var displayText: String {
         if isOpened {
             return "+\(xpAmount) XP"
@@ -125,7 +124,7 @@ enum BoxRarity: String, CaseIterable, Codable {
     case rare = "rare"
     case epic = "epic"
     case legendary = "legendary"
-    
+
     var color: String {
         switch self {
         case .common: return "gray"
@@ -134,7 +133,7 @@ enum BoxRarity: String, CaseIterable, Codable {
         case .legendary: return "orange"
         }
     }
-    
+
     var xpRange: ClosedRange<Int> {
         switch self {
         case .common: return 10...25
@@ -155,7 +154,7 @@ struct EnhancedAchievement: Identifiable, Codable {
     var isUnlocked: Bool
     var unlockedAt: Date?
     let category: AchievementCategory
-    
+
     var displayIcon: String {
         if isUnlocked {
             return icon
@@ -170,7 +169,7 @@ enum AchievementRarity: String, CaseIterable, Codable {
     case rare = "rare"
     case epic = "epic"
     case legendary = "legendary"
-    
+
     var color: String {
         switch self {
         case .common: return "gray"
@@ -186,7 +185,7 @@ enum AchievementCategory: String, CaseIterable, Codable {
     case social = "social"
     case time = "time"
     case special = "special"
-    
+
     var displayName: String {
         switch self {
         case .learning: return "Learning"
