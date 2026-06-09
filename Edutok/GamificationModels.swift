@@ -1,6 +1,17 @@
+/// GamificationModels.swift
+///
+/// Value types behind the gamification system: the player's XP/level progress and the
+/// catalogs of XP rewards and achievements. Levelling uses a quadratic XP curve so each
+/// level costs progressively more XP than the last.
 import Foundation
 
 // MARK: - User Progress Model
+
+/// Tracks cumulative XP, the derived level, and per-level/per-day progress.
+///
+/// Level thresholds follow a quadratic curve (`levelToXPRequired`): level 1 = 0 XP,
+/// level 2 = 100, level 3 = 300, level 4 = 600, and so on. The level is always recomputed
+/// from `totalXP`, so XP is the single source of truth.
 struct UserProgress: Codable {
     var totalXP: Int = 0
     var currentLevel: Int = 1
@@ -11,12 +22,12 @@ struct UserProgress: Codable {
     var achievementsUnlocked: [String] = []
     var currentStreak: Int = 0
     var xpGainedToday: Int = 0
-    
-    // Calculate XP needed for next level (exponential growth)
+
+    // Calculate XP needed for next level (quadratic growth)
     var xpNeededForNextLevel: Int {
         return levelToXPRequired(level: currentLevel + 1) - totalXP
     }
-    
+
     // Calculate current level progress (0.0 to 1.0)
     var levelProgress: Double {
         let currentLevelXP = levelToXPRequired(level: currentLevel)
@@ -24,13 +35,13 @@ struct UserProgress: Codable {
         let progressXP = totalXP - currentLevelXP
         return Double(progressXP) / Double(nextLevelXP - currentLevelXP)
     }
-    
-    // XP formula: Level 1=0, Level 2=100, Level 3=250, Level 4=450, etc.
+
+    // XP formula: Level 1=0, Level 2=100, Level 3=300, Level 4=600, etc.
     private func levelToXPRequired(level: Int) -> Int {
         if level <= 1 { return 0 }
         return ((level - 1) * (level - 1) * 50) + ((level - 1) * 50)
     }
-    
+
     // Calculate what level user should be based on total XP
     func calculateLevelFromXP() -> Int {
         var level = 1
@@ -39,22 +50,25 @@ struct UserProgress: Codable {
         }
         return level
     }
-    
-    // Add XP and check for level up
+
+    /// Adds `amount` XP, recomputes the current level and in-level XP, and returns
+    /// `true` if this gain advanced the user to a higher level.
     mutating func addXP(_ amount: Int) -> Bool {
         let oldLevel = currentLevel
         totalXP += amount
         currentLevel = calculateLevelFromXP()
-        
+
         // Update XP in current level
         let currentLevelBaseXP = levelToXPRequired(level: currentLevel)
         xpInCurrentLevel = totalXP - currentLevelBaseXP
-        
+
         return currentLevel > oldLevel // Return true if leveled up
     }
 }
 
 // MARK: - XP Reward System
+
+/// Catalog of XP-granting events; the raw value is the XP amount awarded.
 enum XPReward: Int, CaseIterable {
     case cardCompleted = 10
     case correctAnswer = 15
@@ -64,7 +78,7 @@ enum XPReward: Int, CaseIterable {
     case weeklyChallenge = 200
     case speedBonus = 5        // Extra XP for quick answers
     case streakBonus = 20      // Daily streak bonus
-    
+
     var description: String {
         switch self {
         case .cardCompleted: return "Card Completed"
@@ -77,7 +91,7 @@ enum XPReward: Int, CaseIterable {
         case .streakBonus: return "Streak Bonus"
         }
     }
-    
+
     var emoji: String {
         switch self {
         case .cardCompleted: return "✅"
@@ -93,6 +107,8 @@ enum XPReward: Int, CaseIterable {
 }
 
 // MARK: - Achievement System
+
+/// The unlockable achievements, each exposing its title, description, emoji, and XP reward.
 enum Achievement: String, CaseIterable {
     case firstCard = "first_card"
     case scholar = "scholar"              // 100 cards completed
@@ -102,7 +118,7 @@ enum Achievement: String, CaseIterable {
     case perfectionist = "perfectionist" // 25 perfect cards
     case dedicated = "dedicated"          // 7 day streak
     case unstoppable = "unstoppable"     // 30 day streak
-    
+
     var title: String {
         switch self {
         case .firstCard: return "First Steps"
@@ -115,7 +131,7 @@ enum Achievement: String, CaseIterable {
         case .unstoppable: return "Unstoppable"
         }
     }
-    
+
     var description: String {
         switch self {
         case .firstCard: return "Complete your first flashcard"
@@ -128,7 +144,7 @@ enum Achievement: String, CaseIterable {
         case .unstoppable: return "Maintain a 30-day streak"
         }
     }
-    
+
     var emoji: String {
         switch self {
         case .firstCard: return "🌱"
@@ -141,7 +157,7 @@ enum Achievement: String, CaseIterable {
         case .unstoppable: return "🚀"
         }
     }
-    
+
     var xpReward: Int {
         switch self {
         case .firstCard: return 50

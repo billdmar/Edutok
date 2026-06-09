@@ -3,7 +3,7 @@ import SwiftUI
 struct DailyChallengesView: View {
     @ObservedObject var gamificationManager: GamificationManager
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -18,7 +18,7 @@ struct DailyChallengesView: View {
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
-                
+
                 VStack(spacing: 20) {
                     // Header
                     VStack(spacing: 10) {
@@ -26,14 +26,14 @@ struct DailyChallengesView: View {
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
-                        
+
                         Text("Complete challenges to earn bonus XP!")
                             .font(.subheadline)
                             .foregroundColor(.white.opacity(0.8))
                             .multilineTextAlignment(.center)
                     }
                     .padding(.top, 20)
-                    
+
                     // Challenges list
                     ScrollView {
                         LazyVStack(spacing: 15) {
@@ -43,7 +43,7 @@ struct DailyChallengesView: View {
                         }
                         .padding(.horizontal, 20)
                     }
-                    
+
                     // Mystery boxes section
                     if !gamificationManager.availableMysteryBoxes.isEmpty {
                         VStack(spacing: 15) {
@@ -51,7 +51,7 @@ struct DailyChallengesView: View {
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
-                            
+
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 15) {
                                     ForEach(gamificationManager.availableMysteryBoxes) { box in
@@ -67,7 +67,7 @@ struct DailyChallengesView: View {
                             }
                         }
                     }
-                    
+
                     Spacer()
                 }
             }
@@ -91,7 +91,7 @@ struct DailyChallengesView: View {
 
 struct ChallengeCard: View {
     let challenge: DailyChallenge
-    
+
     var body: some View {
         VStack(spacing: 15) {
             // Header
@@ -101,35 +101,35 @@ struct ChallengeCard: View {
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
-                    
+
                     Text(challenge.description)
                         .font(.subheadline)
                         .foregroundColor(.white.opacity(0.8))
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 5) {
                     Text("+\(challenge.xpReward)")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.yellow)
-                    
+
                     Text("XP")
                         .font(.caption)
                         .foregroundColor(.yellow.opacity(0.8))
                 }
             }
-            
+
             // Progress bar
             VStack(spacing: 8) {
                 HStack {
                     Text("\(challenge.currentValue)/\(challenge.targetValue)")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.7))
-                    
+
                     Spacer()
-                    
+
                     if challenge.isCompleted {
                         Text("Completed! 🎉")
                             .font(.caption)
@@ -137,23 +137,23 @@ struct ChallengeCard: View {
                             .foregroundColor(.green)
                     }
                 }
-                
+
                 ProgressView(value: challenge.progressPercentage)
                     .progressViewStyle(LinearProgressViewStyle(tint: challenge.isCompleted ? .green : .purple))
                     .scaleEffect(x: 1, y: 2, anchor: .center)
             }
-            
+
             // Challenge type indicator
             HStack {
                 Image(systemName: challenge.type.icon)
                     .foregroundColor(Color(challenge.type.color))
-                
+
                 Text(challenge.type.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
-                
+
                 Spacer()
-                
+
                 if challenge.isExpired {
                     Text("Expired")
                         .font(.caption)
@@ -189,7 +189,7 @@ struct ChallengeCard: View {
 struct MysteryBoxCard: View {
     let box: MysteryBox
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 12) {
@@ -206,7 +206,7 @@ struct MysteryBoxCard: View {
                             )
                         )
                         .frame(width: 60, height: 60)
-                    
+
                     if box.isOpened {
                         Text("+\(box.xpAmount)")
                             .font(.caption)
@@ -219,12 +219,12 @@ struct MysteryBoxCard: View {
                             .foregroundColor(.white)
                     }
                 }
-                
+
                 Text(box.isOpened ? "Opened" : "Tap to Open")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
-                
+
                 Text(box.rarity.rawValue.capitalized)
                     .font(.caption2)
                     .foregroundColor(Color(box.rarity.color))
@@ -260,13 +260,13 @@ struct MysteryBoxCard: View {
 struct MysteryBoxRewardView: View {
     let box: MysteryBox
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         ZStack {
             // Background
             Color.black.opacity(0.8)
                 .ignoresSafeArea()
-            
+
             VStack(spacing: 30) {
                 // Mystery box animation
                 ZStack {
@@ -284,29 +284,29 @@ struct MysteryBoxRewardView: View {
                         .frame(width: 120, height: 120)
                         .scaleEffect(1.2)
                         .animation(.easeInOut(duration: 0.5).repeatCount(3), value: box.xpAmount)
-                    
+
                     Text("+\(box.xpAmount)")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                 }
-                
+
                 VStack(spacing: 15) {
                     Text("You got \(box.xpAmount) XP!")
                         .font(.title)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
-                    
+
                     Text("\(box.rarity.rawValue.capitalized) Mystery Box")
                         .font(.headline)
                         .foregroundColor(Color(box.rarity.color))
-                    
+
                     Text("Great job! Keep learning to earn more rewards.")
                         .font(.body)
                         .foregroundColor(.white.opacity(0.8))
                         .multilineTextAlignment(.center)
                 }
-                
+
                 Button("Continue") {
                     dismiss()
                 }
@@ -330,4 +330,4 @@ struct MysteryBoxRewardView: View {
 
 #Preview {
     DailyChallengesView(gamificationManager: GamificationManager())
-} 
+}

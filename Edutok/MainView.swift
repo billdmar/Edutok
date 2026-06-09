@@ -9,7 +9,7 @@ struct MainView: View {
     @State private var searchSuggestions: [String] = []
     @State private var showSuggestions = false
     @FocusState private var isSearchFocused: Bool
-    
+
     // Enhanced topic suggestions with better variety
     private let popularTopics = [
         "Python Programming", "World War 2", "Photosynthesis",
@@ -26,9 +26,9 @@ struct MainView: View {
         "Cooking Techniques", "Art History", "Computer Science", "Languages",
         "Music Theory", "Environmental Science", "Literature", "Mathematics"
     ]
-    
+
     var body: some View {
-        GeometryReader { geometry in
+        GeometryReader { _ in
             ZStack {
                 // Beautiful animated gradient background
                 LinearGradient(
@@ -42,7 +42,7 @@ struct MainView: View {
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
-                
+
                 // Animated background circles
                 ZStack {
                     Circle()
@@ -50,14 +50,14 @@ struct MainView: View {
                         .frame(width: 300, height: 300)
                         .blur(radius: 60)
                         .offset(x: -100, y: -200)
-                    
+
                     Circle()
                         .fill(Color.blue.opacity(0.2))
                         .frame(width: 250, height: 250)
                         .blur(radius: 50)
                         .offset(x: 100, y: 300)
                 }
-                
+
                 VStack(spacing: 0) {
                     // Top bar with menu and XP
                     HStack {
@@ -79,9 +79,9 @@ struct MainView: View {
                                         )
                                 )
                         }
-                        
+
                         Spacer()
-                        
+
                         // XP and Level Display
                         HStack(spacing: 8) {
                             VStack(alignment: .trailing, spacing: 4) {
@@ -89,19 +89,19 @@ struct MainView: View {
                                     .font(.caption)
                                     .fontWeight(.bold)
                                     .foregroundColor(.yellow)
-                                
+
                                 Text("\(gamificationManager.userProgress.totalXP) XP")
                                     .font(.caption2)
                                     .foregroundColor(.white.opacity(0.9))
                             }
-                            
+
                             ZStack {
                                 ProgressRing(
                                     progress: gamificationManager.userProgress.levelProgress,
                                     lineWidth: 3,
                                     size: 35
                                 )
-                                
+
                                 Text("\(gamificationManager.userProgress.currentLevel)")
                                     .font(.caption)
                                     .fontWeight(.bold)
@@ -142,7 +142,7 @@ struct MainView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
                     .padding(.bottom, 20)
-                    
+
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 30) {
                             // Logo and title section with animation
@@ -163,7 +163,7 @@ struct MainView: View {
                                         )
                                         .frame(width: 160, height: 160)
                                         .blur(radius: 10)
-                                    
+
                                     Circle()
                                         .fill(
                                             LinearGradient(
@@ -184,14 +184,14 @@ struct MainView: View {
                                                     lineWidth: 2
                                                 )
                                         )
-                                    
+
                                     Image(systemName: "brain.head.profile")
                                         .font(.system(size: 55))
                                         .foregroundColor(.white)
                                         .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 2)
                                 }
                                 .shadow(color: .purple.opacity(0.5), radius: 25, x: 0, y: 10)
-                                
+
                                 VStack(spacing: 8) {
                                     Text("FlashTok")
                                         .font(.system(size: 42, weight: .bold, design: .rounded))
@@ -203,7 +203,7 @@ struct MainView: View {
                                             )
                                         )
                                         .shadow(color: .purple.opacity(0.3), radius: 10, x: 0, y: 5)
-                                    
+
                                     Text("Learn anything, TikTok style")
                                         .font(.system(size: 18, weight: .medium, design: .rounded))
                                         .foregroundColor(.white.opacity(0.85))
@@ -211,7 +211,7 @@ struct MainView: View {
                             }
                             .padding(.top, 30)
                             .padding(.bottom, 20)
-                            
+
                             // Enhanced search section
                             VStack(spacing: 20) {
                                 VStack(spacing: 0) {
@@ -220,7 +220,7 @@ struct MainView: View {
                                         Image(systemName: "magnifyingglass")
                                             .foregroundColor(.white.opacity(0.7))
                                             .font(.system(size: 20))
-                                        
+
                                         TextField("What do you want to learn today?", text: $topicInput)
                                             .textFieldStyle(PlainTextFieldStyle())
                                             .foregroundColor(.white)
@@ -233,7 +233,7 @@ struct MainView: View {
                                             .onChange(of: topicInput) { newValue in
                                                 updateSearchSuggestions(for: newValue)
                                             }
-                                        
+
                                         if !topicInput.isEmpty {
                                             Button(action: {
                                                 topicInput = ""
@@ -266,13 +266,13 @@ struct MainView: View {
                                             )
                                     )
                                     .shadow(color: .purple.opacity(isSearchFocused ? 0.3 : 0.1), radius: 10, x: 0, y: 5)
-                                    
+
                                     // Search suggestions (keep as is)
                                     if showSuggestions && !searchSuggestions.isEmpty {
                                         // ... existing suggestions code ...
                                     }
                                 }
-                                
+
                                 // Beautiful start learning button
                                 Button(action: startLearning) {
                                     HStack(spacing: 12) {
@@ -284,7 +284,7 @@ struct MainView: View {
                                             Image(systemName: "play.fill")
                                                 .font(.system(size: 18, weight: .bold))
                                         }
-                                        
+
                                         Text(isLoading ? "Creating Your Cards..." : "Start Learning")
                                             .font(.system(size: 18, weight: .bold, design: .rounded))
                                     }
@@ -314,7 +314,7 @@ struct MainView: View {
                                 .opacity(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1.0)
                             }
                             .padding(.horizontal, 25)
-                            
+
                             // Trending topics section - moved up
                             if !showSuggestions {
                                 VStack(spacing: 18) {
@@ -326,9 +326,9 @@ struct MainView: View {
                                                 .font(.system(size: 20, weight: .bold, design: .rounded))
                                                 .foregroundColor(.white)
                                         }
-                                        
+
                                         Spacer()
-                                        
+
                                         Button(action: {
                                             // Refresh topics
                                         }) {
@@ -338,7 +338,7 @@ struct MainView: View {
                                         }
                                     }
                                     .padding(.horizontal, 25)
-                                    
+
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 14) {
                                             ForEach(popularTopics.shuffled().prefix(8), id: \.self) { suggestion in
@@ -381,7 +381,7 @@ struct MainView: View {
                         .padding(.bottom, 100) // Space for nav bar
                     }
                 }
-                
+
                 // Sidebar overlay - same as ContentView
                 if showSidebar {
                     ZStack {
@@ -394,12 +394,12 @@ struct MainView: View {
                                     showSidebar = false
                                 }
                             }
-                        
+
                         HStack(spacing: 0) {
                             SidebarView(isShowing: $showSidebar)
                                 .frame(width: 280)
                                 .transition(.move(edge: .leading))
-                            
+
                             Spacer()
                         }
                     }
@@ -416,47 +416,43 @@ struct MainView: View {
             }
         }
     }
-    
-    // NEW: Computed property to check for active Phase 1 features
-    private var hasActivePhase1Features: Bool {
-        let hasUncompletedChallenges = gamificationManager.dailyChallenges.contains { !$0.isCompleted && !$0.isExpired }
-        let hasUnopenedMysteryBoxes = gamificationManager.availableMysteryBoxes.contains { !$0.isOpened }
-        return hasUncompletedChallenges || hasUnopenedMysteryBoxes
-    }
-    
+
     private func updateSearchSuggestions(for input: String) {
         guard !input.isEmpty else {
             searchSuggestions = []
             showSuggestions = false
             return
         }
-        
+
         let filtered = popularTopics.filter { topic in
             topic.localizedCaseInsensitiveContains(input)
         }
-        
+
         searchSuggestions = Array(filtered.prefix(5))
-        
+
         withAnimation(.easeInOut(duration: 0.2)) {
             showSuggestions = !filtered.isEmpty && isSearchFocused
         }
     }
-    
+
     private func startLearning() {
-        let topic = topicInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Trim, strip newlines, and cap length so the prompt sent to Gemini stays bounded.
+        let trimmed = topicInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let singleLine = trimmed.replacingOccurrences(of: "\n", with: " ").replacingOccurrences(of: "\r", with: " ")
+        let topic = String(singleLine.prefix(100))
         guard !topic.isEmpty, !isLoading else { return }
-        
+
         // Hide suggestions and unfocus
         withAnimation(.easeInOut(duration: 0.2)) {
             showSuggestions = false
             isSearchFocused = false
         }
-        
+
         isLoading = true
-        
+
         Task {
             await topicManager.generateFlashcards(for: topic)
-            
+
             await MainActor.run {
                 isLoading = false
                 topicInput = ""

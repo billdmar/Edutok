@@ -4,7 +4,7 @@ import FirebaseCore
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         FirebaseApp.configure()
         return true
     }
@@ -14,11 +14,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct FlashTokApp: App {
     // Register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    
+
     @StateObject private var topicManager = TopicManager()
     @StateObject private var gamificationManager = GamificationManager()
     @StateObject private var firebaseManager = FirebaseManager.shared
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -28,7 +28,7 @@ struct FlashTokApp: App {
                 .onAppear {
                     // Schedule initial study reminders
                     gamificationManager.scheduleStudyReminder()
-                    
+
                     // Auto-authenticate user if not already authenticated
                     if !firebaseManager.isAuthenticated {
                         Task {

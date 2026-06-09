@@ -9,7 +9,7 @@ struct ContentView: View {
     @EnvironmentObject var topicManager: TopicManager
     @StateObject private var firebaseManager = FirebaseManager.shared
     @State private var currentSection: AppSection = .main
-    
+
     var body: some View {
         ZStack {
             // Main content based on current section
@@ -34,7 +34,7 @@ struct ContentView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: currentSection)
-            
+
             // Floating navigation bar at bottom (show for all main sections, hide only during flashcard study or when topic is selected)
             if currentSection != .flashcards && topicManager.currentTopic == nil {
                 VStack {
@@ -47,7 +47,7 @@ struct ContentView: View {
         }
         .onAppear {
             topicManager.loadSavedTopics()
-            
+
             // Auto-authenticate if not already authenticated
             if !firebaseManager.isAuthenticated {
                 Task {
@@ -69,7 +69,7 @@ struct ContentView: View {
             }
         }
     }
-    
+
     private func floatingNavBar() -> some View {
         HStack(spacing: 0) {
             // Leaderboard button (left)
@@ -84,7 +84,7 @@ struct ContentView: View {
                         Image(systemName: currentSection == .leaderboard ? "trophy.fill" : "trophy")
                             .font(.title3)
                             .foregroundColor(currentSection == .leaderboard ? .yellow : .white)
-                        
+
                         // Notification badge for achievements or streaks
                         if let user = firebaseManager.currentUser,
                            user.currentStreak > 0 || !user.dailyStats.isEmpty {
@@ -94,7 +94,7 @@ struct ContentView: View {
                                 .offset(x: 8, y: -8)
                         }
                     }
-                    
+
                     Text("Leaderboard")
                         .font(.caption2)
                         .fontWeight(.medium)
@@ -103,7 +103,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
             }
-            
+
             // Main/Learn button (center)
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -115,7 +115,7 @@ struct ContentView: View {
                     Image(systemName: currentSection == .main ? "brain.head.profile.fill" : "brain.head.profile")
                         .font(.title3)
                         .foregroundColor(currentSection == .main ? .purple : .white)
-                    
+
                     Text("Learn")
                         .font(.caption2)
                         .fontWeight(.medium)
@@ -124,7 +124,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
             }
-            
+
             // Calendar button (right)
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -137,7 +137,7 @@ struct ContentView: View {
                         Image(systemName: currentSection == .calendar ? "calendar.circle.fill" : "calendar")
                             .font(.title3)
                             .foregroundColor(currentSection == .calendar ? .blue : .white)
-                        
+
                         // Streak indicator
                         if let user = firebaseManager.currentUser, user.currentStreak > 0 {
                             Circle()
@@ -146,7 +146,7 @@ struct ContentView: View {
                                 .offset(x: 8, y: -8)
                         }
                     }
-                    
+
                     Text("Calendar")
                         .font(.caption2)
                         .fontWeight(.medium)

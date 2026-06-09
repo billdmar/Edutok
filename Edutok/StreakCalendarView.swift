@@ -7,30 +7,30 @@ struct StreakCalendarView: View {
     @State private var currentMonth = Date()
     @State private var selectedDayStat: DailyStat?
     @State private var showDayDetail = false
-    
+
     private let calendar = Calendar.current
     private let dateFormatter = DateFormatter()
-    
+
     var body: some View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     // Add top padding to prevent content cutoff
                     Color.clear.frame(height: 20)
-                    
+
                     // Header with month navigation
                     monthHeaderView()
-                    
+
                     // Calendar grid
                     calendarGridView()
-                    
+
                     // Current streak info
                     if let user = firebaseManager.currentUser {
                         streakInfoView(user: user)
                     }
-                    
+
                     // Achievement timeline
                     achievementTimelineView()
-                    
+
                     // Add bottom padding for navigation bar
                     Color.clear.frame(height: 100)
                 }
@@ -53,7 +53,7 @@ struct StreakCalendarView: View {
             }
         }
     }
-    
+
     private func monthHeaderView() -> some View {
         HStack {
             Button(action: previousMonth) {
@@ -63,15 +63,15 @@ struct StreakCalendarView: View {
                     .padding(12)
                     .background(Circle().fill(Color.white.opacity(0.1)))
             }
-            
+
             Spacer()
-            
+
             VStack(spacing: 5) {
                 Text(monthYearString(from: currentMonth))
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
-                
+
                 if let user = firebaseManager.currentUser {
                     Text("🔥 \(user.currentStreak) day streak")
                         .font(.caption)
@@ -79,9 +79,9 @@ struct StreakCalendarView: View {
                         .foregroundColor(.orange)
                 }
             }
-            
+
             Spacer()
-            
+
             Button(action: nextMonth) {
                 Image(systemName: "chevron.right")
                     .font(.title2)
@@ -93,7 +93,7 @@ struct StreakCalendarView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 15)
     }
-    
+
     private func calendarGridView() -> some View {
         VStack(spacing: 0) {
             // Weekday headers
@@ -108,7 +108,7 @@ struct StreakCalendarView: View {
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 10)
-            
+
             // Calendar days
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
                 ForEach(calendarDays, id: \.id) { day in
@@ -127,7 +127,7 @@ struct StreakCalendarView: View {
         )
         .padding(.horizontal, 20)
     }
-    
+
     private func calendarDayView(day: CalendarDay) -> some View {
         Button(action: {
             if day.dailyStat != nil {
@@ -146,14 +146,14 @@ struct StreakCalendarView: View {
                                 lineWidth: day.isToday ? 2 : 0
                             )
                     )
-                
+
                 VStack(spacing: 2) {
                     // Day number
                     Text("\(day.dayNumber)")
                         .font(.caption)
                         .fontWeight(day.isToday ? .bold : .medium)
                         .foregroundColor(textColor(for: day))
-                    
+
                     // Activity indicators
                     if let stat = day.dailyStat, stat.hasActivity {
                         HStack(spacing: 2) {
@@ -169,7 +169,7 @@ struct StreakCalendarView: View {
                             }
                         }
                     }
-                    
+
                     // Achievement indicator
                     if let stat = day.dailyStat, !stat.achievements.isEmpty {
                         Text("🏆")
@@ -182,7 +182,7 @@ struct StreakCalendarView: View {
         }
         .disabled(day.dailyStat == nil)
     }
-    
+
     private func streakInfoView(user: AppUser) -> some View {
         VStack(spacing: 15) {
             HStack {
@@ -190,10 +190,10 @@ struct StreakCalendarView: View {
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
-                
+
                 Spacer()
             }
-            
+
             HStack(spacing: 20) {
                 StreakStatCard(
                     title: "Current Streak",
@@ -202,7 +202,7 @@ struct StreakCalendarView: View {
                     icon: "flame.fill",
                     color: .orange
                 )
-                
+
                 StreakStatCard(
                     title: "Longest Streak",
                     value: "\(user.longestStreak)",
@@ -210,7 +210,7 @@ struct StreakCalendarView: View {
                     icon: "star.fill",
                     color: .yellow
                 )
-                
+
                 StreakStatCard(
                     title: "Total Activity",
                     value: "\(user.totalCardsFlipped + user.totalTopicsExplored)",
@@ -233,7 +233,7 @@ struct StreakCalendarView: View {
         .padding(.horizontal, 20)
         .padding(.top, 20)
     }
-    
+
     private func achievementTimelineView() -> some View {
         VStack(spacing: 15) {
             HStack {
@@ -241,23 +241,23 @@ struct StreakCalendarView: View {
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
-                
+
                 Spacer()
             }
             .padding(.horizontal, 20)
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 15) {
                     ForEach(recentAchievements, id: \.id) { achievement in
                         achievementCard(achievement: achievement)
                     }
-                    
+
                     if recentAchievements.isEmpty {
                         VStack(spacing: 10) {
                             Image(systemName: "trophy")
                                 .font(.title2)
                                 .foregroundColor(.white.opacity(0.3))
-                            
+
                             Text("No achievements yet")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.5))
@@ -278,18 +278,18 @@ struct StreakCalendarView: View {
         }
         .padding(.top, 20)
     }
-    
+
     private func achievementCard(achievement: CalendarAchievement) -> some View {
         VStack(spacing: 8) {
             Text(achievement.emoji)
                 .font(.title)
-            
+
             Text(achievement.title)
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
-            
+
             Text(relativeDateString(from: achievement.date))
                 .font(.caption2)
                 .foregroundColor(.white.opacity(0.6))
@@ -306,22 +306,22 @@ struct StreakCalendarView: View {
                 )
         )
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var weekdaySymbols: [String] {
         calendar.shortWeekdaySymbols
     }
-    
+
     private var calendarDays: [CalendarDay] {
         guard let user = firebaseManager.currentUser else { return [] }
-        
+
         let monthRange = calendar.range(of: .day, in: .month, for: currentMonth)!
         let firstDay = calendar.dateInterval(of: .month, for: currentMonth)!.start
         let firstWeekday = calendar.component(.weekday, from: firstDay)
-        
+
         var days: [CalendarDay] = []
-        
+
         // Add previous month padding days
         for i in 1..<firstWeekday {
             let date = calendar.date(byAdding: .day, value: -(firstWeekday - i), to: firstDay)!
@@ -332,7 +332,7 @@ struct StreakCalendarView: View {
                 achievements: user.statsFor(date: date)?.achievements ?? []
             ))
         }
-        
+
         // Add current month days
         for day in 1...monthRange.count {
             let date = calendar.date(byAdding: .day, value: day - 1, to: firstDay)!
@@ -343,7 +343,7 @@ struct StreakCalendarView: View {
                 achievements: user.statsFor(date: date)?.achievements ?? []
             ))
         }
-        
+
         // Add next month padding days to complete the grid
         let remainingDays = 42 - days.count // 6 weeks * 7 days
         for i in 1...remainingDays {
@@ -355,13 +355,13 @@ struct StreakCalendarView: View {
                 achievements: user.statsFor(date: date)?.achievements ?? []
             ))
         }
-        
+
         return days
     }
-    
+
     private var recentAchievements: [CalendarAchievement] {
         guard let user = firebaseManager.currentUser else { return [] }
-        
+
         let achievements = user.dailyStats
             .flatMap { stat in
                 stat.achievements.compactMap { achievementId in
@@ -372,17 +372,17 @@ struct StreakCalendarView: View {
                 }
             }
             .sorted { $0.date > $1.date }
-        
+
         return Array(achievements.prefix(5))
     }
-    
+
     // MARK: - Helper Functions
-    
+
     private func activityColor(for day: CalendarDay) -> Color {
         if !calendar.isDate(day.date, equalTo: currentMonth, toGranularity: .month) {
             return Color.white.opacity(0.05)
         }
-        
+
         switch day.activityLevel {
         case .none:
             return Color.white.opacity(0.1)
@@ -394,23 +394,23 @@ struct StreakCalendarView: View {
             return Color.red.opacity(0.8)
         }
     }
-    
+
     private func textColor(for day: CalendarDay) -> Color {
         if !calendar.isDate(day.date, equalTo: currentMonth, toGranularity: .month) {
             return Color.white.opacity(0.3)
         }
-        
+
         return day.isToday ? .white : .white.opacity(0.9)
     }
-    
+
     private func monthYearString(from date: Date) -> String {
         dateFormatter.dateFormat = "MMMM yyyy"
         return dateFormatter.string(from: date)
     }
-    
+
     private func relativeDateString(from date: Date) -> String {
         let daysSince = calendar.dateComponents([.day], from: date, to: Date()).day ?? 0
-        
+
         if daysSince == 0 {
             return "Today"
         } else if daysSince == 1 {
@@ -419,13 +419,13 @@ struct StreakCalendarView: View {
             return "\(daysSince) days ago"
         }
     }
-    
+
     private func previousMonth() {
         withAnimation(.easeInOut(duration: 0.3)) {
             currentMonth = calendar.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
         }
     }
-    
+
     private func nextMonth() {
         withAnimation(.easeInOut(duration: 0.3)) {
             currentMonth = calendar.date(byAdding: .month, value: 1, to: currentMonth) ?? currentMonth
@@ -441,24 +441,24 @@ struct StreakStatCard: View {
     let subtitle: String
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
-            
+
             Text(value)
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
-            
+
             VStack(spacing: 2) {
                 Text(title)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.white.opacity(0.8))
-                
+
                 Text(subtitle)
                     .font(.caption2)
                     .foregroundColor(.white.opacity(0.6))
@@ -480,7 +480,7 @@ struct StreakStatCard: View {
 struct DayDetailView: View {
     let dailyStat: DailyStat
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -489,7 +489,7 @@ struct DayDetailView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
-                
+
                 // Activity stats
                 VStack(spacing: 15) {
                     ActivityStatRow(
@@ -498,7 +498,7 @@ struct DayDetailView: View {
                         value: dailyStat.cardsFlipped,
                         color: .purple
                     )
-                    
+
                     ActivityStatRow(
                         icon: "book.fill",
                         title: "Topics Explored",
@@ -507,7 +507,7 @@ struct DayDetailView: View {
                     )
                 }
                 .padding(.horizontal, 20)
-                
+
                 // Achievements
                 if !dailyStat.achievements.isEmpty {
                     VStack(alignment: .leading, spacing: 15) {
@@ -515,23 +515,23 @@ struct DayDetailView: View {
                             .font(.headline)
                             .fontWeight(.semibold)
                             .foregroundColor(.white)
-                        
+
                         ForEach(dailyStat.achievements, id: \.self) { achievementId in
                             if let achievement = Achievement.allCases.first(where: { $0.rawValue == achievementId }) {
                                 HStack {
                                     Text(achievement.emoji)
                                         .font(.title2)
-                                    
+
                                     VStack(alignment: .leading) {
                                         Text(achievement.title)
                                             .font(.headline)
                                             .foregroundColor(.white)
-                                        
+
                                         Text(achievement.description)
                                             .font(.caption)
                                             .foregroundColor(.white.opacity(0.7))
                                     }
-                                    
+
                                     Spacer()
                                 }
                                 .padding()
@@ -548,7 +548,7 @@ struct DayDetailView: View {
                     }
                     .padding(.horizontal, 20)
                 }
-                
+
                 Spacer()
             }
             .background(
@@ -574,7 +574,7 @@ struct DayDetailView: View {
             }
         }
     }
-    
+
     private var dayFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, MMMM d"
@@ -587,20 +587,20 @@ struct ActivityStatRow: View {
     let title: String
     let value: Int
     let color: Color
-    
+
     var body: some View {
         HStack {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
                 .frame(width: 30)
-            
+
             Text(title)
                 .font(.headline)
                 .foregroundColor(.white)
-            
+
             Spacer()
-            
+
             Text("\(value)")
                 .font(.title2)
                 .fontWeight(.bold)

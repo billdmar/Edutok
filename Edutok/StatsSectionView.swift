@@ -4,7 +4,7 @@ import SwiftUI
 enum StatsViewMode: String, CaseIterable {
     case calendar = "calendar"
     case leaderboard = "leaderboard"
-    
+
     var title: String {
         switch self {
         case .calendar:
@@ -13,7 +13,7 @@ enum StatsViewMode: String, CaseIterable {
             return "Leaderboard"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .calendar:
@@ -26,9 +26,9 @@ enum StatsViewMode: String, CaseIterable {
 
 struct StatsSectionView: View {
     @StateObject private var firebaseManager = FirebaseManager.shared
-    @EnvironmentObject var topicManager: TopicManager 
+    @EnvironmentObject var topicManager: TopicManager
     @State private var selectedMode: StatsViewMode = .calendar
-    
+
     var body: some View {
         ZStack {
             // Background
@@ -42,7 +42,7 @@ struct StatsSectionView: View {
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
                             // Back button
                             HStack {
@@ -54,7 +54,7 @@ struct StatsSectionView: View {
                                         Image(systemName: "arrow.left")
                                             .font(.title3)
                                             .foregroundColor(.white)
-                                        
+
                                         Text("Back")
                                             .font(.headline)
                                             .fontWeight(.semibold)
@@ -71,16 +71,16 @@ struct StatsSectionView: View {
                                             )
                                     )
                                 }
-                                
+
                                 Spacer()
                             }
                             .padding(.horizontal, 20)
                             .padding(.top, 10)
                             .padding(.bottom, 15)
-                            
+
                             // Header with mode toggle
                             headerView()
-                            
+
                             // Content based on selected mode
                 Group {
                     switch selectedMode {
@@ -105,7 +105,7 @@ struct StatsSectionView: View {
             }
         }
     }
-    
+
     private func headerView() -> some View {
         VStack(spacing: 20) {
             // Title
@@ -114,9 +114,9 @@ struct StatsSectionView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
-                
+
                 Spacer()
-                
+
                 // User info (if authenticated)
                 if let user = firebaseManager.currentUser {
                     VStack(alignment: .trailing, spacing: 4) {
@@ -124,7 +124,7 @@ struct StatsSectionView: View {
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundColor(.white)
-                        
+
                         Text("Joined \(joinDateString(user.joinDate))")
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.6))
@@ -133,7 +133,7 @@ struct StatsSectionView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 20)
-            
+
             // Mode toggle
             HStack(spacing: 0) {
                 ForEach(StatsViewMode.allCases, id: \.self) { mode in
@@ -145,7 +145,7 @@ struct StatsSectionView: View {
                         HStack(spacing: 10) {
                             Image(systemName: mode.icon)
                                 .font(.title3)
-                            
+
                             Text(mode.title)
                                 .font(.headline)
                                 .fontWeight(.semibold)
@@ -188,7 +188,7 @@ struct StatsSectionView: View {
                     )
             )
             .padding(.horizontal, 20)
-            
+
             // Quick stats bar
             if let user = firebaseManager.currentUser {
                 quickStatsBar(user: user)
@@ -204,7 +204,7 @@ struct StatsSectionView: View {
             .ignoresSafeArea(edges: .top)
         )
     }
-    
+
     private func quickStatsBar(user: AppUser) -> some View {
         HStack(spacing: 20) {
             QuickStatItem(
@@ -214,11 +214,11 @@ struct StatsSectionView: View {
                 icon: "bolt.fill",
                 color: .yellow
             )
-            
+
             Divider()
                 .background(Color.white.opacity(0.2))
                 .frame(height: 30)
-            
+
             QuickStatItem(
                 title: "Streak",
                 value: "\(user.currentStreak)",
@@ -226,11 +226,11 @@ struct StatsSectionView: View {
                 icon: "flame.fill",
                 color: .orange
             )
-            
+
             Divider()
                 .background(Color.white.opacity(0.2))
                 .frame(height: 30)
-            
+
             QuickStatItem(
                 title: "Total",
                 value: "\(user.totalCardsFlipped + user.totalTopicsExplored)",
@@ -251,7 +251,7 @@ struct StatsSectionView: View {
         )
         .padding(.horizontal, 20)
     }
-    
+
     private func joinDateString(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM yyyy"
@@ -266,24 +266,24 @@ struct QuickStatItem: View {
     let subtitle: String
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundColor(color)
-            
+
             Text(value)
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
-            
+
             VStack(spacing: 1) {
                 Text(title)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.white.opacity(0.8))
-                
+
                 Text(subtitle)
                     .font(.caption2)
                     .foregroundColor(.white.opacity(0.6))
@@ -292,6 +292,3 @@ struct QuickStatItem: View {
         .frame(maxWidth: .infinity)
     }
 }
-
-
-
