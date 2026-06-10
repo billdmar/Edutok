@@ -5,7 +5,7 @@ struct MainView: View {
     @EnvironmentObject var gamificationManager: GamificationManager
     @State private var topicInput = ""
     @State private var isLoading = false
-    @State private var showSidebar = false
+    @Binding var showSidebar: Bool
     @State private var searchSuggestions: [String] = []
     @State private var showSuggestions = false
     @FocusState private var isSearchFocused: Bool

@@ -9,6 +9,7 @@ struct ContentView: View {
     @EnvironmentObject var topicManager: TopicManager
     @StateObject private var firebaseManager = FirebaseManager.shared
     @State private var currentSection: AppSection = .main
+    @State private var showSidebar = false
 
     var body: some View {
         ZStack {
@@ -19,13 +20,13 @@ struct ContentView: View {
                     if topicManager.currentTopic != nil {
                         FlashcardView()
                     } else {
-                        MainView()
+                        MainView(showSidebar: $showSidebar)
                     }
                 case .flashcards:
                     if topicManager.currentTopic != nil {
                         FlashcardView()
                     } else {
-                        MainView()
+                        MainView(showSidebar: $showSidebar)
                     }
                 case .leaderboard:
                     LeaderboardWrapper()
@@ -36,7 +37,7 @@ struct ContentView: View {
             .animation(.easeInOut(duration: 0.3), value: currentSection)
 
             // Floating navigation bar at bottom (show for all main sections, hide only during flashcard study or when topic is selected)
-            if currentSection != .flashcards && topicManager.currentTopic == nil {
+            if currentSection != .flashcards && topicManager.currentTopic == nil && !showSidebar {
                 VStack {
                     Spacer()
                     floatingNavBar()

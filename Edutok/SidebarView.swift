@@ -383,9 +383,9 @@ struct SidebarView: View {
             .background(
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.black.opacity(0.95),
-                        Color.purple.opacity(0.3),
-                        Color.black.opacity(0.95)
+                        Color.black.opacity(0.98),
+                        Color(red: 0.15, green: 0.05, blue: 0.25),
+                        Color.black.opacity(0.98)
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
