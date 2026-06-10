@@ -94,8 +94,8 @@ class ImageManager: ObservableObject {
                 }
             }
 
-            let response = try JSONDecoder().decode(GeminiResponse.self, from: data)
-            if let keywords = response.candidates.first?.content.parts.first?.text {
+            let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+            if let keywords = geminiResponse.candidates.first?.content.parts.first?.text {
                 return keywords.trimmingCharacters(in: .whitespacesAndNewlines)
             }
         } catch {
