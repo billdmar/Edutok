@@ -209,9 +209,9 @@ class TopicManager: ObservableObject {
             }
         }
 
-        let response = try JSONDecoder().decode(GeminiResponse.self, from: data)
+        let decoded = try JSONDecoder().decode(GeminiResponse.self, from: data)
 
-        guard let firstCandidate = response.candidates.first,
+        guard let firstCandidate = decoded.candidates.first,
               let firstPart = firstCandidate.content.parts.first else {
             throw APIError.invalidResponse
         }
