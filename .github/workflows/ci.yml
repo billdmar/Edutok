@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test (iOS Simulator)
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      # Secrets.swift is gitignored (it holds the Gemini + Unsplash API keys).
+      # CI writes a placeholder so the project compiles; the stub keys are not
+      # valid, so any live API call falls back to mock/offline behavior. No real
+      # backend is contacted during a build/unit-test run.
+      - name: Write stub Secrets.swift
+        run: |
+          cat > Edutok/Secrets.swift <<'SWIFT'
+          import Foundation
+
+          // CI placeholder. Real keys live in a gitignored Secrets.swift on dev
+          // machines (see README "Getting started"). These values are non-functional.
+          enum Secrets {
+              static let geminiAPIKey = "CI_STUB_GEMINI_KEY"
+              static let unsplashAccessKey = "CI_STUB_UNSPLASH_KEY"
+          }
+          SWIFT
+
+      # GoogleService-Info.plist is gitignored (it holds the project's Firebase
+      # client config). CI writes a syntactically valid placeholder so the
+      # Firebase resource-copy phase and FirebaseApp.configure() succeed; no
+      # real backend is contacted during a build/unit-test run.
+      - name: Write stub GoogleService-Info.plist
+        run: |
+          cat > Edutok/GoogleService-Info.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>API_KEY</key><string>AIzaStubKeyForCIBuildsOnly000000000000</string>
+            <key>GCM_SENDER_ID</key><string>000000000000</string>
+            <key>PLIST_VERSION</key><string>1</string>
+            <key>BUNDLE_ID</key><string>com.billdmar.Edutok</string>
+            <key>PROJECT_ID</key><string>edutok-ci-stub</string>
+            <key>STORAGE_BUCKET</key><string>edutok-ci-stub.appspot.com</string>
+            <key>IS_ADS_ENABLED</key><false/>
+            <key>IS_ANALYTICS_ENABLED</key><false/>
+            <key>IS_APPINVITE_ENABLED</key><true/>
+            <key>IS_GCM_ENABLED</key><true/>
+            <key>IS_SIGNIN_ENABLED</key><true/>
+            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project Edutok.xcodeproj -scheme Edutok
+
+      - name: Build & test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Edutok.xcodeproj \
+            -scheme Edutok \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16 Pro' \
+            -derivedDataPath .build/DerivedData \
+            -only-testing:EdutokTests \
+            CODE_SIGNING_ALLOWED=NO

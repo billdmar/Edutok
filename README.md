@@ -4,6 +4,7 @@
 
 Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized, AI-generated flashcards — wrapped in streaks, achievements, and a leaderboard to make learning genuinely addictive.
 
+[![CI](https://github.com/billdmar/Edutok/actions/workflows/ci.yml/badge.svg)](https://github.com/billdmar/Edutok/actions/workflows/ci.yml)
 ![Swift](https://img.shields.io/badge/Swift-5-orange?logo=swift&logoColor=white)
 ![iOS](https://img.shields.io/badge/iOS-18.5%2B-000000?logo=apple&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0071e3)
@@ -33,7 +34,7 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 | AI content      | Google Gemini (`gemini-1.5-flash-latest`)    |
 | Images          | Unsplash API                          |
 | Auth & database | Firebase Auth + Cloud Firestore       |
-| Architecture    | MVVM with `ObservableObject` managers |
+| Architecture    | MVVM with `ObservableObject` managers — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 
 ## Architecture
 
@@ -140,18 +141,16 @@ This project keeps all credentials out of version control:
 
 ## Screenshots
 
-> 📸 Screenshots are being captured in the iOS Simulator and will land here shortly.
-> See [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) for the capture plan.
+> 📸 The images below render once the PNGs are added to `docs/` — see
+> [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) for how to capture them.
 
-<!-- Uncomment once the PNGs are committed to docs/.
-| Flashcard feed | Topic generation | Gamification |
+| Flashcard feed | Topic entry | Gamification |
 | :--: | :--: | :--: |
-| ![Feed](docs/feed.png) | ![Generate](docs/generate.png) | ![Gamification](docs/gamification.png) |
+| ![Flashcard feed](docs/feed.png) | ![Topic entry](docs/topic.png) | ![Gamification](docs/gamification.png) |
 
 | Streak calendar | Leaderboard |
 | :--: | :--: |
-| ![Streak](docs/streak.png) | ![Leaderboard](docs/leaderboard.png) |
--->
+| ![Streak calendar](docs/streak.png) | ![Leaderboard](docs/leaderboard.png) |
 
 ## Roadmap
 
