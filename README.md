@@ -8,6 +8,7 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
   <img src="docs/home.png" alt="Edutok home screen" width="320">
 </p>
 
+[![CI](https://github.com/billdmar/Edutok/actions/workflows/ci.yml/badge.svg)](https://github.com/billdmar/Edutok/actions/workflows/ci.yml)
 ![Swift](https://img.shields.io/badge/Swift-5-orange?logo=swift&logoColor=white)
 ![iOS](https://img.shields.io/badge/iOS-18.5%2B-000000?logo=apple&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0071e3)
@@ -37,7 +38,7 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 | AI content      | Google Gemini (`gemini-1.5-flash-latest`)    |
 | Images          | Unsplash API                          |
 | Auth & database | Firebase Auth + Cloud Firestore       |
-| Architecture    | MVVM with `ObservableObject` managers |
+| Architecture    | MVVM with `ObservableObject` managers — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 
 ## Architecture
 
