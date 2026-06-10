@@ -193,7 +193,7 @@ struct MainView: View {
                                 .shadow(color: .purple.opacity(0.5), radius: 25, x: 0, y: 10)
 
                                 VStack(spacing: 8) {
-                                    Text("FlashTok")
+                                    Text("Edutok")
                                         .font(.system(size: 42, weight: .bold, design: .rounded))
                                         .foregroundStyle(
                                             LinearGradient(

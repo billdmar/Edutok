@@ -64,7 +64,7 @@ struct AuthenticationView: View {
                             .font(.system(size: 60))
                             .foregroundColor(.purple)
 
-                        Text("Join FlashTok")
+                        Text("Join Edutok")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.white)

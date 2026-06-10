@@ -22,7 +22,7 @@ struct SidebarView: View {
                             }
                         }) {
                             VStack(alignment: .leading) {
-                                Text("FlashTok")
+                                Text("Edutok")
                                     .font(.title)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
@@ -360,7 +360,7 @@ struct SidebarView: View {
 
                     // Version info
                     VStack(spacing: 5) {
-                        Text("FlashTok v1.0")
+                        Text("Edutok v1.0")
                             .font(.caption2)
                             .fontWeight(.medium)
                             .foregroundColor(.white.opacity(0.5))
