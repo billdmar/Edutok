@@ -7,6 +7,7 @@
 //  with no Firebase or network dependency.
 //
 
+import Foundation
 import Testing
 
 @testable import Edutok
