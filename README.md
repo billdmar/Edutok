@@ -4,6 +4,10 @@
 
 Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized, AI-generated flashcards — wrapped in streaks, achievements, and a leaderboard to make learning genuinely addictive.
 
+<p align="center">
+  <img src="docs/home.png" alt="Edutok home screen" width="320">
+</p>
+
 ![Swift](https://img.shields.io/badge/Swift-5-orange?logo=swift&logoColor=white)
 ![iOS](https://img.shields.io/badge/iOS-18.5%2B-000000?logo=apple&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0071e3)
@@ -140,18 +144,13 @@ This project keeps all credentials out of version control:
 
 ## Screenshots
 
-> 📸 Screenshots are being captured in the iOS Simulator and will land here shortly.
-> See [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) for the capture plan.
-
-<!-- Uncomment once the PNGs are committed to docs/.
-| Flashcard feed | Topic generation | Gamification |
+| Home & topic search | Flashcard question | Answer & level-up |
 | :--: | :--: | :--: |
-| ![Feed](docs/feed.png) | ![Generate](docs/generate.png) | ![Gamification](docs/gamification.png) |
+| ![Home](docs/home.png) | ![Question](docs/question.png) | ![Level up](docs/flashcard.png) |
 
-| Streak calendar | Leaderboard |
-| :--: | :--: |
-| ![Streak](docs/streak.png) | ![Leaderboard](docs/leaderboard.png) |
--->
+| Learning journey | Daily leaderboard | Streak calendar |
+| :--: | :--: | :--: |
+| ![Sidebar](docs/sidebar.png) | ![Leaderboard](docs/leaderboard.png) | ![Streak](docs/streak.png) |
 
 ## Roadmap
 
