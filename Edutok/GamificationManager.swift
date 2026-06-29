@@ -28,7 +28,7 @@ class GamificationManager: ObservableObject {
     private let userDefaultsKey = "UserProgress"
     private let challengeStore = ChallengeStore()
     private let mysteryBoxStore = MysteryBoxStore()
-    private let enhancedAchievementsKey = "EnhancedAchievements"
+    private let achievementEvaluator = AchievementEvaluator()
     private let notifications = NotificationScheduler()
     private var topicExploredObserver: NSObjectProtocol?
 
@@ -185,102 +185,22 @@ class GamificationManager: ObservableObject {
     // MARK: - Enhanced Achievements
 
     func loadEnhancedAchievements() {
-        enhancedAchievements = [
-            EnhancedAchievement(
-                title: "First Steps",
-                description: "Complete your first flashcard",
-                xpReward: 25,
-                icon: "1.circle.fill",
-                rarity: .common,
-                isUnlocked: userProgress.totalCardsCompleted >= 1,
-                unlockedAt: nil,
-                category: .learning
-            ),
-            EnhancedAchievement(
-                title: "Scholar",
-                description: "Complete 100 flashcards",
-                xpReward: 100,
-                icon: "graduationcap.fill",
-                rarity: .rare,
-                isUnlocked: userProgress.totalCardsCompleted >= 100,
-                unlockedAt: nil,
-                category: .learning
-            ),
-            EnhancedAchievement(
-                title: "Perfectionist",
-                description: "Get 25 perfect answers",
-                xpReward: 150,
-                icon: "star.fill",
-                rarity: .epic,
-                isUnlocked: userProgress.totalCorrectAnswers >= 25,
-                unlockedAt: nil,
-                category: .learning
-            ),
-            EnhancedAchievement(
-                title: "Night Owl",
-                description: "Study after 11 PM",
-                xpReward: 75,
-                icon: "moon.fill",
-                rarity: .rare,
-                isUnlocked: false,
-                unlockedAt: nil,
-                category: .time
-            ),
-            EnhancedAchievement(
-                title: "Early Bird",
-                description: "Study before 8 AM",
-                xpReward: 75,
-                icon: "sunrise.fill",
-                rarity: .rare,
-                isUnlocked: false,
-                unlockedAt: nil,
-                category: .time
-            ),
-            EnhancedAchievement(
-                title: "Streak Master",
-                description: "Maintain a 7-day learning streak",
-                xpReward: 200,
-                icon: "flame.fill",
-                rarity: .epic,
-                isUnlocked: userProgress.currentStreak >= 7,
-                unlockedAt: nil,
-                category: .time
-            )
-        ]
-
-        saveEnhancedAchievements()
+        // Restore persisted achievements (keeps unlock timestamps across launches). Only
+        // build a fresh catalog when nothing is stored — fixes the old bug where the catalog
+        // was rebuilt every launch and unlock history was lost.
+        if let saved = achievementEvaluator.load() {
+            enhancedAchievements = saved
+        } else {
+            enhancedAchievements = achievementEvaluator.catalog(progress: userProgress)
+            achievementEvaluator.save(enhancedAchievements)
+        }
     }
 
     func checkEnhancedAchievements() {
-        let hour = Calendar.current.component(.hour, from: Date())
-
-        for index in enhancedAchievements.indices {
-            let achievement = enhancedAchievements[index]
-
-            if !achievement.isUnlocked {
-                var shouldUnlock = false
-
-                switch achievement.title {
-                case "First Steps":
-                    shouldUnlock = userProgress.totalCardsCompleted >= 1
-                case "Scholar":
-                    shouldUnlock = userProgress.totalCardsCompleted >= 100
-                case "Perfectionist":
-                    shouldUnlock = userProgress.totalCorrectAnswers >= 25
-                case "Night Owl":
-                    shouldUnlock = hour >= 23 || hour <= 5
-                case "Early Bird":
-                    shouldUnlock = hour >= 5 && hour <= 8
-                case "Streak Master":
-                    shouldUnlock = userProgress.currentStreak >= 7
-                default:
-                    shouldUnlock = false
-                }
-
-                if shouldUnlock {
-                    unlockEnhancedAchievement(index)
-                }
-            }
+        let indices = achievementEvaluator.newlyUnlockableIndices(in: enhancedAchievements,
+                                                                  progress: userProgress)
+        for index in indices {
+            unlockEnhancedAchievement(index)
         }
     }
 
@@ -312,7 +232,7 @@ class GamificationManager: ObservableObject {
             self.shouldShowAchievement = false
         }
 
-        saveEnhancedAchievements()
+        achievementEvaluator.save(enhancedAchievements)
 
         // Track in Firebase
         Task {
@@ -483,15 +403,6 @@ class GamificationManager: ObservableObject {
     private func loadMysteryBoxes() {
         if let boxes = mysteryBoxStore.load() {
             availableMysteryBoxes = boxes
-        }
-    }
-
-    private func saveEnhancedAchievements() {
-        do {
-            let data = try JSONEncoder().encode(enhancedAchievements)
-            UserDefaults.standard.set(data, forKey: enhancedAchievementsKey)
-        } catch {
-            print("Error saving enhanced achievements: \(error)")
         }
     }
 
