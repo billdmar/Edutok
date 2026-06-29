@@ -65,7 +65,8 @@ class TopicManager: ObservableObject {
                 mockFlashcards[index].imageURL = imageURL
             }
 
-            let newTopic = Topic(title: topicTitle, flashcards: mockFlashcards)
+            var newTopic = Topic(title: topicTitle, flashcards: mockFlashcards)
+            newTopic.usingFallback = true   // signals the offline/sample-cards banner
 
             savedTopics.insert(newTopic, at: 0)
             currentTopic = newTopic

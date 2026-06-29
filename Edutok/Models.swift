@@ -58,6 +58,10 @@ struct Topic: Identifiable, Codable, Equatable {
     var flashcards: [Flashcard]
     let createdAt: Date = Date()
     var isLiked: Bool = false
+    /// True when this deck came from the offline mock fallback (Gemini was unreachable).
+    /// Transient — deliberately NOT in `CodingKeys`, so it never affects persisted data and
+    /// defaults to `false` on reload (the banner is a this-session signal).
+    var usingFallback: Bool = false
 
     static func == (lhs: Topic, rhs: Topic) -> Bool {
         lhs.id == rhs.id
