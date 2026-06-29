@@ -29,7 +29,7 @@ struct SettingsView: View {
                 dangerSection
             }
             .scrollContentBackground(.hidden)
-            .background(backgroundGradient.ignoresSafeArea())
+            .background(Theme.screenBackground.ignoresSafeArea())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -111,14 +111,5 @@ struct SettingsView: View {
             Spacer()
             Text(value).foregroundColor(Theme.textSecondary)
         }
-    }
-
-    private var backgroundGradient: LinearGradient {
-        LinearGradient(
-            gradient: Gradient(colors: [Color.black,
-                                        Color(red: 0.12, green: 0.04, blue: 0.22),
-                                        Color.black]),
-            startPoint: .top, endPoint: .bottom
-        )
     }
 }

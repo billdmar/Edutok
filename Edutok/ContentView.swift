@@ -187,12 +187,4 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Extensions
-//
-// The brand palette now lives in `Theme` (DesignSystem.swift). These aliases keep the
-// `Color.brand*` call sites terse and route through the single source of truth.
-extension Color {
-    static let brandPurple = Theme.purple
-    static let brandPink = Theme.pink
-    static let brandBlue = Theme.blue
-}
+// The brand palette and reusable styles live in `Theme` (DesignSystem.swift).

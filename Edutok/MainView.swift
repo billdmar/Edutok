@@ -274,7 +274,7 @@ struct MainView: View {
                                     }
                                 }
 
-                                // Beautiful start learning button
+                                // Start learning button (uses the shared PrimaryButtonStyle)
                                 Button(action: startLearning) {
                                     HStack(spacing: 12) {
                                         if isLoading {
@@ -287,29 +287,10 @@ struct MainView: View {
                                         }
 
                                         Text(isLoading ? "Creating Your Cards..." : "Start Learning")
-                                            .font(.system(size: 18, weight: .bold, design: .rounded))
                                     }
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 40)
-                                    .padding(.vertical, 18)
-                                    .background(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.pink,
-                                                Color.purple,
-                                                Color.blue.opacity(0.8)
-                                            ]),
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .cornerRadius(30)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 30)
-                                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                                    )
-                                    .shadow(color: .pink.opacity(0.5), radius: 20, x: 0, y: 8)
                                 }
+                                .buttonStyle(PrimaryButtonStyle(colors: [Theme.pink, Theme.purple, Theme.blue.opacity(0.8)]))
+                                .padding(.horizontal, 25)
                                 .disabled(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                                 .scaleEffect(isLoading ? 0.95 : 1.0)
                                 .opacity(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1.0)
@@ -346,33 +327,11 @@ struct MainView: View {
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 14) {
                                             ForEach(trendingTopics, id: \.self) { suggestion in
-                                                Button(action: {
+                                                Button(suggestion) {
                                                     topicInput = suggestion
-                                                }) {
-                                                    Text(suggestion)
-                                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                                                        .foregroundColor(.white)
-                                                        .padding(.horizontal, 20)
-                                                        .padding(.vertical, 12)
-                                                        .background(
-                                                            RoundedRectangle(cornerRadius: 22)
-                                                                .fill(
-                                                                    LinearGradient(
-                                                                        colors: [
-                                                                            Color.white.opacity(0.2),
-                                                                            Color.white.opacity(0.1)
-                                                                        ],
-                                                                        startPoint: .topLeading,
-                                                                        endPoint: .bottomTrailing
-                                                                    )
-                                                                )
-                                                                .overlay(
-                                                                    RoundedRectangle(cornerRadius: 22)
-                                                                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
-                                                                )
-                                                        )
-                                                        .shadow(color: .purple.opacity(0.2), radius: 5, x: 0, y: 3)
                                                 }
+                                                .buttonStyle(ChipButtonStyle())
+                                                .shadow(color: .purple.opacity(0.2), radius: 5, x: 0, y: 3)
                                             }
                                         }
                                         .padding(.horizontal, 25)

@@ -19,7 +19,6 @@ struct UserProgress: Codable {
     var lastActiveDate: Date = Date()
     var totalCardsCompleted: Int = 0
     var totalCorrectAnswers: Int = 0
-    var achievementsUnlocked: [String] = []
     var currentStreak: Int = 0
     var xpGainedToday: Int = 0
 

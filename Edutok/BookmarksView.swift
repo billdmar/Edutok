@@ -24,7 +24,7 @@ struct BookmarksView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundGradient.ignoresSafeArea()
+                Theme.screenBackground.ignoresSafeArea()
 
                 if cards.isEmpty {
                     emptyState
@@ -55,15 +55,6 @@ struct BookmarksView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
         }
         .preferredColorScheme(.dark)
-    }
-
-    private var backgroundGradient: LinearGradient {
-        LinearGradient(
-            gradient: Gradient(colors: [Color.black,
-                                        Color(red: 0.15, green: 0.05, blue: 0.25),
-                                        Color.black]),
-            startPoint: .top, endPoint: .bottom
-        )
     }
 
     private var emptyState: some View {

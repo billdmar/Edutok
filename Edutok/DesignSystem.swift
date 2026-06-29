@@ -23,11 +23,13 @@ enum Theme {
     /// Tertiary/caption text — use sparingly; large text only.
     static let textTertiary = Color.white.opacity(0.55)
 
-    /// The signature brand gradient (top-leading → bottom-trailing).
-    static let brandGradient = LinearGradient(
-        gradient: Gradient(colors: [purple, pink]),
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
+    /// The standard dark screen background (black → deep purple → black), used by the
+    /// sheet-style screens (Bookmarks, Settings) so they share one definition.
+    static let screenBackground = LinearGradient(
+        gradient: Gradient(colors: [Color.black,
+                                    Color(red: 0.12, green: 0.04, blue: 0.22),
+                                    Color.black]),
+        startPoint: .top, endPoint: .bottom
     )
 }
 
