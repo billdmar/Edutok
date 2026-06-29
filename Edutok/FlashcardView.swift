@@ -30,7 +30,6 @@ struct FlashcardView: View {
     @State private var showAnswer = false
     @State private var cardRotation: Double = 0
     @State private var showSidebar = false
-    @State private var isTransitioning = false
     @State private var dotIndex = 2 // Start at middle dot (0-4 range)
     @State private var cardTransitionDirection: CardTransitionDirection = .none
     @State private var answerStartTime: Date?
@@ -830,7 +829,7 @@ struct FlashcardView: View {
         }
 
         // Reset transition direction after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
             cardTransitionDirection = .none
         }
     }
@@ -856,7 +855,7 @@ struct FlashcardView: View {
         }
 
         // Reset transition direction after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
             cardTransitionDirection = .none
         }
     }

@@ -179,6 +179,11 @@ and appends the next batch, with the same fallback behavior.
 > when Gemini is unreachable the flashcard feed shows a "sample cards" banner so the user
 > knows the deck is the offline fallback.
 
+> **Logging.** Diagnostics go through `AppLog`, a thin wrapper over Apple's unified logging
+> (`os.Logger`), categorized by area (network/persistence/auth/…), rather than `print` to
+> stdout — so failures that previously logged only to the console are now first-class,
+> filterable system-log entries.
+
 ## Image fetching (Unsplash + Gemini keywords)
 
 `ImageManager` (`.shared`, `@MainActor`) resolves a relevant image URL per card and

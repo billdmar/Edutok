@@ -139,7 +139,7 @@ struct LevelUpView: View {
             sparkleScale = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
             isShowing = false
         }
     }
@@ -235,7 +235,7 @@ struct AchievementView: View {
             }
 
             // Auto dismiss after 4 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.particleBurst) {
                 dismissAnimation()
             }
         }
@@ -247,7 +247,7 @@ struct AchievementView: View {
             glowOpacity = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
             isShowing = false
         }
     }
@@ -343,7 +343,7 @@ struct CustomAchievementView: View {
             }
 
             // Auto dismiss after 4 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.particleBurst) {
                 dismissAnimation()
             }
         }
@@ -355,7 +355,7 @@ struct CustomAchievementView: View {
             glowOpacity = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
             isShowing = false
         }
     }

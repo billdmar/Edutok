@@ -73,7 +73,7 @@ class ImageManager: ObservableObject {
     /// the request is rate-limited/unauthorized, errors, or yields no results.
     func fetchImage(keywords: String, question: String? = nil) async -> String? {
         // Create a unique cache key that includes both keywords and question
-        let cacheKey = question != nil ? "\(keywords)_\(question!.prefix(30))" : keywords
+        let cacheKey = question.map { "\(keywords)_\($0.prefix(30))" } ?? keywords
 
         // Check question-specific cache first
         if question != nil, let cachedURL = questionImageCache.object(forKey: cacheKey as NSString) {
