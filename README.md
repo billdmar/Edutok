@@ -24,7 +24,8 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 - **Swipeable feed** — A vertical, full-screen card feed inspired by short-form video apps.
 - **Rich imagery** — Each card is paired with a relevant photo fetched from Unsplash.
 - **Saved cards** — Swipe left to bookmark a card, then review all your saved cards in one place.
-- **Spaced-repetition review** — Cards you mark understood resurface on a widening schedule (1 → 3 → 7 → 14 → 30 days) so they stick long-term.
+- **Self-graded recall** — Reveal a card, then rate yourself "Got it" or "Again". Correct recall earns the XP (with a first-try perfect bonus + speed bonus); "Again" resurfaces the card sooner. XP reflects learning, not just flipping.
+- **Spaced-repetition review** — Cards you mark understood resurface on a widening schedule (1 → 3 → 7 → 14 → 30 days); cards you miss come back immediately.
 - **Topic search & history** — Search every topic you've studied and resume it with one tap.
 - **Share a card** — Send any flashcard's question + answer to friends.
 - **Accounts & sync** — Anonymous, email/password authentication and cloud data sync via Firebase.
@@ -108,7 +109,7 @@ A few choices worth calling out:
 
 ## Testing
 
-Core domain logic is covered by **64 unit tests** in `EdutokTests`, exercising the pure,
+Core domain logic is covered by **68 unit tests** in `EdutokTests`, exercising the pure,
 Firebase-free logic independently of the UI:
 
 - **XP / leveling** — thresholds, level-up detection, in-level progress.

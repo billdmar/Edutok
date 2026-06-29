@@ -109,12 +109,17 @@ exposes terse `Color.brand*` aliases onto those tokens.
   `cardRotation`).
 - The feed grows endlessly: when nearing the end of the deck it calls
   `topicManager.generateMoreFacts(for:)` to append another batch.
-- Side effects on interaction:
-  - First flip of a card → `FirebaseManager.shared.trackCardFlipped()`.
-  - Marking understood → `TopicManager.markCardAsUnderstood(...)` and
-    `GamificationManager.awardXP(.perfectCard)`; completion also calls
-    `awardXPForCardCompletion(wasCorrect:isFirstTry:timeToAnswer:)`.
-  - XP is awarded at most once per card (`cardXPAwarded: Set<UUID>`).
+- Self-graded learning loop (XP reflects recall, not just viewing):
+  - **Flipping** to reveal the answer → `FirebaseManager.trackCardFlipped()` + a small
+    one-time "viewed" XP (`awardXP(.cardCompleted)`, tracked by `cardViewed: Set<UUID>`).
+  - **"Got it"** (or swipe-right) → `markAsUnderstood` →
+    `awardXPForCardCompletion(wasCorrect: true, isFirstTry:, timeToAnswer:)` (correct + perfect
+    + speed bonus) and advances the consecutive-correct streak. "First try" = the card wasn't
+    marked "Again" earlier this session.
+  - **"Again"** → `markNeedsReview` → `awardXPForCardCompletion(wasCorrect: false, …)`
+    (base XP only), breaks the streak, and `TopicManager.resetReview(...)` flags the card to
+    resurface in spaced-repetition Review immediately.
+  - Each card is graded at most once per session (`cardGraded: Set<UUID>`).
 
 ## Gemini-powered flashcard generation
 
