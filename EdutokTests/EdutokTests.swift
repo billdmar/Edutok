@@ -556,6 +556,53 @@ struct EdutokTests {
         // Time-based ones are never seeded as unlocked.
         #expect(catalog.first { $0.title == "Night Owl" }?.isUnlocked == false)
     }
+
+    // MARK: - UserProgress back-compatible decoding
+
+    @Test func decodesLegacyUserProgressWithoutConsecutiveField() throws {
+        // A returning user's saved progress predates consecutiveCorrectAnswers. Decoding must
+        // NOT throw (a throw would reset all their XP/level in loadProgress' catch).
+        let legacy = """
+        {"totalXP":250,"currentLevel":3,"xpInCurrentLevel":50,"totalCardsCompleted":12,
+         "totalCorrectAnswers":9,"currentStreak":4,"xpGainedToday":40,
+         "lastActiveDate":760000000}
+        """.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(UserProgress.self, from: legacy)
+        #expect(decoded.totalXP == 250)
+        #expect(decoded.currentLevel == 3)
+        #expect(decoded.totalCorrectAnswers == 9)
+        #expect(decoded.consecutiveCorrectAnswers == 0)  // defaulted, not thrown
+    }
+
+    @Test func userProgressRoundTripsWithStreak() throws {
+        var p = UserProgress()
+        _ = p.addXP(120)
+        p.consecutiveCorrectAnswers = 5
+        let decoded = try JSONDecoder().decode(UserProgress.self, from: JSONEncoder().encode(p))
+        #expect(decoded.totalXP == 120)
+        #expect(decoded.consecutiveCorrectAnswers == 5)
+    }
+
+    // MARK: - "In a row" challenge progress (absolute set + reset)
+
+    @Test func setProgressMirrorsStreakAndCanDropToZero() {
+        let store = ChallengeStore()
+        let base = store.makeDailyChallenges()
+        // Streak climbs to 7 (target 10) → not complete, currentValue tracks the streak.
+        let at7 = store.setProgress(to: base, type: .correctAnswers, value: 7)
+        let perfect7 = at7.challenges.first { $0.type == .correctAnswers }!
+        #expect(perfect7.currentValue == 7)
+        #expect(!perfect7.isCompleted)
+        // A wrong answer resets the streak → challenge progress drops back to 0.
+        let at0 = store.setProgress(to: at7.challenges, type: .correctAnswers, value: 0)
+        #expect(at0.challenges.first { $0.type == .correctAnswers }!.currentValue == 0)
+    }
+
+    @Test func setProgressCompletesAtTenInARow() {
+        let store = ChallengeStore()
+        let result = store.setProgress(to: store.makeDailyChallenges(), type: .correctAnswers, value: 10)
+        #expect(result.newlyCompleted.contains { $0.type == .correctAnswers })
+    }
 }
 
 // MARK: - GeminiClient networking tests

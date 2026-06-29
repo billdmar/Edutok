@@ -90,7 +90,12 @@ struct FlashcardView: View {
     @State private var cardTransitionDirection: CardTransitionDirection = .none
     @State private var answerStartTime: Date?
     @State private var hasTrackedCardFlip = false
-    @State private var cardXPAwarded: Set<UUID> = []
+    // Cards whose answer has been viewed (for the one-time "viewed" XP).
+    @State private var cardViewed: Set<UUID> = []
+    // Cards already graded this session (Got it / Again) — grade counts once per card.
+    @State private var cardGraded: Set<UUID> = []
+    // Cards the user marked "Again" (wrong) this session — so a later "Got it" isn't "first try".
+    @State private var cardMarkedWrong: Set<UUID> = []
 
     var body: some View {
         GeometryReader { geometry in
@@ -510,15 +515,17 @@ struct FlashcardView: View {
                         )
                         .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: showAnswer)
 
-                        // Action buttons on card (shared chrome via CardActionButton)
+                        // Self-grade buttons: "Again" (didn't recall → base XP, breaks streak,
+                        // resurfaces in Review) and "Got it" (recalled → full recall reward).
                         HStack(spacing: 30) {
                             CardActionButton(
-                                icon: "arrow.right.circle.fill", label: "Skip",
+                                icon: "arrow.counterclockwise.circle.fill", label: "Again",
                                 symbolEffect: .bounce,
                                 colors: [Color.orange, Color.red.opacity(0.8)],
                                 shadowColor: .orange,
                                 isCurrentCard: isCurrentCard, showAnswer: showAnswer, cardRotation: cardRotation
                             ) {
+                                markNeedsReview()
                                 nextCard()
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             }
@@ -573,16 +580,13 @@ struct FlashcardView: View {
                     cardRotation = showAnswer ? 180 : 0
                 }
 
-                // Award XP for revealing answer (only once per card)
-                                if showAnswer && !cardXPAwarded.contains(card.id) {
-                                    cardXPAwarded.insert(card.id)
-                                    let timeToAnswer = answerStartTime?.timeIntervalSinceNow ?? 0
-                                    gamificationManager.awardXPForCardCompletion(
-                                        wasCorrect: true, // Assume correct for now
-                                        isFirstTry: true,
-                                        timeToAnswer: abs(timeToAnswer)
-                                    )
-                                }
+                // Revealing the answer is "viewing" — award a small participation XP once per
+                // card. The real recall reward comes from grading the card (Got it / Again),
+                // so flipping no longer hands out the full correct+perfect combo.
+                if showAnswer && !cardViewed.contains(card.id) {
+                    cardViewed.insert(card.id)
+                    gamificationManager.awardXP(.cardCompleted)
+                }
 
                 // Haptic feedback
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -646,7 +650,8 @@ struct FlashcardView: View {
             if isCurrentCard {
                 Button("Next card") { nextCard() }
                 Button("Previous card") { previousCard() }
-                Button("Mark as understood") { markAsUnderstood(); nextCard() }
+                Button("Got it") { markAsUnderstood(); nextCard() }
+                Button("Review again") { markNeedsReview(); nextCard() }
                 Button(card.isBookmarked ? "Remove bookmark" : "Bookmark this card") { toggleBookmark() }
             }
         }
@@ -853,12 +858,33 @@ struct FlashcardView: View {
         }
     }
 
+    /// "Got it" — the user recalled the card correctly. Awards the real recall XP
+    /// (correct + perfect-if-first-try + speed) and advances the correct-streak. "First try"
+    /// means they didn't mark it "Again" earlier in this session. Graded once per card.
     private func markAsUnderstood() {
         guard let topic = topicManager.currentTopic else { return }
         topicManager.markCardAsUnderstood(topicId: topic.id, cardIndex: currentCardIndex)
 
-        // Award XP for understanding the card
-        gamificationManager.awardXP(.perfectCard)
+        guard let card = currentCard, !cardGraded.contains(card.id) else { return }
+        cardGraded.insert(card.id)
+        let timeToAnswer = answerStartTime.map { abs($0.timeIntervalSinceNow) } ?? .greatestFiniteMagnitude
+        gamificationManager.awardXPForCardCompletion(
+            wasCorrect: true,
+            isFirstTry: !cardMarkedWrong.contains(card.id),
+            timeToAnswer: timeToAnswer
+        )
+    }
+
+    /// "Again" — the user didn't recall the card. Awards base XP only, breaks the
+    /// correct-streak, and flags the card to resurface sooner in Review. Doesn't auto-advance.
+    private func markNeedsReview() {
+        guard let topic = topicManager.currentTopic, let card = currentCard else { return }
+        cardMarkedWrong.insert(card.id)
+        topicManager.resetReview(topicId: topic.id, cardIndex: currentCardIndex)
+
+        guard !cardGraded.contains(card.id) else { return }
+        cardGraded.insert(card.id)
+        gamificationManager.awardXPForCardCompletion(wasCorrect: false, isFirstTry: false, timeToAnswer: 0)
     }
 
     private func toggleBookmark() {

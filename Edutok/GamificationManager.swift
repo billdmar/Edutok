@@ -89,11 +89,22 @@ class GamificationManager: ObservableObject {
         }
     }
 
+    /// Increments matching challenges by `value` (e.g. +1 per card completed).
     func updateChallengeProgress(type: ChallengeType, value: Int = 1) {
+        applyChallengeResult { challengeStore.applyProgress(to: $0, type: type, value: value) }
+    }
+
+    /// Sets matching challenges to an absolute `value` (for "in a row" challenges that mirror
+    /// a streak and can drop back down — e.g. the consecutive-correct streak).
+    func setChallengeProgress(type: ChallengeType, value: Int) {
+        applyChallengeResult { challengeStore.setProgress(to: $0, type: type, value: value) }
+    }
+
+    private func applyChallengeResult(_ transform: ([DailyChallenge]) -> ChallengeStore.ProgressResult) {
         // Don't credit progress against a stale (expired) challenge set.
         refreshDailyChallengesIfNeeded()
 
-        let result = challengeStore.applyProgress(to: dailyChallenges, type: type, value: value)
+        let result = transform(dailyChallenges)
         dailyChallenges = result.challenges
 
         // Reward each challenge that just completed (XP/toast/particle/Firebase side effects).
@@ -323,17 +334,19 @@ class GamificationManager: ObservableObject {
         )
         recentXPGains.append(combinedEvent)
 
-        // Update user stats
+        // Update user stats + the consecutive-correct streak (reset on a wrong answer).
         userProgress.totalCardsCompleted += 1
         if wasCorrect {
             userProgress.totalCorrectAnswers += 1
+            userProgress.consecutiveCorrectAnswers += 1
+        } else {
+            userProgress.consecutiveCorrectAnswers = 0
         }
 
-        // Update challenge progress
+        // Update challenge progress. "Perfect Score" tracks correct answers IN A ROW, so it
+        // follows the streak (and resets to it) rather than incrementing on every card.
         updateChallengeProgress(type: .cardsCompleted)
-        if wasCorrect {
-            updateChallengeProgress(type: .correctAnswers)
-        }
+        setChallengeProgress(type: .correctAnswers, value: userProgress.consecutiveCorrectAnswers)
 
         // Check achievements (single source of truth — the enhanced system).
         checkEnhancedAchievements()

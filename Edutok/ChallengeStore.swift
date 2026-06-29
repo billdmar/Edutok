@@ -42,10 +42,24 @@ struct ChallengeStore {
     /// marking newly-crossed ones complete. Pure — returns the updated set and the
     /// completions for the caller to reward. (Caller should refresh an expired set first.)
     func applyProgress(to challenges: [DailyChallenge], type: ChallengeType, value: Int) -> ProgressResult {
+        adjust(challenges, type: type) { current, target in min(current + value, target) }
+    }
+
+    /// Like `applyProgress`, but SETS each matching challenge's progress to an absolute value
+    /// (clamped to target) instead of incrementing — for "in a row" challenges that mirror a
+    /// streak which can drop back to a lower value (or 0) on a wrong answer.
+    func setProgress(to challenges: [DailyChallenge], type: ChallengeType, value: Int) -> ProgressResult {
+        adjust(challenges, type: type) { _, target in min(max(value, 0), target) }
+    }
+
+    /// Shared core: apply `newValue(currentValue, targetValue)` to each matching, not-yet-
+    /// completed challenge, marking newly-crossed ones complete.
+    private func adjust(_ challenges: [DailyChallenge], type: ChallengeType,
+                        _ newValue: (Int, Int) -> Int) -> ProgressResult {
         var updated = challenges
         var completed: [DailyChallenge] = []
         for index in updated.indices where updated[index].type == type && !updated[index].isCompleted {
-            updated[index].currentValue = min(updated[index].currentValue + value, updated[index].targetValue)
+            updated[index].currentValue = newValue(updated[index].currentValue, updated[index].targetValue)
             if updated[index].currentValue >= updated[index].targetValue {
                 updated[index].isCompleted = true
                 completed.append(updated[index])

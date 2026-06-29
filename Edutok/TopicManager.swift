@@ -445,6 +445,26 @@ class TopicManager: ObservableObject {
         saveTopics()
     }
 
+    /// Flags a card the user just failed ("Again") to resurface in Review ASAP: marks it
+    /// understood (so it enters the review pool) and resets its schedule (`reviewCount` to 0,
+    /// `lastReviewedAt` cleared) so `ReviewScheduler` considers it due now.
+    func resetReview(topicId: UUID, cardIndex: Int) {
+        guard let topicIndex = savedTopics.firstIndex(where: { $0.id == topicId }),
+              cardIndex < savedTopics[topicIndex].flashcards.count else { return }
+
+        savedTopics[topicIndex].flashcards[cardIndex].isUnderstood = true
+        savedTopics[topicIndex].flashcards[cardIndex].reviewCount = 0
+        savedTopics[topicIndex].flashcards[cardIndex].lastReviewedAt = nil
+
+        if currentTopic?.id == topicId, cardIndex < (currentTopic?.flashcards.count ?? 0) {
+            currentTopic?.flashcards[cardIndex].isUnderstood = true
+            currentTopic?.flashcards[cardIndex].reviewCount = 0
+            currentTopic?.flashcards[cardIndex].lastReviewedAt = nil
+        }
+
+        saveTopics()
+    }
+
     func saveTopics() {
         do {
             let data = try JSONEncoder().encode(savedTopics)
