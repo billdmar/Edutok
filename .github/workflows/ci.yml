@@ -80,7 +80,16 @@ jobs:
             -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16 Pro' \
             -derivedDataPath .build/DerivedData \
             -only-testing:EdutokTests \
+            -enableCodeCoverage YES \
             CODE_SIGNING_ALLOWED=NO
+
+      # Report unit-test coverage (informational; not a gate, to avoid flakiness).
+      - name: Coverage report
+        if: always()
+        run: |
+          xcrun xccov view --report --only-targets \
+            .build/DerivedData/Logs/Test/*.xcresult 2>/dev/null || \
+            echo "No coverage report (test step may have failed)."
 
       # Release builds exclude #if DEBUG code (e.g. the DebugView entry point), so a
       # separate Release compile guards against debug-only code being relied upon.
@@ -95,3 +104,17 @@ jobs:
             -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16 Pro' \
             -derivedDataPath .build/DerivedData \
             CODE_SIGNING_ALLOWED=NO
+
+  # Lint runs independently of build/test so the two signals don't block each other.
+  lint:
+    name: SwiftLint
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Run SwiftLint
+        run: swiftlint lint --reporter github-actions-logging
