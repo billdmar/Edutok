@@ -156,10 +156,18 @@ and appends the next batch, with the same fallback behavior.
 > `Edutok/Secrets.swift`, which is **gitignored** and supplied per developer (CI
 > writes a non-functional stub so the project compiles — see below).
 
-> **Notifications.** Local-notification scheduling (study reminders, level-up
-> encouragement, streak warnings) lives in a small stateless `NotificationScheduler`;
-> `GamificationManager` composes it rather than owning `UNUserNotificationCenter` directly,
-> keeping the reward manager free of notification plumbing.
+> **Composed helpers.** To keep `GamificationManager` focused on coordinating reward
+> *side effects* (XP, level-up/toast/particle animation state, Firebase tracking), several
+> responsibilities are factored into small **stateless** helpers it composes — each owns
+> generation/persistence/pure-math and returns results, while the manager keeps the
+> `@Published` arrays the views bind to:
+> - `NotificationScheduler` — local notifications (study reminder, level-up, streak warning).
+> - `MysteryBoxStore` — box generation, the rarity distribution (`rarity(for:)`), persistence.
+> - `ChallengeStore` — daily-challenge generation, expiry/refresh, progress math
+>   (`applyProgress` returns the newly-completed challenges to reward), persistence.
+>
+> The pure functions (`rarity(for:)`, `cardCompletionXP(...)`, `ChallengeStore.applyProgress`,
+> `StreakCalculator`, `ReviewScheduler`) are unit-tested directly.
 
 ## Image fetching (Unsplash + Gemini keywords)
 

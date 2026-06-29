@@ -108,7 +108,7 @@ A few choices worth calling out:
 
 ## Testing
 
-Core domain logic is covered by **45 unit tests** in `EdutokTests`, exercising the pure,
+Core domain logic is covered by **60 unit tests** in `EdutokTests`, exercising the pure,
 Firebase-free logic independently of the UI:
 
 - **XP / leveling** — thresholds, level-up detection, in-level progress.
@@ -122,7 +122,9 @@ Firebase-free logic independently of the UI:
   prose-wrapped responses, smart-quote normalization.
 - **Backward-compatible decoding**, mystery-box reward ranges, and topic-progress percentages.
 
-Style is enforced by **SwiftLint** (config tuned for SwiftUI; runs as its own CI job).
+Plus an offline **XCUITest smoke suite** (`EdutokUITests`) — launch, the topic → flashcard
+happy path (mock deck, no network), the sidebar, and nav-bar section switching — run as a
+separate CI job. Style is enforced by **SwiftLint** (config tuned for SwiftUI; its own CI job).
 
 Run them with:
 
