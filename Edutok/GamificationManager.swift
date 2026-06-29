@@ -26,8 +26,8 @@ class GamificationManager: ObservableObject {
     @Published var currentMysteryBox: MysteryBox?
 
     private let userDefaultsKey = "UserProgress"
-    private let challengesKey = "DailyChallenges"
-    private let mysteryBoxesKey = "MysteryBoxes"
+    private let challengeStore = ChallengeStore()
+    private let mysteryBoxStore = MysteryBoxStore()
     private let enhancedAchievementsKey = "EnhancedAchievements"
     private let notifications = NotificationScheduler()
     private var topicExploredObserver: NSObjectProtocol?
@@ -75,52 +75,16 @@ class GamificationManager: ObservableObject {
 
     // MARK: - Daily Challenges
 
-    /// Creates the day's set of daily challenges (if not already generated for today),
-    /// each with a target, XP reward, and expiry.
+    /// Creates the day's set of daily challenges, each with a target, XP reward, and expiry.
     func generateDailyChallenges() {
-        let calendar = Calendar.current
-        let tomorrow = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date())
-
-        dailyChallenges = [
-            DailyChallenge(
-                title: "Card Master",
-                description: "Complete 15 flashcards today",
-                targetValue: 15,
-                currentValue: 0,
-                xpReward: 50,
-                isCompleted: false,
-                type: .cardsCompleted,
-                expiresAt: tomorrow
-            ),
-            DailyChallenge(
-                title: "Perfect Score",
-                description: "Get 10 correct answers in a row",
-                targetValue: 10,
-                currentValue: 0,
-                xpReward: 75,
-                isCompleted: false,
-                type: .correctAnswers,
-                expiresAt: tomorrow
-            ),
-            DailyChallenge(
-                title: "Topic Explorer",
-                description: "Explore 3 new topics today",
-                targetValue: 3,
-                currentValue: 0,
-                xpReward: 100,
-                isCompleted: false,
-                type: .topicsExplored,
-                expiresAt: tomorrow
-            )
-        ]
-
-        saveDailyChallenges()
+        dailyChallenges = challengeStore.makeDailyChallenges()
+        challengeStore.save(dailyChallenges)
     }
 
     /// Regenerates the daily challenges if the current set has expired (e.g. the app was
     /// left open past midnight). Safe to call often — it no-ops when challenges are current.
     func refreshDailyChallengesIfNeeded() {
-        if dailyChallenges.isEmpty || dailyChallenges.contains(where: { $0.isExpired }) {
+        if challengeStore.needsRefresh(dailyChallenges) {
             generateDailyChallenges()
         }
     }
@@ -128,19 +92,16 @@ class GamificationManager: ObservableObject {
     func updateChallengeProgress(type: ChallengeType, value: Int = 1) {
         // Don't credit progress against a stale (expired) challenge set.
         refreshDailyChallengesIfNeeded()
-        for index in dailyChallenges.indices {
-            if dailyChallenges[index].type == type && !dailyChallenges[index].isCompleted {
-                dailyChallenges[index].currentValue = min(dailyChallenges[index].currentValue + value, dailyChallenges[index].targetValue)
 
-                // Check if challenge is completed
-                if dailyChallenges[index].currentValue >= dailyChallenges[index].targetValue {
-                    dailyChallenges[index].isCompleted = true
-                    completeChallenge(dailyChallenges[index])
-                }
-            }
+        let result = challengeStore.applyProgress(to: dailyChallenges, type: type, value: value)
+        dailyChallenges = result.challenges
+
+        // Reward each challenge that just completed (XP/toast/particle/Firebase side effects).
+        for challenge in result.newlyCompleted {
+            completeChallenge(challenge)
         }
 
-        saveDailyChallenges()
+        challengeStore.save(dailyChallenges)
     }
 
     private func completeChallenge(_ challenge: DailyChallenge) {
@@ -182,42 +143,8 @@ class GamificationManager: ObservableObject {
     // MARK: - Mystery Boxes
 
     func generateMysteryBoxes() {
-        availableMysteryBoxes = []
-
-        // Generate 3-5 mystery boxes
-        let boxCount = Int.random(in: 3...5)
-
-        for _ in 0..<boxCount {
-            let rarity = randomRarity()
-            let xpAmount = Int.random(in: rarity.xpRange)
-
-            let mysteryBox = MysteryBox(
-                xpAmount: xpAmount,
-                rarity: rarity,
-                isOpened: false,
-                openedAt: nil
-            )
-
-            availableMysteryBoxes.append(mysteryBox)
-        }
-
-        saveMysteryBoxes()
-    }
-
-    /// Maps a uniform [0,1) value onto the mystery-box rarity distribution
-    /// (50% common / 30% rare / 15% epic / 5% legendary). Pure + `nonisolated static` so
-    /// the distribution boundaries are unit-testable without RNG.
-    nonisolated static func rarity(for value: Double) -> BoxRarity {
-        switch value {
-        case ..<0.5: return .common       // 50% chance
-        case ..<0.8: return .rare         // 30% chance
-        case ..<0.95: return .epic        // 15% chance
-        default: return .legendary        // 5% chance
-        }
-    }
-
-    private func randomRarity() -> BoxRarity {
-        Self.rarity(for: Double.random(in: 0...1))
+        availableMysteryBoxes = mysteryBoxStore.makeBoxes()
+        mysteryBoxStore.save(availableMysteryBoxes)
     }
 
     /// Opens a mystery box: reveals and awards its XP, marks it opened, and persists state.
@@ -247,7 +174,7 @@ class GamificationManager: ObservableObject {
             self.shouldShowMysteryBox = false
         }
 
-        saveMysteryBoxes()
+        mysteryBoxStore.save(availableMysteryBoxes)
 
         // Track in Firebase
         Task {
@@ -547,43 +474,15 @@ class GamificationManager: ObservableObject {
         }
     }
 
-    private func saveDailyChallenges() {
-        do {
-            let data = try JSONEncoder().encode(dailyChallenges)
-            UserDefaults.standard.set(data, forKey: challengesKey)
-        } catch {
-            print("Error saving daily challenges: \(error)")
-        }
-    }
-
     private func loadDailyChallenges() {
-        guard let data = UserDefaults.standard.data(forKey: challengesKey) else { return }
-
-        do {
-            dailyChallenges = try JSONDecoder().decode([DailyChallenge].self, from: data)
-        } catch {
-            print("Error loading daily challenges: \(error)")
-            dailyChallenges = []
-        }
-    }
-
-    private func saveMysteryBoxes() {
-        do {
-            let data = try JSONEncoder().encode(availableMysteryBoxes)
-            UserDefaults.standard.set(data, forKey: mysteryBoxesKey)
-        } catch {
-            print("Error saving mystery boxes: \(error)")
+        if let challenges = challengeStore.load() {
+            dailyChallenges = challenges
         }
     }
 
     private func loadMysteryBoxes() {
-        guard let data = UserDefaults.standard.data(forKey: mysteryBoxesKey) else { return }
-
-        do {
-            availableMysteryBoxes = try JSONDecoder().decode([MysteryBox].self, from: data)
-        } catch {
-            print("Error loading mystery boxes: \(error)")
-            availableMysteryBoxes = []
+        if let boxes = mysteryBoxStore.load() {
+            availableMysteryBoxes = boxes
         }
     }
 

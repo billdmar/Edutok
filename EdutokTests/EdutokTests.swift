@@ -416,14 +416,14 @@ struct EdutokTests {
     // MARK: - Mystery-box rarity distribution
 
     @Test func rarityBoundariesMapToExpectedTiers() {
-        #expect(GamificationManager.rarity(for: 0.0) == .common)
-        #expect(GamificationManager.rarity(for: 0.49) == .common)
-        #expect(GamificationManager.rarity(for: 0.5) == .rare)      // boundary → rare
-        #expect(GamificationManager.rarity(for: 0.79) == .rare)
-        #expect(GamificationManager.rarity(for: 0.8) == .epic)      // boundary → epic
-        #expect(GamificationManager.rarity(for: 0.94) == .epic)
-        #expect(GamificationManager.rarity(for: 0.95) == .legendary) // boundary → legendary
-        #expect(GamificationManager.rarity(for: 0.999) == .legendary)
+        #expect(MysteryBoxStore.rarity(for: 0.0) == .common)
+        #expect(MysteryBoxStore.rarity(for: 0.49) == .common)
+        #expect(MysteryBoxStore.rarity(for: 0.5) == .rare)      // boundary → rare
+        #expect(MysteryBoxStore.rarity(for: 0.79) == .rare)
+        #expect(MysteryBoxStore.rarity(for: 0.8) == .epic)      // boundary → epic
+        #expect(MysteryBoxStore.rarity(for: 0.94) == .epic)
+        #expect(MysteryBoxStore.rarity(for: 0.95) == .legendary) // boundary → legendary
+        #expect(MysteryBoxStore.rarity(for: 0.999) == .legendary)
     }
 
     // MARK: - Calendar activity-level bucketing
@@ -450,6 +450,50 @@ struct EdutokTests {
     @Test func dailyStatTotalActivitySumsBothCounts() {
         let stat = DailyStat(date: Date(), cardsFlipped: 6, topicsExplored: 4, achievements: [])
         #expect(stat.totalActivity == 10)
+    }
+
+    // MARK: - ChallengeStore progress logic
+
+    @Test func challengeProgressAdvancesMatchingTypeAndClamps() {
+        let store = ChallengeStore()
+        let challenges = store.makeDailyChallenges()
+        // Card Master targets 15 cardsCompleted; advance by 20 → clamps to 15 and completes.
+        let result = store.applyProgress(to: challenges, type: .cardsCompleted, value: 20)
+        let cardMaster = result.challenges.first { $0.type == .cardsCompleted }!
+        #expect(cardMaster.currentValue == 15)
+        #expect(cardMaster.isCompleted)
+        #expect(result.newlyCompleted.contains { $0.type == .cardsCompleted })
+    }
+
+    @Test func challengeProgressLeavesOtherTypesUntouched() {
+        let store = ChallengeStore()
+        let result = store.applyProgress(to: store.makeDailyChallenges(), type: .cardsCompleted, value: 1)
+        let explorer = result.challenges.first { $0.type == .topicsExplored }!
+        #expect(explorer.currentValue == 0)
+        #expect(!explorer.isCompleted)
+    }
+
+    @Test func challengeProgressBelowTargetDoesNotComplete() {
+        let store = ChallengeStore()
+        let result = store.applyProgress(to: store.makeDailyChallenges(), type: .cardsCompleted, value: 3)
+        #expect(result.newlyCompleted.isEmpty)
+        #expect(result.challenges.first { $0.type == .cardsCompleted }!.currentValue == 3)
+    }
+
+    @Test func challengeNeedsRefreshWhenEmptyOrExpired() {
+        let store = ChallengeStore()
+        #expect(store.needsRefresh([]))                       // empty → refresh
+        #expect(!store.needsRefresh(store.makeDailyChallenges())) // fresh → no refresh
+        let expired = [DailyChallenge(title: "T", description: "D", targetValue: 5, currentValue: 0,
+                                      xpReward: 10, isCompleted: false, type: .cardsCompleted,
+                                      expiresAt: Date().addingTimeInterval(-3600))]
+        #expect(store.needsRefresh(expired))                  // expired → refresh
+    }
+
+    @Test func mysteryBoxStoreMakesThreeToFiveBoxes() {
+        let boxes = MysteryBoxStore().makeBoxes()
+        #expect(boxes.count >= 3 && boxes.count <= 5)
+        #expect(boxes.allSatisfy { !$0.isOpened && $0.xpAmount > 0 })
     }
 }
 
