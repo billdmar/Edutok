@@ -12,6 +12,12 @@ struct SidebarView: View {
     @State private var showPhase1Dashboard = false // Add this for Phase 1 Dashboard
     @State private var showBookmarks = false
     @State private var showSettings = false
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    /// Wider drawer on regular-width devices (iPad / landscape) so it isn't a thin strip.
+    private var sidebarWidth: CGFloat {
+        horizontalSizeClass == .regular ? 360 : 280
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -395,7 +401,7 @@ struct SidebarView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 30)
             }
-            .frame(width: 280)
+            .frame(width: sidebarWidth)
             .background(
                 LinearGradient(
                     gradient: Gradient(colors: [

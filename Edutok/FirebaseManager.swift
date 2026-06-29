@@ -94,10 +94,14 @@ class FirebaseManager: ObservableObject {
 
     /// Permanently deletes the signed-in user: removes their leaderboard entries and
     /// profile document, then deletes the Firebase Auth account. Best-effort on the
-    /// Firestore deletes (so a transient failure still lets the account deletion proceed),
-    /// and clears local state regardless.
-    func deleteAccount() async {
-        guard let user = auth.currentUser else { return }
+    /// Firestore deletes (so a transient failure still lets the account deletion proceed).
+    ///
+    /// Returns `true` if the auth account was deleted. Deleting an account can fail with
+    /// `requiresRecentLogin` if the session is stale; in that case we still sign the user
+    /// out (their data is already removed) and return `false` so the UI can say so.
+    @discardableResult
+    func deleteAccount() async -> Bool {
+        guard let user = auth.currentUser else { return false }
         let uid = user.uid
         let dateString = DateFormatter.yyyyMMdd.string(from: Calendar.current.startOfDay(for: Date()))
 
@@ -108,10 +112,22 @@ class FirebaseManager: ObservableObject {
         // Remove the profile document.
         try? await db.collection("users").document(uid).delete()
 
-        // Delete the auth account, then clear local state.
-        try? await user.delete()
+        // Delete the auth account.
+        var deleted = false
+        do {
+            try await user.delete()
+            deleted = true
+        } catch {
+            #if DEBUG
+            print("Account deletion failed (will sign out instead): \(error)")
+            #endif
+            // Data is already gone; sign out so the user isn't stranded mid-deletion.
+            try? auth.signOut()
+        }
+
         currentUser = nil
         isAuthenticated = false
+        return deleted
     }
 
     func updateUsername(_ newUsername: String) async {
