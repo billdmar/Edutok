@@ -108,7 +108,7 @@ A few choices worth calling out:
 
 ## Testing
 
-Core domain logic is covered by **60 unit tests** in `EdutokTests`, exercising the pure,
+Core domain logic is covered by **64 unit tests** in `EdutokTests`, exercising the pure,
 Firebase-free logic independently of the UI:
 
 - **XP / leveling** — thresholds, level-up detection, in-level progress.

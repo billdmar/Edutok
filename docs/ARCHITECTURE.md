@@ -165,9 +165,19 @@ and appends the next batch, with the same fallback behavior.
 > - `MysteryBoxStore` — box generation, the rarity distribution (`rarity(for:)`), persistence.
 > - `ChallengeStore` — daily-challenge generation, expiry/refresh, progress math
 >   (`applyProgress` returns the newly-completed challenges to reward), persistence.
+> - `AchievementEvaluator` — the achievement catalog, persistence (now restores saved
+>   unlocks on launch — previously the catalog was rebuilt each launch and unlock history
+>   was lost), and a pure `newlyUnlockableIndices(in:progress:now:)` with an injected `now`
+>   so the time-based achievements (Night Owl / Early Bird) are deterministic.
 >
 > The pure functions (`rarity(for:)`, `cardCompletionXP(...)`, `ChallengeStore.applyProgress`,
-> `StreakCalculator`, `ReviewScheduler`) are unit-tested directly.
+> `AchievementEvaluator.isConditionMet`, `StreakCalculator`, `ReviewScheduler`) are
+> unit-tested directly.
+
+> **Failure UX.** Failures surface to the user rather than failing silently: the leaderboard
+> shows a distinct error state with a Retry button (vs. the "no data yet" empty state), and
+> when Gemini is unreachable the flashcard feed shows a "sample cards" banner so the user
+> knows the deck is the offline fallback.
 
 ## Image fetching (Unsplash + Gemini keywords)
 
