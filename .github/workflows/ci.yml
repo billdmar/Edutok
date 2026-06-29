@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -81,4 +80,18 @@ jobs:
             -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16 Pro' \
             -derivedDataPath .build/DerivedData \
             -only-testing:EdutokTests \
+            CODE_SIGNING_ALLOWED=NO
+
+      # Release builds exclude #if DEBUG code (e.g. the DebugView entry point), so a
+      # separate Release compile guards against debug-only code being relied upon.
+      - name: Build (Release)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Edutok.xcodeproj \
+            -scheme Edutok \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16 Pro' \
+            -derivedDataPath .build/DerivedData \
             CODE_SIGNING_ALLOWED=NO
