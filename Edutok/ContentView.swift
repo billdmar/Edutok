@@ -56,7 +56,7 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: topicManager.currentTopic) { topic in
+        .onChange(of: topicManager.currentTopic) { _, topic in
             // Automatically switch to flashcards section when a topic is selected
             if topic != nil {
                 withAnimation(.easeInOut(duration: 0.3)) {

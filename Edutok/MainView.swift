@@ -234,7 +234,7 @@ struct MainView: View {
                                             .onSubmit {
                                                 startLearning()
                                             }
-                                            .onChange(of: topicInput) { newValue in
+                                            .onChange(of: topicInput) { _, newValue in
                                                 updateSearchSuggestions(for: newValue)
                                             }
 

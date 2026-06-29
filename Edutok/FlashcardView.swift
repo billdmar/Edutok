@@ -59,6 +59,11 @@ struct FlashcardView: View {
                         // Header
                         headerView(topic: topic, geometry: geometry)
 
+                        // Offline / sample-cards notice (Gemini was unreachable)
+                        if topic.usingFallback {
+                            fallbackBanner()
+                        }
+
                         // Infinite scroll flashcard stack
                         ZStack {
                             ForEach(Array(infiniteCards.enumerated()), id: \.offset) { index, card in
@@ -148,7 +153,7 @@ struct FlashcardView: View {
                     .zIndex(1000)
                 }
             }
-            .onChange(of: topicManager.currentTopic?.id) { _ in
+            .onChange(of: topicManager.currentTopic?.id) { _, _ in
                 // Reset to the first card whenever the active topic changes,
                 // so currentCardIndex never points past the new topic's bounds.
                 currentCardIndex = 0
@@ -655,6 +660,32 @@ struct FlashcardView: View {
         }
     }
 
+    /// Shown when the deck came from the offline mock fallback (Gemini unreachable), so the
+    /// user knows these are sample cards rather than freshly AI-generated ones.
+    private func fallbackBanner() -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.caption)
+            Text("Showing sample cards — couldn't reach the AI. Check your connection.")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundColor(.white.opacity(0.9))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.orange.opacity(0.25))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.orange.opacity(0.4), lineWidth: 1))
+        )
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Showing sample cards. Couldn't reach the AI; check your connection.")
+    }
+
     /// VoiceOver announcement for a card: type + the currently-visible side (Q or A).
     private func accessibilityCardLabel(for card: Flashcard) -> Text {
         let side = showAnswer ? "Answer: \(card.answer)" : "Question: \(card.question)"
@@ -863,7 +894,7 @@ struct FlashcardView: View {
                 .onAppear {
                     calculateOptimalFontSize()
                 }
-                .onChange(of: text) { _ in
+                .onChange(of: text) { _, _ in
                     calculateOptimalFontSize()
                 }
         }

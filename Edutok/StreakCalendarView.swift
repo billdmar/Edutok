@@ -63,6 +63,7 @@ struct StreakCalendarView: View {
                     .padding(12)
                     .background(Circle().fill(Color.white.opacity(0.1)))
             }
+            .accessibilityLabel("Previous month")
 
             Spacer()
 
@@ -89,6 +90,7 @@ struct StreakCalendarView: View {
                     .padding(12)
                     .background(Circle().fill(Color.white.opacity(0.1)))
             }
+            .accessibilityLabel("Next month")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 15)
@@ -476,6 +478,8 @@ struct StreakStatCard: View {
                         .stroke(color.opacity(0.3), lineWidth: 1)
                 )
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(value) \(subtitle)")
     }
 }
 
