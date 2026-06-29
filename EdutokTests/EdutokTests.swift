@@ -380,6 +380,77 @@ struct EdutokTests {
         #expect(decoded.isUnderstood)
         #expect(decoded.reviewCount == 3)
     }
+
+    // MARK: - Card-completion XP math
+
+    @Test func incorrectCardAwardsBaseXPOnly() {
+        // 10 base, no bonuses.
+        #expect(GamificationManager.cardCompletionXP(wasCorrect: false, isFirstTry: false, timeToAnswer: 1) == 10)
+    }
+
+    @Test func correctSlowNonFirstTryAwardsBasePlusCorrect() {
+        // 10 + 15, no perfect, no speed (>=5s).
+        #expect(GamificationManager.cardCompletionXP(wasCorrect: true, isFirstTry: false, timeToAnswer: 9) == 25)
+    }
+
+    @Test func perfectFastCardAwardsAllBonuses() {
+        // 10 + 15 + 25 (perfect) + 5 (speed) = 55.
+        #expect(GamificationManager.cardCompletionXP(wasCorrect: true, isFirstTry: true, timeToAnswer: 1) == 55)
+    }
+
+    @Test func firstTryButSlowSkipsSpeedBonus() {
+        // 10 + 15 + 25, no speed because 5.0 is not < 5.0.
+        #expect(GamificationManager.cardCompletionXP(wasCorrect: true, isFirstTry: true, timeToAnswer: 5) == 50)
+    }
+
+    @Test func correctFastNonFirstTryGetsSpeedNotPerfect() {
+        // 10 + 15 + 5 (speed), no perfect.
+        #expect(GamificationManager.cardCompletionXP(wasCorrect: true, isFirstTry: false, timeToAnswer: 2) == 30)
+    }
+
+    @Test func firstTryWithoutCorrectIgnoresPerfectBonus() {
+        // Perfect/speed only apply when wasCorrect — incorrect stays at base 10.
+        #expect(GamificationManager.cardCompletionXP(wasCorrect: false, isFirstTry: true, timeToAnswer: 1) == 10)
+    }
+
+    // MARK: - Mystery-box rarity distribution
+
+    @Test func rarityBoundariesMapToExpectedTiers() {
+        #expect(GamificationManager.rarity(for: 0.0) == .common)
+        #expect(GamificationManager.rarity(for: 0.49) == .common)
+        #expect(GamificationManager.rarity(for: 0.5) == .rare)      // boundary → rare
+        #expect(GamificationManager.rarity(for: 0.79) == .rare)
+        #expect(GamificationManager.rarity(for: 0.8) == .epic)      // boundary → epic
+        #expect(GamificationManager.rarity(for: 0.94) == .epic)
+        #expect(GamificationManager.rarity(for: 0.95) == .legendary) // boundary → legendary
+        #expect(GamificationManager.rarity(for: 0.999) == .legendary)
+    }
+
+    // MARK: - Calendar activity-level bucketing
+
+    private func calendarDay(cards: Int, topics: Int) -> CalendarDay {
+        let stat = DailyStat(date: Date(), cardsFlipped: cards, topicsExplored: topics, achievements: [])
+        return CalendarDay(date: Date(), dailyStat: stat, hasStreak: false, achievements: [])
+    }
+
+    @Test func activityLevelBucketsByTotalActivity() {
+        #expect(calendarDay(cards: 0, topics: 0).activityLevel == .none)
+        #expect(calendarDay(cards: 1, topics: 0).activityLevel == .low)
+        #expect(calendarDay(cards: 4, topics: 0).activityLevel == .low)
+        #expect(calendarDay(cards: 5, topics: 0).activityLevel == .medium)   // boundary
+        #expect(calendarDay(cards: 14, topics: 0).activityLevel == .medium)
+        #expect(calendarDay(cards: 8, topics: 7).activityLevel == .high)     // 15 total → high
+    }
+
+    @Test func calendarDayWithNoStatIsNone() {
+        let day = CalendarDay(date: Date(), dailyStat: nil, hasStreak: false, achievements: [])
+        #expect(day.activityLevel == .none)
+    }
+
+    @Test func dailyStatTotalActivitySumsBothCounts() {
+        let stat = DailyStat(date: Date(), cardsFlipped: 6, topicsExplored: 4, achievements: [])
+        #expect(stat.totalActivity == 10)
+    }
 }
 
 // MARK: - GeminiClient networking tests

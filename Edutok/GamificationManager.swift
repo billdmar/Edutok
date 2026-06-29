@@ -204,15 +204,20 @@ class GamificationManager: ObservableObject {
         saveMysteryBoxes()
     }
 
-    private func randomRarity() -> BoxRarity {
-        let random = Double.random(in: 0...1)
-
-        switch random {
-        case 0..<0.5: return .common      // 50% chance
-        case 0.5..<0.8: return .rare      // 30% chance
-        case 0.8..<0.95: return .epic     // 15% chance
-        default: return .legendary         // 5% chance
+    /// Maps a uniform [0,1) value onto the mystery-box rarity distribution
+    /// (50% common / 30% rare / 15% epic / 5% legendary). Pure + `nonisolated static` so
+    /// the distribution boundaries are unit-testable without RNG.
+    nonisolated static func rarity(for value: Double) -> BoxRarity {
+        switch value {
+        case ..<0.5: return .common       // 50% chance
+        case ..<0.8: return .rare         // 30% chance
+        case ..<0.95: return .epic        // 15% chance
+        default: return .legendary        // 5% chance
         }
+    }
+
+    private func randomRarity() -> BoxRarity {
+        Self.rarity(for: Double.random(in: 0...1))
     }
 
     /// Opens a mystery box: reveals and awards its XP, marks it opened, and persists state.
@@ -427,30 +432,41 @@ class GamificationManager: ObservableObject {
         saveProgress()
     }
 
+    /// Pure XP math for finishing a card: base completion XP plus bonuses for a correct
+    /// answer, a first-try "perfect" card, and a fast (<5s) answer. Extracted as a
+    /// `nonisolated static` function so it's unit-testable without the manager/UI.
+    nonisolated static func cardCompletionXP(wasCorrect: Bool,
+                                             isFirstTry: Bool,
+                                             timeToAnswer: TimeInterval) -> Int {
+        var total = XPReward.cardCompleted.rawValue
+        if wasCorrect {
+            total += XPReward.correctAnswer.rawValue
+            if isFirstTry { total += XPReward.perfectCard.rawValue }
+            if timeToAnswer < 5.0 { total += XPReward.speedBonus.rawValue }
+        }
+        return total
+    }
+
     /// Awards the combined XP for finishing a card: base completion XP plus bonuses for
     /// a correct answer, a first-try "perfect" card, and a fast answer (speed bonus).
     func awardXPForCardCompletion(wasCorrect: Bool, isFirstTry: Bool, timeToAnswer: TimeInterval) {
-        var totalXP = 0
-
         // Base XP for completing card
         awardXP(.cardCompleted, animated: false)
-        totalXP += XPReward.cardCompleted.rawValue
 
         if wasCorrect {
             awardXP(.correctAnswer, animated: false)
-            totalXP += XPReward.correctAnswer.rawValue
-
             if isFirstTry {
                 awardXP(.perfectCard, animated: false)
-                totalXP += XPReward.perfectCard.rawValue
             }
-
             // Speed bonus for answers under 5 seconds
             if timeToAnswer < 5.0 {
                 awardXP(.speedBonus, animated: false)
-                totalXP += XPReward.speedBonus.rawValue
             }
         }
+
+        let totalXP = Self.cardCompletionXP(wasCorrect: wasCorrect,
+                                            isFirstTry: isFirstTry,
+                                            timeToAnswer: timeToAnswer)
 
         // Show combined XP gain
         let combinedEvent = XPGainEvent(
