@@ -8,6 +8,7 @@ struct MainView: View {
     @Binding var showSidebar: Bool
     @State private var searchSuggestions: [String] = []
     @State private var showSuggestions = false
+    @State private var trendingTopics: [String] = []
     @FocusState private var isSearchFocused: Bool
 
     // Enhanced topic suggestions with better variety
@@ -330,18 +331,21 @@ struct MainView: View {
                                         Spacer()
 
                                         Button(action: {
-                                            // Refresh topics
+                                            withAnimation(.easeInOut(duration: 0.3)) {
+                                                trendingTopics = Array(popularTopics.shuffled().prefix(8))
+                                            }
                                         }) {
                                             Image(systemName: "arrow.clockwise")
                                                 .font(.system(size: 16))
                                                 .foregroundColor(.white.opacity(0.7))
                                         }
+                                        .accessibilityLabel("Refresh trending topics")
                                     }
                                     .padding(.horizontal, 25)
 
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 14) {
-                                            ForEach(popularTopics.shuffled().prefix(8), id: \.self) { suggestion in
+                                            ForEach(trendingTopics, id: \.self) { suggestion in
                                                 Button(action: {
                                                     topicInput = suggestion
                                                 }) {
@@ -413,6 +417,11 @@ struct MainView: View {
                     showSuggestions = false
                     isSearchFocused = false
                 }
+            }
+        }
+        .onAppear {
+            if trendingTopics.isEmpty {
+                trendingTopics = Array(popularTopics.shuffled().prefix(8))
             }
         }
     }

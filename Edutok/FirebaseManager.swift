@@ -289,27 +289,15 @@ class FirebaseManager: ObservableObject {
         try? await saveUser(user)
     }
 
+    /// Refreshes the user's streak from their activity history. Idempotent per day:
+    /// the streak is recomputed from the set of active days (see `StreakCalculator`),
+    /// so multiple events on the same day never inflate it.
     private func updateStreak(for user: inout AppUser) {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
-
-        // Check if user was active yesterday or today
-        let hasActivityToday = user.dailyStats.contains { calendar.isDate($0.date, inSameDayAs: today) && ($0.cardsFlipped > 0 || $0.topicsExplored > 0) }
-        let hasActivityYesterday = user.dailyStats.contains { calendar.isDate($0.date, inSameDayAs: yesterday) && ($0.cardsFlipped > 0 || $0.topicsExplored > 0) }
-
-        if hasActivityToday {
-            if hasActivityYesterday {
-                user.currentStreak += 1
-            } else {
-                // Gap (or fresh start): restart the streak at 1.
-                user.currentStreak = 1
-            }
-            user.longestStreak = max(user.longestStreak, user.currentStreak)
-        } else {
-            user.currentStreak = 0
-        }
-
+        user.currentStreak = StreakCalculator.currentStreak(from: user.dailyStats)
+        user.longestStreak = StreakCalculator.longestStreak(
+            from: user.dailyStats,
+            previousLongest: user.longestStreak
+        )
         user.lastActiveDate = Date()
     }
 
@@ -348,42 +336,18 @@ class FirebaseManager: ObservableObject {
                 .limit(to: 50)
                 .getDocuments()
 
-            let currentUserId = currentUser?.id
-
-            // First, create the initial entries
-            var entries: [LeaderboardEntry] = []
-
-            for document in snapshot.documents {
+            let rows: [LeaderboardRow] = snapshot.documents.compactMap { document in
                 let data = document.data()
                 guard let userId = data["userId"] as? String,
                       let username = data["username"] as? String,
                       let value = data["value"] as? Int,
                       document.documentID.hasPrefix(dateString) else {
-                    continue
+                    return nil
                 }
-
-                let entry = LeaderboardEntry(
-                    userId: userId,
-                    username: username,
-                    value: value,
-                    rank: 0, // Will be set after sorting
-                    isCurrentUser: userId == currentUserId
-                )
-                entries.append(entry)
+                return LeaderboardRow(userId: userId, username: username, value: value)
             }
 
-            // Now assign ranks
-            let rankedEntries = entries.enumerated().map { index, entry in
-                LeaderboardEntry(
-                    userId: entry.userId,
-                    username: entry.username,
-                    value: entry.value,
-                    rank: index + 1,
-                    isCurrentUser: entry.isCurrentUser
-                )
-            }
-
-            return rankedEntries
+            return LeaderboardEntry.ranked(from: rows, currentUserId: currentUser?.id)
         }
 
     // MARK: - Utility

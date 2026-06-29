@@ -5,7 +5,9 @@ struct SidebarView: View {
     @EnvironmentObject var topicManager: TopicManager
     @EnvironmentObject var gamificationManager: GamificationManager
     @StateObject private var firebaseManager = FirebaseManager.shared
+    #if DEBUG
     @State private var showDebugView = false
+    #endif
     @State private var showCalendar = false  // Add this for calendar access
     @State private var showPhase1Dashboard = false // Add this for Phase 1 Dashboard
 
@@ -327,7 +329,8 @@ struct SidebarView: View {
                         )
                     }
 
-                    // Debug tools button (always visible, not just debug builds)
+                    // Debug tools button — DEBUG builds only; never ships in Release.
+                    #if DEBUG
                     Button(action: {
                         showDebugView = true
                     }) {
@@ -357,6 +360,7 @@ struct SidebarView: View {
                                 )
                         )
                     }
+                    #endif
 
                     // Version info
                     VStack(spacing: 5) {
@@ -393,9 +397,11 @@ struct SidebarView: View {
             )
             .ignoresSafeArea()
         }
+        #if DEBUG
         .sheet(isPresented: $showDebugView) {
             DebugView()
         }
+        #endif
         .fullScreenCover(isPresented: $showCalendar) {
             StandaloneCalendarView(isShowing: $showCalendar)
         }
