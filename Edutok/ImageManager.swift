@@ -26,6 +26,14 @@ class ImageManager: ObservableObject {
         return cache
     }() // Cache for specific question-image pairs
 
+    // Decoded-image cache so a card scrolling back into view doesn't re-download and
+    // re-decode its photo. Bounded; NSCache also evicts under memory pressure.
+    private let decodedImageCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 120
+        return cache
+    }()
+
     private let geminiClient = GeminiClient()
 
     /// Asks Gemini for specific, visual search keywords describing the question.
@@ -186,10 +194,37 @@ class ImageManager: ObservableObject {
         }
     }
 
+    /// Returns the decoded image for a URL, caching the result so repeated appearances
+    /// (e.g. scrolling a card back into view) don't re-download or re-decode. The download
+    /// and `UIImage(data:)` decode run off the main thread; only the cache read/write and
+    /// return happen on the main actor. Returns `nil` on bad URL, network error, or decode
+    /// failure (caller falls back to its gradient placeholder).
+    func image(for urlString: String) async -> UIImage? {
+        let key = urlString as NSString
+        if let cached = decodedImageCache.object(forKey: key) {
+            return cached
+        }
+        guard let url = URL(string: urlString) else { return nil }
+
+        let decoded: UIImage? = await Task.detached(priority: .userInitiated) {
+            guard let (data, response) = try? await URLSession.shared.data(from: url),
+                  (response as? HTTPURLResponse).map({ $0.statusCode == 200 }) ?? true else {
+                return nil
+            }
+            return UIImage(data: data)
+        }.value
+
+        if let decoded {
+            decodedImageCache.setObject(decoded, forKey: key)
+        }
+        return decoded
+    }
+
     // Clear cache to free memory
     func clearCache() {
         imageCache.removeAllObjects()
         questionImageCache.removeAllObjects()
+        decodedImageCache.removeAllObjects()
     }
 }
 
@@ -238,31 +273,18 @@ struct AsyncImageLoader: View {
     }
 
     private func loadImage() {
-        guard let urlString = url, let imageURL = URL(string: urlString) else {
+        guard let urlString = url else {
             isLoading = false
             return
         }
 
-        Task {
-            do {
-                let (data, _) = try await URLSession.shared.data(from: imageURL)
-                if let loadedImage = UIImage(data: data) {
-                    await MainActor.run {
-                        withAnimation(.easeIn(duration: 0.3)) {
-                            self.image = loadedImage
-                            self.isLoading = false
-                        }
-                    }
-                } else {
-                    await MainActor.run {
-                        isLoading = false
-                    }
-                }
-            } catch {
-                print("Error loading image: \(error)")
-                await MainActor.run {
-                    isLoading = false
-                }
+        Task { @MainActor in
+            // Routed through ImageManager's decoded-image cache, so a card returning to
+            // screen reuses the cached UIImage instead of re-downloading.
+            let loaded = await ImageManager.shared.image(for: urlString)
+            withAnimation(.easeIn(duration: 0.3)) {
+                self.image = loaded
+                self.isLoading = false
             }
         }
     }

@@ -7,7 +7,6 @@
 /// progress is persisted to `UserDefaults` and key milestones are mirrored to Firebase.
 import Foundation
 import SwiftUI
-import UserNotifications
 
 /// Observable, main-actor store of the player's progression and reward state.
 @MainActor
@@ -30,7 +29,7 @@ class GamificationManager: ObservableObject {
     private let challengesKey = "DailyChallenges"
     private let mysteryBoxesKey = "MysteryBoxes"
     private let enhancedAchievementsKey = "EnhancedAchievements"
-    private let notificationCenter = UNUserNotificationCenter.current()
+    private let notifications = NotificationScheduler()
     private var topicExploredObserver: NSObjectProtocol?
 
     init() {
@@ -38,7 +37,7 @@ class GamificationManager: ObservableObject {
         loadDailyChallenges()
         loadMysteryBoxes()
         loadEnhancedAchievements()
-        requestNotificationPermission()
+        notifications.requestPermission()
 
         // Generate new daily challenges if needed
         if dailyChallenges.isEmpty || dailyChallenges.first?.isExpired == true {
@@ -417,7 +416,7 @@ class GamificationManager: ObservableObject {
 
         if didLevelUp {
             showLevelUpAnimation()
-            scheduleEncouragementNotification()
+            notifications.scheduleEncouragement(level: userProgress.currentLevel)
 
             // Track level up achievement in Firebase
             Task {
@@ -582,56 +581,15 @@ class GamificationManager: ObservableObject {
     }
 
     // MARK: - Smart Push Notifications
-
-    private func requestNotificationPermission() {
-        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-            if granted {
-                print("Notification permission granted")
-            } else {
-                print("Notification permission denied")
-            }
-        }
-    }
-
-    func scheduleEncouragementNotification() {
-        let content = UNMutableNotificationContent()
-        content.title = "Level Up! 🎉"
-        content.body = "You've reached level \(userProgress.currentLevel)! Keep up the amazing progress!"
-        content.sound = .default
-
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3600, repeats: false) // 1 hour later
-        let request = UNNotificationRequest(identifier: "levelUp", content: content, trigger: trigger)
-
-        notificationCenter.add(request)
-    }
+    // Scheduling lives in `NotificationScheduler`; these thin pass-throughs preserve the
+    // call sites (e.g. App.swift) and the manager's public surface.
 
     func scheduleStudyReminder() {
-        let content = UNMutableNotificationContent()
-        content.title = "Ready to learn something new? 🧠"
-        content.body = "Your brain is waiting for some fresh knowledge!"
-        content.sound = .default
-
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 86400, repeats: false) // 24 hours
-        let request = UNNotificationRequest(identifier: "dailyReminder", content: content, trigger: trigger)
-
-        notificationCenter.add(request)
+        notifications.scheduleStudyReminder()
     }
 
     func scheduleStreakWarning(streakDays: Int) {
-        let content = UNMutableNotificationContent()
-        content.title = "Don't break your streak! 🔥"
-        content.body = "You have a \(streakDays)-day learning streak. Keep it alive!"
-        content.sound = .default
-
-        // Schedule for 8 PM today
-        var dateComponents = DateComponents()
-        dateComponents.hour = 20
-        dateComponents.minute = 0
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
-        let request = UNNotificationRequest(identifier: "streakWarning", content: content, trigger: trigger)
-
-        notificationCenter.add(request)
+        notifications.scheduleStreakWarning(streakDays: streakDays)
     }
 }
 

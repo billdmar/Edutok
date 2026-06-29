@@ -638,6 +638,27 @@ struct FlashcardView: View {
                 }
             : nil
         )
+        // VoiceOver: the swipe gestures above are invisible to VoiceOver (it intercepts
+        // drags), so expose the same actions explicitly on the current card. The card is
+        // read as one element announcing its question/answer.
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(isCurrentCard ? accessibilityCardLabel(for: card) : Text(""))
+        .accessibilityHint(isCurrentCard ? "Double-tap to flip between question and answer" : "")
+        .accessibilityAddTraits(isCurrentCard ? .isButton : [])
+        .accessibilityActions {
+            if isCurrentCard {
+                Button("Next card") { nextCard() }
+                Button("Previous card") { previousCard() }
+                Button("Mark as understood") { markAsUnderstood(); nextCard() }
+                Button(card.isBookmarked ? "Remove bookmark" : "Bookmark this card") { toggleBookmark() }
+            }
+        }
+    }
+
+    /// VoiceOver announcement for a card: type + the currently-visible side (Q or A).
+    private func accessibilityCardLabel(for card: Flashcard) -> Text {
+        let side = showAnswer ? "Answer: \(card.answer)" : "Question: \(card.question)"
+        return Text("\(card.type.rawValue.capitalized) flashcard. \(side)")
     }
 
     private func actionOverlayButtons(geometry: GeometryProxy) -> some View {
@@ -709,6 +730,7 @@ struct FlashcardView: View {
                     )
                 }
                 .buttonStyle(HeartButtonStyle())
+                .accessibilityLabel(topicManager.currentTopic?.isLiked == true ? "Liked. Tap to unlike topic" : "Like this topic")
 
                 Spacer()
 
