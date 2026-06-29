@@ -252,6 +252,25 @@ live in `GamificationModels.swift` and `Models.swift`. Progress persists to
   (`StreakCalendarView` / `StandaloneCalendarView`) visualizes `DailyStat` activity
   with `ActivityLevel` heat-map shading.
 
+## Spaced-repetition review
+
+Cards the user marks understood re-surface for review on a widening schedule. The
+decision is a pure function, `ReviewScheduler.isDue(_:asOf:)`: an understood card with
+no `lastReviewedAt` is immediately due; otherwise it's due once
+`intervalsInDays[reviewCount]` (1 → 3 → 7 → 14 → 30, clamped) days have elapsed.
+`TopicManager.dueReviewCards` exposes the due set (as `CardLocator`s) and
+`markReviewed(topicId:cardIndex:)` stamps `lastReviewedAt` + bumps `reviewCount` to defer
+the card. `ReviewView` snapshots the due set on appear so marking a card reviewed doesn't
+remove it mid-session. `Flashcard` gained `lastReviewedAt: Date?` and `reviewCount: Int`
+— additive `Codable` fields, so existing persisted topics decode unchanged.
+
+## Bookmarks, topic search & sharing
+
+`CardLocator` (a flashcard + its topic id/title/index) backs both `BookmarksView` (cards
+swiped-left to bookmark) and `ReviewView`. `TopicSearchView` is a searchable history of
+`savedTopics` (progress bars, tap to resume — sets `currentTopic`, which routes to the
+feed). `FlashcardView` exposes a native `ShareLink` to share a card's Q/A.
+
 ## Persistence summary
 
 | Data | Store | Key / collection |
