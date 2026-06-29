@@ -19,9 +19,29 @@ struct UserProgress: Codable {
     var lastActiveDate: Date = Date()
     var totalCardsCompleted: Int = 0
     var totalCorrectAnswers: Int = 0
-    var achievementsUnlocked: [String] = []
+    /// Correct answers in an unbroken run; reset when the user marks a card "Again" (wrong).
+    /// Drives the "Perfect Score" daily challenge.
+    var consecutiveCorrectAnswers: Int = 0
     var currentStreak: Int = 0
     var xpGainedToday: Int = 0
+
+    init() {}
+
+    // Custom decoder so newly-added fields (e.g. consecutiveCorrectAnswers) tolerate older
+    // persisted JSON that predates them — synthesized Codable would otherwise throw
+    // keyNotFound and `loadProgress`'s catch would wipe a returning user's progress.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        totalXP = try c.decodeIfPresent(Int.self, forKey: .totalXP) ?? 0
+        currentLevel = try c.decodeIfPresent(Int.self, forKey: .currentLevel) ?? 1
+        xpInCurrentLevel = try c.decodeIfPresent(Int.self, forKey: .xpInCurrentLevel) ?? 0
+        lastActiveDate = try c.decodeIfPresent(Date.self, forKey: .lastActiveDate) ?? Date()
+        totalCardsCompleted = try c.decodeIfPresent(Int.self, forKey: .totalCardsCompleted) ?? 0
+        totalCorrectAnswers = try c.decodeIfPresent(Int.self, forKey: .totalCorrectAnswers) ?? 0
+        consecutiveCorrectAnswers = try c.decodeIfPresent(Int.self, forKey: .consecutiveCorrectAnswers) ?? 0
+        currentStreak = try c.decodeIfPresent(Int.self, forKey: .currentStreak) ?? 0
+        xpGainedToday = try c.decodeIfPresent(Int.self, forKey: .xpGainedToday) ?? 0
+    }
 
     // Calculate XP needed for next level (quadratic growth)
     var xpNeededForNextLevel: Int {

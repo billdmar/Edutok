@@ -7,7 +7,6 @@
 /// progress is persisted to `UserDefaults` and key milestones are mirrored to Firebase.
 import Foundation
 import SwiftUI
-import UserNotifications
 
 /// Observable, main-actor store of the player's progression and reward state.
 @MainActor
@@ -27,10 +26,10 @@ class GamificationManager: ObservableObject {
     @Published var currentMysteryBox: MysteryBox?
 
     private let userDefaultsKey = "UserProgress"
-    private let challengesKey = "DailyChallenges"
-    private let mysteryBoxesKey = "MysteryBoxes"
-    private let enhancedAchievementsKey = "EnhancedAchievements"
-    private let notificationCenter = UNUserNotificationCenter.current()
+    private let challengeStore = ChallengeStore()
+    private let mysteryBoxStore = MysteryBoxStore()
+    private let achievementEvaluator = AchievementEvaluator()
+    private let notifications = NotificationScheduler()
     private var topicExploredObserver: NSObjectProtocol?
 
     init() {
@@ -38,7 +37,7 @@ class GamificationManager: ObservableObject {
         loadDailyChallenges()
         loadMysteryBoxes()
         loadEnhancedAchievements()
-        requestNotificationPermission()
+        notifications.requestPermission()
 
         // Generate new daily challenges if needed
         if dailyChallenges.isEmpty || dailyChallenges.first?.isExpired == true {
@@ -76,62 +75,44 @@ class GamificationManager: ObservableObject {
 
     // MARK: - Daily Challenges
 
-    /// Creates the day's set of daily challenges (if not already generated for today),
-    /// each with a target, XP reward, and expiry.
+    /// Creates the day's set of daily challenges, each with a target, XP reward, and expiry.
     func generateDailyChallenges() {
-        let calendar = Calendar.current
-        let tomorrow = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date())
-
-        dailyChallenges = [
-            DailyChallenge(
-                title: "Card Master",
-                description: "Complete 15 flashcards today",
-                targetValue: 15,
-                currentValue: 0,
-                xpReward: 50,
-                isCompleted: false,
-                type: .cardsCompleted,
-                expiresAt: tomorrow
-            ),
-            DailyChallenge(
-                title: "Perfect Score",
-                description: "Get 10 correct answers in a row",
-                targetValue: 10,
-                currentValue: 0,
-                xpReward: 75,
-                isCompleted: false,
-                type: .correctAnswers,
-                expiresAt: tomorrow
-            ),
-            DailyChallenge(
-                title: "Topic Explorer",
-                description: "Explore 3 new topics today",
-                targetValue: 3,
-                currentValue: 0,
-                xpReward: 100,
-                isCompleted: false,
-                type: .topicsExplored,
-                expiresAt: tomorrow
-            )
-        ]
-
-        saveDailyChallenges()
+        dailyChallenges = challengeStore.makeDailyChallenges()
+        challengeStore.save(dailyChallenges)
     }
 
-    func updateChallengeProgress(type: ChallengeType, value: Int = 1) {
-        for index in dailyChallenges.indices {
-            if dailyChallenges[index].type == type && !dailyChallenges[index].isCompleted {
-                dailyChallenges[index].currentValue = min(dailyChallenges[index].currentValue + value, dailyChallenges[index].targetValue)
+    /// Regenerates the daily challenges if the current set has expired (e.g. the app was
+    /// left open past midnight). Safe to call often — it no-ops when challenges are current.
+    func refreshDailyChallengesIfNeeded() {
+        if challengeStore.needsRefresh(dailyChallenges) {
+            generateDailyChallenges()
+        }
+    }
 
-                // Check if challenge is completed
-                if dailyChallenges[index].currentValue >= dailyChallenges[index].targetValue {
-                    dailyChallenges[index].isCompleted = true
-                    completeChallenge(dailyChallenges[index])
-                }
-            }
+    /// Increments matching challenges by `value` (e.g. +1 per card completed).
+    func updateChallengeProgress(type: ChallengeType, value: Int = 1) {
+        applyChallengeResult { challengeStore.applyProgress(to: $0, type: type, value: value) }
+    }
+
+    /// Sets matching challenges to an absolute `value` (for "in a row" challenges that mirror
+    /// a streak and can drop back down — e.g. the consecutive-correct streak).
+    func setChallengeProgress(type: ChallengeType, value: Int) {
+        applyChallengeResult { challengeStore.setProgress(to: $0, type: type, value: value) }
+    }
+
+    private func applyChallengeResult(_ transform: ([DailyChallenge]) -> ChallengeStore.ProgressResult) {
+        // Don't credit progress against a stale (expired) challenge set.
+        refreshDailyChallengesIfNeeded()
+
+        let result = transform(dailyChallenges)
+        dailyChallenges = result.challenges
+
+        // Reward each challenge that just completed (XP/toast/particle/Firebase side effects).
+        for challenge in result.newlyCompleted {
+            completeChallenge(challenge)
         }
 
-        saveDailyChallenges()
+        challengeStore.save(dailyChallenges)
     }
 
     private func completeChallenge(_ challenge: DailyChallenge) {
@@ -165,7 +146,7 @@ class GamificationManager: ObservableObject {
         shouldShowAchievement = true
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
             self.shouldShowAchievement = false
         }
     }
@@ -173,37 +154,8 @@ class GamificationManager: ObservableObject {
     // MARK: - Mystery Boxes
 
     func generateMysteryBoxes() {
-        availableMysteryBoxes = []
-
-        // Generate 3-5 mystery boxes
-        let boxCount = Int.random(in: 3...5)
-
-        for _ in 0..<boxCount {
-            let rarity = randomRarity()
-            let xpAmount = Int.random(in: rarity.xpRange)
-
-            let mysteryBox = MysteryBox(
-                xpAmount: xpAmount,
-                rarity: rarity,
-                isOpened: false,
-                openedAt: nil
-            )
-
-            availableMysteryBoxes.append(mysteryBox)
-        }
-
-        saveMysteryBoxes()
-    }
-
-    private func randomRarity() -> BoxRarity {
-        let random = Double.random(in: 0...1)
-
-        switch random {
-        case 0..<0.5: return .common      // 50% chance
-        case 0.5..<0.8: return .rare      // 30% chance
-        case 0.8..<0.95: return .epic     // 15% chance
-        default: return .legendary         // 5% chance
-        }
+        availableMysteryBoxes = mysteryBoxStore.makeBoxes()
+        mysteryBoxStore.save(availableMysteryBoxes)
     }
 
     /// Opens a mystery box: reveals and awards its XP, marks it opened, and persists state.
@@ -229,11 +181,11 @@ class GamificationManager: ObservableObject {
         addParticleEffect(.achievement)
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
             self.shouldShowMysteryBox = false
         }
 
-        saveMysteryBoxes()
+        mysteryBoxStore.save(availableMysteryBoxes)
 
         // Track in Firebase
         Task {
@@ -244,102 +196,22 @@ class GamificationManager: ObservableObject {
     // MARK: - Enhanced Achievements
 
     func loadEnhancedAchievements() {
-        enhancedAchievements = [
-            EnhancedAchievement(
-                title: "First Steps",
-                description: "Complete your first flashcard",
-                xpReward: 25,
-                icon: "1.circle.fill",
-                rarity: .common,
-                isUnlocked: userProgress.totalCardsCompleted >= 1,
-                unlockedAt: nil,
-                category: .learning
-            ),
-            EnhancedAchievement(
-                title: "Scholar",
-                description: "Complete 100 flashcards",
-                xpReward: 100,
-                icon: "graduationcap.fill",
-                rarity: .rare,
-                isUnlocked: userProgress.totalCardsCompleted >= 100,
-                unlockedAt: nil,
-                category: .learning
-            ),
-            EnhancedAchievement(
-                title: "Perfectionist",
-                description: "Get 25 perfect answers",
-                xpReward: 150,
-                icon: "star.fill",
-                rarity: .epic,
-                isUnlocked: userProgress.totalCorrectAnswers >= 25,
-                unlockedAt: nil,
-                category: .learning
-            ),
-            EnhancedAchievement(
-                title: "Night Owl",
-                description: "Study after 11 PM",
-                xpReward: 75,
-                icon: "moon.fill",
-                rarity: .rare,
-                isUnlocked: false,
-                unlockedAt: nil,
-                category: .time
-            ),
-            EnhancedAchievement(
-                title: "Early Bird",
-                description: "Study before 8 AM",
-                xpReward: 75,
-                icon: "sunrise.fill",
-                rarity: .rare,
-                isUnlocked: false,
-                unlockedAt: nil,
-                category: .time
-            ),
-            EnhancedAchievement(
-                title: "Streak Master",
-                description: "Maintain a 7-day learning streak",
-                xpReward: 200,
-                icon: "flame.fill",
-                rarity: .epic,
-                isUnlocked: userProgress.currentStreak >= 7,
-                unlockedAt: nil,
-                category: .time
-            )
-        ]
-
-        saveEnhancedAchievements()
+        // Restore persisted achievements (keeps unlock timestamps across launches). Only
+        // build a fresh catalog when nothing is stored — fixes the old bug where the catalog
+        // was rebuilt every launch and unlock history was lost.
+        if let saved = achievementEvaluator.load() {
+            enhancedAchievements = saved
+        } else {
+            enhancedAchievements = achievementEvaluator.catalog(progress: userProgress)
+            achievementEvaluator.save(enhancedAchievements)
+        }
     }
 
     func checkEnhancedAchievements() {
-        let hour = Calendar.current.component(.hour, from: Date())
-
-        for index in enhancedAchievements.indices {
-            let achievement = enhancedAchievements[index]
-
-            if !achievement.isUnlocked {
-                var shouldUnlock = false
-
-                switch achievement.title {
-                case "First Steps":
-                    shouldUnlock = userProgress.totalCardsCompleted >= 1
-                case "Scholar":
-                    shouldUnlock = userProgress.totalCardsCompleted >= 100
-                case "Perfectionist":
-                    shouldUnlock = userProgress.totalCorrectAnswers >= 25
-                case "Night Owl":
-                    shouldUnlock = hour >= 23 || hour <= 5
-                case "Early Bird":
-                    shouldUnlock = hour >= 5 && hour <= 8
-                case "Streak Master":
-                    shouldUnlock = userProgress.currentStreak >= 7
-                default:
-                    shouldUnlock = false
-                }
-
-                if shouldUnlock {
-                    unlockEnhancedAchievement(index)
-                }
-            }
+        let indices = achievementEvaluator.newlyUnlockableIndices(in: enhancedAchievements,
+                                                                  progress: userProgress)
+        for index in indices {
+            unlockEnhancedAchievement(index)
         }
     }
 
@@ -367,11 +239,11 @@ class GamificationManager: ObservableObject {
         addParticleEffect(.achievement)
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
             self.shouldShowAchievement = false
         }
 
-        saveEnhancedAchievements()
+        achievementEvaluator.save(enhancedAchievements)
 
         // Track in Firebase
         Task {
@@ -398,7 +270,7 @@ class GamificationManager: ObservableObject {
             recentXPGains.append(xpEvent)
 
             // Remove after animation
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
                 if let index = self.recentXPGains.firstIndex(where: { $0.id == xpEvent.id }) {
                     self.recentXPGains.remove(at: index)
                 }
@@ -407,7 +279,7 @@ class GamificationManager: ObservableObject {
 
         if didLevelUp {
             showLevelUpAnimation()
-            scheduleEncouragementNotification()
+            notifications.scheduleEncouragement(level: userProgress.currentLevel)
 
             // Track level up achievement in Firebase
             Task {
@@ -418,31 +290,41 @@ class GamificationManager: ObservableObject {
         saveProgress()
     }
 
+    /// Pure XP math for finishing a card: base completion XP plus bonuses for a correct
+    /// answer, a first-try "perfect" card, and a fast (<5s) answer. Extracted as a
+    /// `nonisolated static` function so it's unit-testable without the manager/UI.
+    nonisolated static func cardCompletionXP(wasCorrect: Bool,
+                                             isFirstTry: Bool,
+                                             timeToAnswer: TimeInterval) -> Int {
+        var total = XPReward.cardCompleted.rawValue
+        if wasCorrect {
+            total += XPReward.correctAnswer.rawValue
+            if isFirstTry { total += XPReward.perfectCard.rawValue }
+            if timeToAnswer < 5.0 { total += XPReward.speedBonus.rawValue }
+        }
+        return total
+    }
+
     /// Awards the combined XP for finishing a card: base completion XP plus bonuses for
     /// a correct answer, a first-try "perfect" card, and a fast answer (speed bonus).
     func awardXPForCardCompletion(wasCorrect: Bool, isFirstTry: Bool, timeToAnswer: TimeInterval) {
-        var totalXP = 0
-
         // Base XP for completing card
         awardXP(.cardCompleted, animated: false)
-        totalXP += XPReward.cardCompleted.rawValue
 
         if wasCorrect {
             awardXP(.correctAnswer, animated: false)
-            totalXP += XPReward.correctAnswer.rawValue
-
             if isFirstTry {
                 awardXP(.perfectCard, animated: false)
-                totalXP += XPReward.perfectCard.rawValue
-                checkAchievement(.perfectionist)
             }
-
             // Speed bonus for answers under 5 seconds
             if timeToAnswer < 5.0 {
                 awardXP(.speedBonus, animated: false)
-                totalXP += XPReward.speedBonus.rawValue
             }
         }
+
+        let totalXP = Self.cardCompletionXP(wasCorrect: wasCorrect,
+                                            isFirstTry: isFirstTry,
+                                            timeToAnswer: timeToAnswer)
 
         // Show combined XP gain
         let combinedEvent = XPGainEvent(
@@ -452,20 +334,21 @@ class GamificationManager: ObservableObject {
         )
         recentXPGains.append(combinedEvent)
 
-        // Update user stats
+        // Update user stats + the consecutive-correct streak (reset on a wrong answer).
         userProgress.totalCardsCompleted += 1
         if wasCorrect {
             userProgress.totalCorrectAnswers += 1
+            userProgress.consecutiveCorrectAnswers += 1
+        } else {
+            userProgress.consecutiveCorrectAnswers = 0
         }
 
-        // Update challenge progress
+        // Update challenge progress. "Perfect Score" tracks correct answers IN A ROW, so it
+        // follows the streak (and resets to it) rather than incrementing on every card.
         updateChallengeProgress(type: .cardsCompleted)
-        if wasCorrect {
-            updateChallengeProgress(type: .correctAnswers)
-        }
+        setChallengeProgress(type: .correctAnswers, value: userProgress.consecutiveCorrectAnswers)
 
-        // Check achievements
-        checkAchievements()
+        // Check achievements (single source of truth — the enhanced system).
         checkEnhancedAchievements()
 
         // Add particle effects
@@ -474,79 +357,6 @@ class GamificationManager: ObservableObject {
         }
 
         saveProgress()
-    }
-
-    // MARK: - Achievement System
-
-    func checkAchievements() {
-        let hour = Calendar.current.component(.hour, from: Date())
-
-        // Check all achievements
-        if userProgress.totalCardsCompleted == 1 {
-            unlockAchievement(.firstCard)
-        }
-
-        if userProgress.totalCardsCompleted >= 100 {
-            unlockAchievement(.scholar)
-        }
-
-        if hour >= 23 || hour <= 5 {
-            unlockAchievement(.nightOwl)
-        }
-
-        // Add more achievement checks as needed
-    }
-
-    func checkAchievement(_ achievement: Achievement) {
-        guard !userProgress.achievementsUnlocked.contains(achievement.rawValue) else { return }
-
-        let shouldUnlock: Bool
-
-        switch achievement {
-        case .perfectionist:
-            // Count perfect cards (this would need tracking in actual implementation)
-            shouldUnlock = userProgress.totalCorrectAnswers >= 25 // Simplified
-        case .explorer:
-            // This would need topic tracking
-            shouldUnlock = false // Implement when topic tracking is added
-        case .speedDemon:
-            // This would need session tracking
-            shouldUnlock = false // Implement when session tracking is added
-        default:
-            shouldUnlock = false
-        }
-
-        if shouldUnlock {
-            unlockAchievement(achievement)
-        }
-    }
-
-    private func unlockAchievement(_ achievement: Achievement) {
-        guard !userProgress.achievementsUnlocked.contains(achievement.rawValue) else { return }
-
-        userProgress.achievementsUnlocked.append(achievement.rawValue)
-        newAchievement = CustomAchievement(
-            title: achievement.title,
-            description: achievement.description,
-            xpReward: achievement.xpReward,
-            emoji: achievement.emoji
-        )
-        shouldShowAchievement = true
-
-        // Award XP for achievement
-        let didLevelUp = userProgress.addXP(achievement.xpReward)
-        if didLevelUp {
-            showLevelUpAnimation()
-        }
-
-        // Add celebration particle effect
-        addParticleEffect(.achievement)
-        Task {
-            await FirebaseManager.shared.trackAchievement(achievement.rawValue)
-        }
-
-        saveProgress()
-
     }
 
     // MARK: - Particle Effects
@@ -570,7 +380,7 @@ class GamificationManager: ObservableObject {
         addParticleEffect(.levelUp)
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
             self.shouldShowLevelUp = false
         }
     }
@@ -582,7 +392,7 @@ class GamificationManager: ObservableObject {
             let data = try JSONEncoder().encode(userProgress)
             UserDefaults.standard.set(data, forKey: userDefaultsKey)
         } catch {
-            print("Error saving user progress: \(error)")
+            AppLog.error("Error saving user progress: \(error)", category: .persistence)
         }
     }
 
@@ -592,111 +402,33 @@ class GamificationManager: ObservableObject {
         do {
             userProgress = try JSONDecoder().decode(UserProgress.self, from: data)
         } catch {
-            print("Error loading user progress: \(error)")
+            AppLog.error("Error loading user progress: \(error)", category: .persistence)
             userProgress = UserProgress() // Reset to default
         }
     }
 
-    private func saveDailyChallenges() {
-        do {
-            let data = try JSONEncoder().encode(dailyChallenges)
-            UserDefaults.standard.set(data, forKey: challengesKey)
-        } catch {
-            print("Error saving daily challenges: \(error)")
-        }
-    }
-
     private func loadDailyChallenges() {
-        guard let data = UserDefaults.standard.data(forKey: challengesKey) else { return }
-
-        do {
-            dailyChallenges = try JSONDecoder().decode([DailyChallenge].self, from: data)
-        } catch {
-            print("Error loading daily challenges: \(error)")
-            dailyChallenges = []
-        }
-    }
-
-    private func saveMysteryBoxes() {
-        do {
-            let data = try JSONEncoder().encode(availableMysteryBoxes)
-            UserDefaults.standard.set(data, forKey: mysteryBoxesKey)
-        } catch {
-            print("Error saving mystery boxes: \(error)")
+        if let challenges = challengeStore.load() {
+            dailyChallenges = challenges
         }
     }
 
     private func loadMysteryBoxes() {
-        guard let data = UserDefaults.standard.data(forKey: mysteryBoxesKey) else { return }
-
-        do {
-            availableMysteryBoxes = try JSONDecoder().decode([MysteryBox].self, from: data)
-        } catch {
-            print("Error loading mystery boxes: \(error)")
-            availableMysteryBoxes = []
-        }
-    }
-
-    private func saveEnhancedAchievements() {
-        do {
-            let data = try JSONEncoder().encode(enhancedAchievements)
-            UserDefaults.standard.set(data, forKey: enhancedAchievementsKey)
-        } catch {
-            print("Error saving enhanced achievements: \(error)")
+        if let boxes = mysteryBoxStore.load() {
+            availableMysteryBoxes = boxes
         }
     }
 
     // MARK: - Smart Push Notifications
-
-    private func requestNotificationPermission() {
-        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-            if granted {
-                print("Notification permission granted")
-            } else {
-                print("Notification permission denied")
-            }
-        }
-    }
-
-    func scheduleEncouragementNotification() {
-        let content = UNMutableNotificationContent()
-        content.title = "Level Up! 🎉"
-        content.body = "You've reached level \(userProgress.currentLevel)! Keep up the amazing progress!"
-        content.sound = .default
-
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3600, repeats: false) // 1 hour later
-        let request = UNNotificationRequest(identifier: "levelUp", content: content, trigger: trigger)
-
-        notificationCenter.add(request)
-    }
+    // Scheduling lives in `NotificationScheduler`; these thin pass-throughs preserve the
+    // call sites (e.g. App.swift) and the manager's public surface.
 
     func scheduleStudyReminder() {
-        let content = UNMutableNotificationContent()
-        content.title = "Ready to learn something new? 🧠"
-        content.body = "Your brain is waiting for some fresh knowledge!"
-        content.sound = .default
-
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 86400, repeats: false) // 24 hours
-        let request = UNNotificationRequest(identifier: "dailyReminder", content: content, trigger: trigger)
-
-        notificationCenter.add(request)
+        notifications.scheduleStudyReminder()
     }
 
     func scheduleStreakWarning(streakDays: Int) {
-        let content = UNMutableNotificationContent()
-        content.title = "Don't break your streak! 🔥"
-        content.body = "You have a \(streakDays)-day learning streak. Keep it alive!"
-        content.sound = .default
-
-        // Schedule for 8 PM today
-        var dateComponents = DateComponents()
-        dateComponents.hour = 20
-        dateComponents.minute = 0
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
-        let request = UNNotificationRequest(identifier: "streakWarning", content: content, trigger: trigger)
-
-        notificationCenter.add(request)
+        notifications.scheduleStreakWarning(streakDays: streakDays)
     }
 }
 

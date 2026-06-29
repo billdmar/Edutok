@@ -2,8 +2,8 @@
 import SwiftUI
 
 enum StatsViewMode: String, CaseIterable {
-    case calendar = "calendar"
-    case leaderboard = "leaderboard"
+    case calendar
+    case leaderboard
 
     var title: String {
         switch self {

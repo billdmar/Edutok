@@ -18,8 +18,8 @@ main thread and the UI updates without data races.
 
 | Manager | Lifetime | Responsibility |
 | --- | --- | --- |
-| `TopicManager` | `@StateObject` in `FlashTokApp`, injected as `environmentObject` | Generates flashcards via Gemini; persists topics to `UserDefaults` |
-| `GamificationManager` | `@StateObject` in `FlashTokApp`, injected as `environmentObject` | XP/levels, daily challenges, mystery boxes, achievements, notifications |
+| `TopicManager` | `@StateObject` in `EdutokApp`, injected as `environmentObject` | Generates flashcards via Gemini (through `GeminiClient`); persists topics to `UserDefaults` |
+| `GamificationManager` | `@StateObject` in `EdutokApp`, injected as `environmentObject` | XP/levels, daily challenges, mystery boxes, achievements, notifications |
 | `FirebaseManager` | `.shared` singleton (`@StateObject` references) | Auth + Firestore profile, daily stats, streaks, leaderboard |
 | `ImageManager` | `.shared` singleton | Resolves + caches Unsplash image URLs per card |
 
@@ -27,7 +27,7 @@ main thread and the UI updates without data races.
 
 ```
                          ┌──────────────────────────────────────────┐
-                         │  FlashTokApp (@main, App.swift)            │
+                         │  EdutokApp (@main, App.swift)              │
                          │  • AppDelegate → FirebaseApp.configure()   │
                          │  • owns TopicManager, GamificationManager  │
                          │  • references FirebaseManager.shared       │
@@ -69,9 +69,7 @@ main thread and the UI updates without data races.
 
 ## App entry & structure
 
-`App.swift` defines `@main struct FlashTokApp` (the product/scheme is named
-**Edutok**; the SwiftUI `App` type retains the project's original "FlashTok" name).
-It:
+`App.swift` defines `@main struct EdutokApp`. It:
 
 - Registers an `AppDelegate` via `@UIApplicationDelegateAdaptor`, whose
   `didFinishLaunchingWithOptions` calls `FirebaseApp.configure()`.
@@ -88,9 +86,10 @@ screen, plus a floating bottom navigation bar (Leaderboard / Learn / Calendar)
 shown only on the non-study sections. Selecting a topic (`topicManager.currentTopic
 != nil`) auto-switches to the flashcard feed via `onChange`.
 
-`Color`/`View` extensions in `ContentView.swift` define the app's purple/pink/blue
-palette (`flashTokPurple`, `flashTokPink`, `flashTokBlue`) and a `flashTokStyle()`
-gradient modifier.
+The app's purple/pink/blue palette and reusable button styles live in
+`DesignSystem.swift` (`Theme.purple/pink/blue`, semantic tokens like
+`Theme.textSecondary`, and `PrimaryButtonStyle` / `ChipButtonStyle`); `ContentView.swift`
+exposes terse `Color.brand*` aliases onto those tokens.
 
 ## The swipeable card feed
 
@@ -110,12 +109,17 @@ gradient modifier.
   `cardRotation`).
 - The feed grows endlessly: when nearing the end of the deck it calls
   `topicManager.generateMoreFacts(for:)` to append another batch.
-- Side effects on interaction:
-  - First flip of a card → `FirebaseManager.shared.trackCardFlipped()`.
-  - Marking understood → `TopicManager.markCardAsUnderstood(...)` and
-    `GamificationManager.awardXP(.perfectCard)`; completion also calls
-    `awardXPForCardCompletion(wasCorrect:isFirstTry:timeToAnswer:)`.
-  - XP is awarded at most once per card (`cardXPAwarded: Set<UUID>`).
+- Self-graded learning loop (XP reflects recall, not just viewing):
+  - **Flipping** to reveal the answer → `FirebaseManager.trackCardFlipped()` + a small
+    one-time "viewed" XP (`awardXP(.cardCompleted)`, tracked by `cardViewed: Set<UUID>`).
+  - **"Got it"** (or swipe-right) → `markAsUnderstood` →
+    `awardXPForCardCompletion(wasCorrect: true, isFirstTry:, timeToAnswer:)` (correct + perfect
+    + speed bonus) and advances the consecutive-correct streak. "First try" = the card wasn't
+    marked "Again" earlier this session.
+  - **"Again"** → `markNeedsReview` → `awardXPForCardCompletion(wasCorrect: false, …)`
+    (base XP only), breaks the streak, and `TopicManager.resetReview(...)` flags the card to
+    resurface in spaced-repetition Review immediately.
+  - Each card is graded at most once per session (`cardGraded: Set<UUID>`).
 
 ## Gemini-powered flashcard generation
 
@@ -125,24 +129,27 @@ truth for the active topic. It persists `savedTopics` to `UserDefaults` (key
 
 Generation flow (`fetchFlashcardsFromGemini(topic:batchNumber:)`):
 
-1. Builds a `POST` to
-   `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=<Secrets.geminiAPIKey>`.
+1. Calls `GeminiClient.generateText(...)` — the shared networking layer that owns the
+   endpoint URL, the model id (`GeminiClient.model = "gemini-1.5-flash-latest"`, defined
+   once), the `POST` body, status check, and `GeminiResponse` decoding. `ImageManager`
+   uses the same client for image-keyword generation, so the request plumbing isn't
+   duplicated.
 2. The prompt (`createEnhancedFactsPrompt`) asks for **exactly 15 cards** as JSON,
    and varies *focus aspect* and *depth level* by `batchNumber` so an "endless"
    feed keeps getting deeper instead of repeating
    (`getEnhancedTopicAspect` / `getDepthLevel`).
 3. `generationConfig`: `temperature 0.7`, `maxOutputTokens 3000`, `topP 0.8`;
    request `timeoutInterval` 20s.
-4. The response is decoded into a nested `GeminiResponse` struct; the first
-   candidate's text is sanitized by `cleanJSONResponse` (strips ```` ```json ````
-   fences, normalizes smart quotes, narrows to the outer `[ ... ]` array) and then
-   decoded into typed `Flashcard`s. The card `type` string is normalized into the
-   `FlashcardType` enum (`definition` / `question` / `truefalse` / `fillblank`),
-   defaulting to `.question`.
+4. The returned text is sanitized by `LLMJSON.extractJSONArray` (a pure, unit-tested
+   helper: strips ```` ```json ```` fences, normalizes smart quotes, narrows to the outer
+   `[ ... ]` array) and decoded into typed `Flashcard`s. The card `type` string is
+   normalized into the `FlashcardType` enum via `TopicManager.flashcardType(from:)`
+   (also pure/tested), defaulting to `.question`.
 
-**Resilience / fallback:** any failure path — bad URL, non-200 HTTP, missing
-candidates, non-UTF-8 text, or decode error — throws `APIError.invalidResponse`,
-and the caller falls back to `createEnhancedMockFlashcards(for:)`, a fixed set of
+**Resilience / fallback:** any failure path — invalid URL, transport error, non-200 HTTP,
+empty/undecodable response — throws a typed `APIError` (`.invalidURL` / `.transport` /
+`.httpStatus` / `.decoding` / `.emptyResponse`), and the caller falls back to
+`createEnhancedMockFlashcards(for:)`, a fixed set of
 15 topic-templated cards. The feed is therefore **never empty** and the app degrades
 gracefully offline. Each generated/mock card is then assigned an image URL via
 `ImageManager` before the topic is saved and activated.
@@ -153,6 +160,34 @@ and appends the next batch, with the same fallback behavior.
 > **Note:** `Secrets.geminiAPIKey` / `Secrets.unsplashAccessKey` live in
 > `Edutok/Secrets.swift`, which is **gitignored** and supplied per developer (CI
 > writes a non-functional stub so the project compiles — see below).
+
+> **Composed helpers.** To keep `GamificationManager` focused on coordinating reward
+> *side effects* (XP, level-up/toast/particle animation state, Firebase tracking), several
+> responsibilities are factored into small **stateless** helpers it composes — each owns
+> generation/persistence/pure-math and returns results, while the manager keeps the
+> `@Published` arrays the views bind to:
+> - `NotificationScheduler` — local notifications (study reminder, level-up, streak warning).
+> - `MysteryBoxStore` — box generation, the rarity distribution (`rarity(for:)`), persistence.
+> - `ChallengeStore` — daily-challenge generation, expiry/refresh, progress math
+>   (`applyProgress` returns the newly-completed challenges to reward), persistence.
+> - `AchievementEvaluator` — the achievement catalog, persistence (now restores saved
+>   unlocks on launch — previously the catalog was rebuilt each launch and unlock history
+>   was lost), and a pure `newlyUnlockableIndices(in:progress:now:)` with an injected `now`
+>   so the time-based achievements (Night Owl / Early Bird) are deterministic.
+>
+> The pure functions (`rarity(for:)`, `cardCompletionXP(...)`, `ChallengeStore.applyProgress`,
+> `AchievementEvaluator.isConditionMet`, `StreakCalculator`, `ReviewScheduler`) are
+> unit-tested directly.
+
+> **Failure UX.** Failures surface to the user rather than failing silently: the leaderboard
+> shows a distinct error state with a Retry button (vs. the "no data yet" empty state), and
+> when Gemini is unreachable the flashcard feed shows a "sample cards" banner so the user
+> knows the deck is the offline fallback.
+
+> **Logging.** Diagnostics go through `AppLog`, a thin wrapper over Apple's unified logging
+> (`os.Logger`), categorized by area (network/persistence/auth/…), rather than `print` to
+> stdout — so failures that previously logged only to the console are now first-class,
+> filterable system-log entries.
 
 ## Image fetching (Unsplash + Gemini keywords)
 
@@ -169,6 +204,11 @@ caches results in two bounded `NSCache`s (`countLimit = 500` each):
    (`generateDiverseImageForFlashcard(question:topic:variation:)`).
 3. Non-200 responses (401 invalid key, 403 rate-limited, etc.) and decode failures
    return `nil`, in which case the card simply shows its gradient placeholder.
+
+**Decoded-image cache.** `ImageManager.image(for:)` downloads and decodes the photo for a
+URL **off the main thread** (`Task.detached`) and stores the resulting `UIImage` in a bounded
+`NSCache<NSString, UIImage>`. `AsyncImageLoader` routes through it, so a card scrolling back
+into view reuses the cached image instead of re-downloading and re-decoding it.
 
 ## Firebase Auth + Firestore: data model & sync
 
@@ -195,14 +235,18 @@ setup and "may not work in simulator" (noted in code).
 **Activity tracking.** `trackCardFlipped()` / `trackTopicExplored()` /
 `trackAchievement(_:)` bump totals, update (or create) today's `DailyStat`, refresh
 the streak (`updateStreak`), persist the user, and update the relevant leaderboard.
-`updateStreak` increments the current streak when there was activity today and
-either yesterday or a zero starting streak, tracks `longestStreak`, and resets to 0
-on an inactive day.
+`updateStreak` delegates to **`StreakCalculator`** — a pure, unit-tested helper that
+**recomputes** the streak from the set of distinct active days rather than incrementing
+per event. This makes it idempotent: many events on one day advance the streak by one,
+not N. The streak is "alive" only when there's activity today; a gap resets it.
 
 **Leaderboards.** Two per-day collections, `daily_cards_leaderboard` and
 `daily_topics_leaderboard`, keyed `"{yyyy-MM-dd}_{uid}"`. `fetchDailyLeaderboard`
 queries the top 50 by descending value, filters to today's documents by the
-`documentID` date prefix, flags the current user, and assigns 1-based ranks.
+`documentID` date prefix, then hands the rows to the pure `LeaderboardEntry.ranked(...)`
+which sorts, flags the current user, and assigns 1-based ranks. Writes are constrained
+server-side by [`firestore.rules`](../firestore.rules) so a client can't post a score
+under another user's id.
 
 **Resilience.** Firestore writes are best-effort (`try?`) so transient backend
 failures never crash the app; if a profile can't be loaded, an in-memory fallback
@@ -231,11 +275,12 @@ live in `GamificationModels.swift` and `Models.swift`. Progress persists to
   `randomRarity()` and `BoxRarity.xpRange`). Opening a box awards XP in its rarity
   range. This is a documented behavioral-design choice (see
   [gamification-design.md](gamification-design.md)).
-- **Achievements.** Two systems coexist: the original `Achievement` enum (First
-  Steps, Scholar, Speed Demon, Night Owl, Explorer, Perfectionist, Dedicated,
-  Unstoppable — each with title/description/emoji/XP) and the newer
-  `EnhancedAchievement` value type with rarity + category (`AchievementRarity`,
-  `AchievementCategory`), checked by `checkEnhancedAchievements()`.
+- **Achievements.** Unlocking runs through a single path — the `EnhancedAchievement`
+  value type (rarity + category via `AchievementRarity` / `AchievementCategory`), checked
+  by `checkEnhancedAchievements()`. The legacy `Achievement` enum is retained only as a
+  display catalog for the streak calendar (`CalendarAchievement`); its old parallel
+  unlock path was removed because it double-awarded XP and double-fired toasts alongside
+  the enhanced system.
 - **Celebrations & notifications.** Level-ups, achievements, and box openings emit
   particle effects (`ParticleEffectsView`) and toast/animation state. Local
   notifications (`UNUserNotificationCenter`) cover study reminders, encouragement,
@@ -244,6 +289,25 @@ live in `GamificationModels.swift` and `Models.swift`. Progress persists to
   `FirebaseManager.updateStreak`; the streak calendar UI
   (`StreakCalendarView` / `StandaloneCalendarView`) visualizes `DailyStat` activity
   with `ActivityLevel` heat-map shading.
+
+## Spaced-repetition review
+
+Cards the user marks understood re-surface for review on a widening schedule. The
+decision is a pure function, `ReviewScheduler.isDue(_:asOf:)`: an understood card with
+no `lastReviewedAt` is immediately due; otherwise it's due once
+`intervalsInDays[reviewCount]` (1 → 3 → 7 → 14 → 30, clamped) days have elapsed.
+`TopicManager.dueReviewCards` exposes the due set (as `CardLocator`s) and
+`markReviewed(topicId:cardIndex:)` stamps `lastReviewedAt` + bumps `reviewCount` to defer
+the card. `ReviewView` snapshots the due set on appear so marking a card reviewed doesn't
+remove it mid-session. `Flashcard` gained `lastReviewedAt: Date?` and `reviewCount: Int`
+— additive `Codable` fields, so existing persisted topics decode unchanged.
+
+## Bookmarks, topic search & sharing
+
+`CardLocator` (a flashcard + its topic id/title/index) backs both `BookmarksView` (cards
+swiped-left to bookmark) and `ReviewView`. `TopicSearchView` is a searchable history of
+`savedTopics` (progress bars, tap to resume — sets `currentTopic`, which routes to the
+feed). `FlashcardView` exposes a native `ShareLink` to share a card's Q/A.
 
 ## Persistence summary
 
@@ -277,18 +341,17 @@ live in `GamificationModels.swift` and `Models.swift`. Progress persists to
 
 ## Testing
 
-Unit tests in `EdutokTests` (Swift Testing framework) cover the **pure domain
-logic** with no Firebase/network dependency: the XP/leveling math (thresholds,
-level-up detection, in-level progress), topic progress percentage, and reward
-ranges. CI runs only `-only-testing:EdutokTests`. `EdutokUITests` exists as the
-standard UI-test target but is not exercised in CI.
+30 unit tests in `EdutokTests` (Swift Testing framework) cover the **pure domain
+logic** with no Firebase/network dependency: XP/leveling math (thresholds, level-up
+detection, in-level progress), **streak calculation** (`StreakCalculator` — single/
+consecutive days, gaps, same-day idempotency), **leaderboard ranking**
+(`LeaderboardEntry.ranked`), **LLM JSON sanitization** (`LLMJSON.extractJSONArray`),
+flashcard-type mapping, topic progress percentage, and reward ranges. CI runs only
+`-only-testing:EdutokTests`. `EdutokUITests` exists as the standard UI-test target but
+is not exercised in CI.
 
 ## Known stubs & limitations
 
-- The SwiftUI `App` type is still named `FlashTokApp` (legacy "FlashTok" name); the
-  product/scheme/bundle is **Edutok**.
-- `MainView` has a "Refresh" button on Trending Topics and an inline
-  "search suggestions" block that are placeholders / no-ops in the current source.
 - Phone auth is wired but requires Firebase Console setup and may not work in the
   simulator.
 - Generated images depend on a valid Unsplash key; without one (or on rate-limit)

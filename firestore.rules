@@ -1,0 +1,74 @@
+rules_version = '2';
+
+// Edutok Firestore security rules.
+//
+// Threat model: the client SDK writes directly to Firestore, so without rules any
+// authenticated user could overwrite another user's profile or post an arbitrary
+// leaderboard score under someone else's id. These rules constrain every write to
+// the authenticated owner and validate the shape of leaderboard entries.
+//
+// Verify locally with the Firebase Emulator Suite:
+//   firebase emulators:exec --only firestore "npm test"   (or the rules test runner)
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A user may read and write only their own profile document.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(uid) && validUser();
+    }
+
+    // Daily leaderboards. Document ids are "<yyyy-MM-dd>_<uid>" (see
+    // FirebaseManager.updateDailyLeaderboard). Anyone signed in may read the board;
+    // a user may only write the entry keyed to their own uid, and the payload must
+    // be a well-formed, non-negative score for themselves.
+    match /daily_cards_leaderboard/{entryId} {
+      allow read: if isSignedIn();
+      allow write: if isLeaderboardOwner(entryId) && validLeaderboardEntry();
+    }
+    match /daily_topics_leaderboard/{entryId} {
+      allow read: if isSignedIn();
+      allow write: if isLeaderboardOwner(entryId) && validLeaderboardEntry();
+    }
+
+    // Deny everything not explicitly matched above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- helpers ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // The entry id is "<date>_<uid>"; the trailing segment must be the caller's uid,
+    // and the payload's userId must match too.
+    function isLeaderboardOwner(entryId) {
+      return isSignedIn()
+        && entryId.split('_').size() == 2
+        && entryId.split('_')[1] == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    function validLeaderboardEntry() {
+      let d = request.resource.data;
+      return d.value is int
+        && d.value >= 0
+        && d.username is string
+        && d.username.size() <= 30;
+    }
+
+    function validUser() {
+      let d = request.resource.data;
+      return d.username is string
+        && d.username.size() <= 30
+        && d.currentStreak is int && d.currentStreak >= 0
+        && d.longestStreak is int && d.longestStreak >= 0;
+    }
+  }
+}

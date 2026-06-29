@@ -6,6 +6,7 @@ struct LeaderboardView: View {
     @State private var selectedType: LeaderboardType = .cardsFlipped
     @State private var leaderboardEntries: [LeaderboardEntry] = []
     @State private var isLoading = true
+    @State private var loadError = false
     @State private var refreshTimer: Timer?
     @State private var showAuthView = false
 
@@ -65,6 +66,8 @@ struct LeaderboardView: View {
                                     )
                             )
                         }
+                        .accessibilityLabel(type.title)
+                        .accessibilityAddTraits(selectedType == type ? [.isButton, .isSelected] : .isButton)
                     }
                 }
                 .background(
@@ -87,6 +90,8 @@ struct LeaderboardView: View {
                         ForEach(0..<10, id: \.self) { _ in
                             leaderboardLoadingRow()
                         }
+                    } else if loadError {
+                        leaderboardErrorView()
                     } else if leaderboardEntries.isEmpty {
                         emptyLeaderboardView()
                     } else {
@@ -313,6 +318,33 @@ struct LeaderboardView: View {
         .padding(.top, 50)
     }
 
+    private func leaderboardErrorView() -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 60))
+                .foregroundColor(.white.opacity(0.3))
+
+            Text("Couldn't load the leaderboard")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.white.opacity(0.8))
+                .multilineTextAlignment(.center)
+
+            Text("Check your connection and try again.")
+                .font(.body)
+                .foregroundColor(.white.opacity(0.5))
+                .multilineTextAlignment(.center)
+
+            Button(action: loadLeaderboard) {
+                Label("Retry", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(ChipButtonStyle())
+            .accessibilityLabel("Retry loading the leaderboard")
+        }
+        .padding(.top, 50)
+        .accessibilityElement(children: .combine)
+    }
+
     private func rankColor(_ rank: Int) -> LinearGradient {
         switch rank {
         case 1:
@@ -337,6 +369,7 @@ struct LeaderboardView: View {
 
     private func loadLeaderboard() {
         isLoading = true
+        loadError = false
 
         Task {
             do {
@@ -347,8 +380,9 @@ struct LeaderboardView: View {
                     isLoading = false
                 }
             } catch {
-                print("Error loading leaderboard: \(error)")
+                AppLog.error("Error loading leaderboard: \(error)", category: .network)
                 await MainActor.run {
+                    loadError = true   // distinguish "couldn't load" from "no data yet"
                     isLoading = false
                 }
             }
@@ -359,8 +393,11 @@ struct LeaderboardView: View {
         do {
             let entries = try await firebaseManager.fetchDailyLeaderboard(type: selectedType)
             leaderboardEntries = entries
+            loadError = false
         } catch {
-            print("Error refreshing leaderboard: \(error)")
+            AppLog.error("Error refreshing leaderboard: \(error)", category: .network)
+            // Only surface an error if we have nothing to show; otherwise keep stale data.
+            if leaderboardEntries.isEmpty { loadError = true }
         }
     }
 

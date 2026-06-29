@@ -132,6 +132,8 @@ struct CategoryButton: View {
                         .stroke(Color.white.opacity(isSelected ? 0.3 : 0.1), lineWidth: 1)
                 )
         }
+        .accessibilityLabel("\(category.displayName) achievements")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 
@@ -252,6 +254,9 @@ struct AchievementCard: View {
         )
         .scaleEffect(achievement.isUnlocked ? 1.02 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: achievement.isUnlocked)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(achievement.title), \(achievement.rarity.rawValue) \(achievement.category.displayName) achievement, \(achievement.isUnlocked ? "unlocked" : "locked")")
+        .accessibilityValue(achievement.description)
     }
 }
 

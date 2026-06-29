@@ -23,11 +23,22 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 - **AI flashcard generation** — Enter any topic and Google Gemini produces an endless feed of concise, accurate facts and questions.
 - **Swipeable feed** — A vertical, full-screen card feed inspired by short-form video apps.
 - **Rich imagery** — Each card is paired with a relevant photo fetched from Unsplash.
-- **Accounts & sync** — Email/password authentication and cloud data sync via Firebase.
+- **Saved cards** — Swipe left to bookmark a card, then review all your saved cards in one place.
+- **Self-graded recall** — Reveal a card, then rate yourself "Got it" or "Again". Correct recall earns the XP (with a first-try perfect bonus + speed bonus); "Again" resurfaces the card sooner. XP reflects learning, not just flipping.
+- **Spaced-repetition review** — Cards you mark understood resurface on a widening schedule (1 → 3 → 7 → 14 → 30 days); cards you miss come back immediately.
+- **Topic search & history** — Search every topic you've studied and resume it with one tap.
+- **Share a card** — Send any flashcard's question + answer to friends.
+- **Accounts & sync** — Anonymous, email/password authentication and cloud data sync via Firebase.
+- **Settings** — Edit your username, review your stats, sign out, or delete your account and data.
 - **Gamification** — Daily streaks, XP and levels, unlockable achievements, daily challenges, mystery boxes, and particle-effect celebrations. ([design notes](docs/gamification-design.md))
 - **Leaderboard** — Compete with other learners on a global leaderboard.
 - **Streak calendar** — Visualize learning consistency over time.
 - **Local notifications** — Reminders to keep your streak alive.
+- **Accessibility** — Respects Reduce Motion, labels controls for VoiceOver (the swipe-feed
+  actions are exposed as VoiceOver actions so the feed is fully navigable without sight),
+  scales text with Dynamic Type, and uses ≥44 pt tap targets.
+- **Smooth image feed** — Card photos are cached as decoded images, so scrolling back to a
+  card reuses it instead of re-downloading.
 
 ## Tech stack
 
@@ -48,6 +59,10 @@ State is owned by a set of `@MainActor` `ObservableObject` managers, each respon
 - **`ImageManager`** — resolves and caches Unsplash imagery for each card.
 - **`FirebaseManager`** — authentication and Firestore reads/writes.
 - **`GamificationManager`** — streaks, XP, achievements, challenges, and notifications.
+
+A small `GeminiClient` networking layer centralizes the Gemini endpoint, model id, and
+response decoding (shared by `TopicManager` and `ImageManager`), and `StreakCalculator`
+holds the streak math as a pure, unit-tested function.
 
 ```
 Edutok/
@@ -74,12 +89,14 @@ A few choices worth calling out:
   so published state mutates on the main thread and the UI updates without data races. This
   keeps each concern isolated and made the gamification logic unit-testable on its own.
 - **Resilient AI integration.** Flashcards come from Google Gemini (`gemini-1.5-flash-latest`)
-  over its REST endpoint, generated in **batches of 15** with a prompt whose depth and topic
-  aspect vary by batch number, so an "endless" feed keeps getting deeper instead of repeating.
-  Because LLMs wrap JSON in markdown fences and prose, the raw response is sanitized before
-  decoding into typed `Codable` structs, the HTTP status is checked, and the request has a
-  20-second timeout. Any network or decode failure falls back to deterministic mock cards, so
-  the feed is never empty and the app degrades gracefully offline.
+  over its REST endpoint via a small `GeminiClient` networking layer (one place for the URL,
+  model id, status checking, and decoding — shared with image-keyword generation). Cards are
+  generated in **batches of 15** with a prompt whose depth and topic aspect vary by batch
+  number, so an "endless" feed keeps getting deeper instead of repeating. Because LLMs wrap
+  JSON in markdown fences and prose, the raw response is sanitized (`LLMJSON.extractJSONArray`,
+  unit-tested) before decoding into typed `Codable` structs. A typed `APIError` distinguishes
+  transport, HTTP-status, and decode failures, and any failure falls back to deterministic
+  mock cards, so the feed is never empty and the app degrades gracefully offline.
 - **Gamification modeled as pure, testable logic.** Leveling uses an explicit quadratic XP
   curve — `((n-1)² · 50) + ((n-1) · 50)` XP to reach level _n_ (so L2 = 100, L3 = 300,
   L4 = 600). `UserProgress.addXP` is a pure mutating function that returns whether the user
@@ -92,9 +109,31 @@ A few choices worth calling out:
 
 ## Testing
 
-Core domain logic is covered by unit tests in `EdutokTests` — the XP/leveling math
-(thresholds, level-up detection, progress), topic progress calculation, and the mystery-box
-reward ranges — so the gamification rules are verified independently of the UI.
+Core domain logic is covered by **68 unit tests** in `EdutokTests`, exercising the pure,
+Firebase-free logic independently of the UI:
+
+- **XP / leveling** — thresholds, level-up detection, in-level progress.
+- **Streaks** (`StreakCalculator`) — single-day vs. consecutive-day runs, gap resets, and the
+  regression test that many same-day events advance the streak by **one**, not N.
+- **Spaced repetition** (`ReviewScheduler`) — due/not-due across the interval schedule.
+- **Leaderboard ranking** — descending sort, 1-based ranks, current-user flagging.
+- **Networking** (`GeminiClient`) — success, HTTP-error, empty-response, and decode-failure
+  paths, exercised against a `URLProtocol` stub (no real network).
+- **LLM JSON sanitization** (`LLMJSON.extractJSONArray`) — markdown-fence stripping,
+  prose-wrapped responses, smart-quote normalization.
+- **Backward-compatible decoding**, mystery-box reward ranges, and topic-progress percentages.
+
+Plus an offline **XCUITest smoke suite** (`EdutokUITests`) — launch, the topic → flashcard
+happy path (mock deck, no network), the sidebar, and nav-bar section switching — run as a
+separate CI job. Style is enforced by **SwiftLint** (config tuned for SwiftUI; its own CI job).
+
+Run them with:
+
+```bash
+xcodebuild test -scheme Edutok \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  -only-testing:EdutokTests
+```
 
 ## Getting started
 
@@ -137,11 +176,18 @@ reward ranges — so the gamification rules are verified independently of the UI
 
 ## Security
 
-This project keeps all credentials out of version control:
+See [SECURITY.md](SECURITY.md) for the full model. In short:
 
-- API keys live in `Edutok/Secrets.swift`, which is **gitignored**.
-- The Firebase `GoogleService-Info.plist` is **gitignored** and supplied per-developer.
-- No secrets are committed anywhere in the repository or its history.
+- API keys live in `Edutok/Secrets.swift` (**gitignored**); the Firebase
+  `GoogleService-Info.plist` is **gitignored** and supplied per-developer. No secrets are
+  committed anywhere in the repository or its history (CI builds against non-functional stubs).
+- [`firestore.rules`](firestore.rules) constrains every Firestore write to the authenticated
+  owner — a user can only edit their own profile and can't post a leaderboard score under
+  another user's id, closing the cross-user spoofing hole.
+- App Transport Security uses defaults (TLS 1.2+ with forward secrecy); no ATS exceptions.
+- Because the app has no backend, the embedded API keys are extractable from the binary — a
+  documented limitation whose natural fix is a server-side proxy (SECURITY.md explains why the
+  manager architecture makes that a localized change).
 
 ## Screenshots
 

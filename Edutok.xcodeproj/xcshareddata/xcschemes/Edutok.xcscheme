@@ -38,6 +38,16 @@
                ReferencedContainer = "container:Edutok.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "089665632E42D31500FEE0A3"
+               BuildableName = "EdutokUITests.xctest"
+               BlueprintName = "EdutokUITests"
+               ReferencedContainer = "container:Edutok.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

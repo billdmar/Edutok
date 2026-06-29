@@ -92,6 +92,44 @@ class FirebaseManager: ObservableObject {
         isAuthenticated = false
     }
 
+    /// Permanently deletes the signed-in user: removes their leaderboard entries and
+    /// profile document, then deletes the Firebase Auth account. Best-effort on the
+    /// Firestore deletes (so a transient failure still lets the account deletion proceed).
+    ///
+    /// Returns `true` if the auth account was deleted. Deleting an account can fail with
+    /// `requiresRecentLogin` if the session is stale; in that case we still sign the user
+    /// out (their data is already removed) and return `false` so the UI can say so.
+    @discardableResult
+    func deleteAccount() async -> Bool {
+        guard let user = auth.currentUser else { return false }
+        let uid = user.uid
+        let dateString = DateFormatter.yyyyMMdd.string(from: Calendar.current.startOfDay(for: Date()))
+
+        // Remove today's leaderboard entries (doc id is "<date>_<uid>").
+        try? await db.collection("daily_cards_leaderboard").document("\(dateString)_\(uid)").delete()
+        try? await db.collection("daily_topics_leaderboard").document("\(dateString)_\(uid)").delete()
+
+        // Remove the profile document.
+        try? await db.collection("users").document(uid).delete()
+
+        // Delete the auth account.
+        var deleted = false
+        do {
+            try await user.delete()
+            deleted = true
+        } catch {
+            #if DEBUG
+            print("Account deletion failed (will sign out instead): \(error)")
+            #endif
+            // Data is already gone; sign out so the user isn't stranded mid-deletion.
+            try? auth.signOut()
+        }
+
+        currentUser = nil
+        isAuthenticated = false
+        return deleted
+    }
+
     func updateUsername(_ newUsername: String) async {
         guard var user = currentUser else { return }
 
@@ -143,7 +181,7 @@ class FirebaseManager: ObservableObject {
                 currentUser = newUser
             }
         } catch {
-            print("Error loading/creating user: \(error)")
+            AppLog.error("Error loading/creating user: \(error)", category: .auth)
 
             // Create a local user if database fails
             currentUser = AppUser(
@@ -289,27 +327,15 @@ class FirebaseManager: ObservableObject {
         try? await saveUser(user)
     }
 
+    /// Refreshes the user's streak from their activity history. Idempotent per day:
+    /// the streak is recomputed from the set of active days (see `StreakCalculator`),
+    /// so multiple events on the same day never inflate it.
     private func updateStreak(for user: inout AppUser) {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
-
-        // Check if user was active yesterday or today
-        let hasActivityToday = user.dailyStats.contains { calendar.isDate($0.date, inSameDayAs: today) && ($0.cardsFlipped > 0 || $0.topicsExplored > 0) }
-        let hasActivityYesterday = user.dailyStats.contains { calendar.isDate($0.date, inSameDayAs: yesterday) && ($0.cardsFlipped > 0 || $0.topicsExplored > 0) }
-
-        if hasActivityToday {
-            if hasActivityYesterday {
-                user.currentStreak += 1
-            } else {
-                // Gap (or fresh start): restart the streak at 1.
-                user.currentStreak = 1
-            }
-            user.longestStreak = max(user.longestStreak, user.currentStreak)
-        } else {
-            user.currentStreak = 0
-        }
-
+        user.currentStreak = StreakCalculator.currentStreak(from: user.dailyStats)
+        user.longestStreak = StreakCalculator.longestStreak(
+            from: user.dailyStats,
+            previousLongest: user.longestStreak
+        )
         user.lastActiveDate = Date()
     }
 
@@ -348,42 +374,18 @@ class FirebaseManager: ObservableObject {
                 .limit(to: 50)
                 .getDocuments()
 
-            let currentUserId = currentUser?.id
-
-            // First, create the initial entries
-            var entries: [LeaderboardEntry] = []
-
-            for document in snapshot.documents {
+            let rows: [LeaderboardRow] = snapshot.documents.compactMap { document in
                 let data = document.data()
                 guard let userId = data["userId"] as? String,
                       let username = data["username"] as? String,
                       let value = data["value"] as? Int,
                       document.documentID.hasPrefix(dateString) else {
-                    continue
+                    return nil
                 }
-
-                let entry = LeaderboardEntry(
-                    userId: userId,
-                    username: username,
-                    value: value,
-                    rank: 0, // Will be set after sorting
-                    isCurrentUser: userId == currentUserId
-                )
-                entries.append(entry)
+                return LeaderboardRow(userId: userId, username: username, value: value)
             }
 
-            // Now assign ranks
-            let rankedEntries = entries.enumerated().map { index, entry in
-                LeaderboardEntry(
-                    userId: entry.userId,
-                    username: entry.username,
-                    value: entry.value,
-                    rank: index + 1,
-                    isCurrentUser: entry.isCurrentUser
-                )
-            }
-
-            return rankedEntries
+            return LeaderboardEntry.ranked(from: rows, currentUserId: currentUser?.id)
         }
 
     // MARK: - Utility

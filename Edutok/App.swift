@@ -11,13 +11,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 }
 
 @main
-struct FlashTokApp: App {
+struct EdutokApp: App {
     // Register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     @StateObject private var topicManager = TopicManager()
     @StateObject private var gamificationManager = GamificationManager()
     @StateObject private var firebaseManager = FirebaseManager.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -36,6 +37,12 @@ struct FlashTokApp: App {
                         }
                     }
                 }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Returning to the app after midnight should roll over expired daily challenges.
+            if phase == .active {
+                gamificationManager.refreshDailyChallengesIfNeeded()
+            }
         }
     }
 }
