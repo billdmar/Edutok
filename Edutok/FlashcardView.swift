@@ -276,7 +276,7 @@ struct FlashcardView: View {
             // Centered topic title and dots - now in separate layer
             VStack(spacing: 8) {
                 Text(topic.title)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundColor(.white)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)

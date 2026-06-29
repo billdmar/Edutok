@@ -195,7 +195,7 @@ struct MainView: View {
 
                                 VStack(spacing: 8) {
                                     Text("Edutok")
-                                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
                                         .foregroundStyle(
                                             LinearGradient(
                                                 colors: [.white, .white.opacity(0.9)],
@@ -206,7 +206,7 @@ struct MainView: View {
                                         .shadow(color: .purple.opacity(0.3), radius: 10, x: 0, y: 5)
 
                                     Text("Learn anything, TikTok style")
-                                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                                        .font(.system(.headline, design: .rounded).weight(.medium))
                                         .foregroundColor(.white.opacity(0.85))
                                 }
                             }
@@ -225,7 +225,7 @@ struct MainView: View {
                                         TextField("What do you want to learn today?", text: $topicInput)
                                             .textFieldStyle(PlainTextFieldStyle())
                                             .foregroundColor(.white)
-                                            .font(.system(size: 17, weight: .medium, design: .rounded))
+                                            .font(.system(.body, design: .rounded).weight(.medium))
                                             .focused($isSearchFocused)
                                             .submitLabel(.go)
                                             .onSubmit {
@@ -305,7 +305,7 @@ struct MainView: View {
                                             Text("🔥")
                                                 .font(.title2)
                                             Text("Trending Topics")
-                                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                                .font(.system(.title3, design: .rounded).weight(.bold))
                                                 .foregroundColor(.white)
                                         }
 

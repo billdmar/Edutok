@@ -15,9 +15,11 @@ struct Flashcard: Identifiable, Codable {
     var isUnderstood: Bool = false
     var isBookmarked: Bool = false
     var imageURL: String?  // NEW: Image URL for the flashcard
+    var lastReviewedAt: Date?  // Most recent spaced-repetition review (nil = never reviewed)
+    var reviewCount: Int = 0   // Number of completed review sessions for this card
 
     enum CodingKeys: String, CodingKey {
-        case type, question, answer, isUnderstood, isBookmarked, imageURL
+        case type, question, answer, isUnderstood, isBookmarked, imageURL, lastReviewedAt, reviewCount
     }
 }
 

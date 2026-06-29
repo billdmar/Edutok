@@ -391,11 +391,11 @@ class TopicManager: ObservableObject {
 
     /// All bookmarked cards across every saved topic, paired with the topic title and
     /// the card's index within that topic (so callers can un-bookmark via `toggleBookmark`).
-    var bookmarkedCards: [BookmarkedCard] {
+    var bookmarkedCards: [CardLocator] {
         savedTopics.flatMap { topic in
             topic.flashcards.enumerated().compactMap { index, card in
                 card.isBookmarked
-                    ? BookmarkedCard(card: card, topicId: topic.id, topicTitle: topic.title, cardIndex: index)
+                    ? CardLocator(card: card, topicId: topic.id, topicTitle: topic.title, cardIndex: index)
                     : nil
             }
         }
@@ -410,6 +410,35 @@ class TopicManager: ObservableObject {
         // Update current topic if it matches
         if currentTopic?.id == topicId {
             currentTopic?.flashcards[cardIndex].isBookmarked.toggle()
+        }
+
+        saveTopics()
+    }
+
+    /// Understood cards that are due for spaced-repetition review (see `ReviewScheduler`),
+    /// paired with their topic + index so a review session can mark them reviewed.
+    var dueReviewCards: [CardLocator] {
+        savedTopics.flatMap { topic in
+            topic.flashcards.enumerated().compactMap { index, card in
+                ReviewScheduler.isDue(card)
+                    ? CardLocator(card: card, topicId: topic.id, topicTitle: topic.title, cardIndex: index)
+                    : nil
+            }
+        }
+    }
+
+    /// Records a completed review of a card: stamps `lastReviewedAt` and bumps `reviewCount`
+    /// so `ReviewScheduler` defers it to the next, longer interval.
+    func markReviewed(topicId: UUID, cardIndex: Int) {
+        guard let topicIndex = savedTopics.firstIndex(where: { $0.id == topicId }),
+              cardIndex < savedTopics[topicIndex].flashcards.count else { return }
+
+        savedTopics[topicIndex].flashcards[cardIndex].lastReviewedAt = Date()
+        savedTopics[topicIndex].flashcards[cardIndex].reviewCount += 1
+
+        if currentTopic?.id == topicId, cardIndex < (currentTopic?.flashcards.count ?? 0) {
+            currentTopic?.flashcards[cardIndex].lastReviewedAt = Date()
+            currentTopic?.flashcards[cardIndex].reviewCount += 1
         }
 
         saveTopics()

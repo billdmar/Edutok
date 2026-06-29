@@ -24,6 +24,9 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 - **Swipeable feed** — A vertical, full-screen card feed inspired by short-form video apps.
 - **Rich imagery** — Each card is paired with a relevant photo fetched from Unsplash.
 - **Saved cards** — Swipe left to bookmark a card, then review all your saved cards in one place.
+- **Spaced-repetition review** — Cards you mark understood resurface on a widening schedule (1 → 3 → 7 → 14 → 30 days) so they stick long-term.
+- **Topic search & history** — Search every topic you've studied and resume it with one tap.
+- **Share a card** — Send any flashcard's question + answer to friends.
 - **Accounts & sync** — Anonymous, email/password authentication and cloud data sync via Firebase.
 - **Settings** — Edit your username, review your stats, sign out, or delete your account and data.
 - **Gamification** — Daily streaks, XP and levels, unlockable achievements, daily challenges, mystery boxes, and particle-effect celebrations. ([design notes](docs/gamification-design.md))

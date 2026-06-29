@@ -12,6 +12,8 @@ struct SidebarView: View {
     @State private var showPhase1Dashboard = false // Add this for Phase 1 Dashboard
     @State private var showBookmarks = false
     @State private var showSettings = false
+    @State private var showReview = false
+    @State private var showTopicSearch = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     /// Wider drawer on regular-width devices (iPad / landscape) so it isn't a thin strip.
@@ -337,6 +339,16 @@ struct SidebarView: View {
                         )
                     }
 
+                    // Review due cards (spaced repetition)
+                    SidebarActionRow(icon: "brain.head.profile", iconColor: .cyan, title: "Review") {
+                        showReview = true
+                    }
+
+                    // Search / resume saved topics
+                    SidebarActionRow(icon: "magnifyingglass", iconColor: .green, title: "Search Topics") {
+                        showTopicSearch = true
+                    }
+
                     // Saved cards (bookmarks)
                     SidebarActionRow(icon: "bookmark.fill", iconColor: .pink, title: "Saved Cards") {
                         showBookmarks = true
@@ -420,6 +432,14 @@ struct SidebarView: View {
             DebugView()
         }
         #endif
+        .sheet(isPresented: $showReview) {
+            ReviewView()
+                .environmentObject(topicManager)
+        }
+        .sheet(isPresented: $showTopicSearch) {
+            TopicSearchView()
+                .environmentObject(topicManager)
+        }
         .sheet(isPresented: $showBookmarks) {
             BookmarksView()
                 .environmentObject(topicManager)

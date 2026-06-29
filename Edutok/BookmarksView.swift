@@ -6,8 +6,9 @@
 /// bookmark inline.
 import SwiftUI
 
-/// A bookmarked flashcard plus the context needed to locate and un-bookmark it.
-struct BookmarkedCard: Identifiable {
+/// A flashcard plus the context needed to locate and mutate it within `TopicManager`
+/// (topic id, title, and index). Shared by the bookmarks and review screens.
+struct CardLocator: Identifiable {
     var id: UUID { card.id }
     let card: Flashcard
     let topicId: UUID
@@ -19,7 +20,7 @@ struct BookmarksView: View {
     @EnvironmentObject var topicManager: TopicManager
     @Environment(\.dismiss) private var dismiss
 
-    private var cards: [BookmarkedCard] { topicManager.bookmarkedCards }
+    private var cards: [CardLocator] { topicManager.bookmarkedCards }
 
     var body: some View {
         NavigationStack {
@@ -77,7 +78,7 @@ struct BookmarksView: View {
 
 /// A single bookmarked card; taps flip between question and answer.
 private struct BookmarkCardRow: View {
-    let item: BookmarkedCard
+    let item: CardLocator
     let onRemove: () -> Void
     @State private var showAnswer = false
 
