@@ -614,8 +614,9 @@ struct FlashcardView: View {
                         previousCard()
                         let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
                         snapFeedback.impactOccurred()
-                    } else if gesture.translation.width > swipeThreshold * 2 {
-                        // Swipe right - mark as understood
+                    } else if gesture.translation.width > swipeThreshold * 2 && showAnswer {
+                        // Swipe right - mark as understood. Only when the answer has been
+                        // revealed, so "Got it" can't be earned without seeing the card.
                         markAsUnderstood()
                         nextCard()
                         let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
