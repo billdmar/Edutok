@@ -58,6 +58,35 @@ final class EdutokUITests: XCTestCase {
     }
 
     @MainActor
+    func testTappingFlashcardRevealsAnswer() throws {
+        let app = launchedApp()
+
+        let topicField = app.textFields["topicField"]
+        XCTAssertTrue(topicField.waitForExistence(timeout: 5))
+        topicField.tap()
+        topicField.typeText("Biology")
+        app.buttons["startLearningButton"].tap()
+
+        // The current card is a combined, tappable .isButton whose accessibility label
+        // shows the Question side first.
+        let questionSide = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS[c] %@", "Question:"))
+            .firstMatch
+        XCTAssertTrue(questionSide.waitForExistence(timeout: 10),
+                      "The card should start on its question side.")
+
+        questionSide.tap()
+
+        // After the flip, the card announces the Answer side. The first mock card's answer
+        // contains this stable substring (TopicManager.createEnhancedMockFlashcards).
+        let answerSide = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS[c] %@", "core mechanism involves"))
+            .firstMatch
+        XCTAssertTrue(answerSide.waitForExistence(timeout: 5),
+                      "Tapping the card should flip it to reveal the answer.")
+    }
+
+    @MainActor
     func testMenuOpensSidebar() throws {
         let app = launchedApp()
         let menu = app.buttons["menuButton"]
