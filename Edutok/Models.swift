@@ -150,10 +150,10 @@ struct MysteryBox: Identifiable, Codable {
 }
 
 enum BoxRarity: String, CaseIterable, Codable {
-    case common = "common"
-    case rare = "rare"
-    case epic = "epic"
-    case legendary = "legendary"
+    case common
+    case rare
+    case epic
+    case legendary
 
     var color: String {
         switch self {
@@ -195,10 +195,10 @@ struct EnhancedAchievement: Identifiable, Codable {
 }
 
 enum AchievementRarity: String, CaseIterable, Codable {
-    case common = "common"
-    case rare = "rare"
-    case epic = "epic"
-    case legendary = "legendary"
+    case common
+    case rare
+    case epic
+    case legendary
 
     var color: String {
         switch self {
@@ -211,10 +211,10 @@ enum AchievementRarity: String, CaseIterable, Codable {
 }
 
 enum AchievementCategory: String, CaseIterable, Codable {
-    case learning = "learning"
-    case social = "social"
-    case time = "time"
-    case special = "special"
+    case learning
+    case social
+    case time
+    case special
 
     var displayName: String {
         switch self {
