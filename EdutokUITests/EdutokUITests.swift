@@ -2,7 +2,11 @@
 //  EdutokUITests.swift
 //  EdutokUITests
 //
-//  Created by Bill Mar on 8/5/25.
+//  Offline smoke suite. The app shows a deterministic mock flashcard deck even with the
+//  CI stub API keys (Gemini fails → createEnhancedMockFlashcards; images → gradient
+//  placeholder), so these tests need no real network or auth. They assert the core
+//  navigation and the topic → flashcard happy path via stable accessibility identifiers
+//  and the card's accessibility label.
 //
 
 import XCTest
@@ -10,30 +14,79 @@ import XCTest
 final class EdutokUITests: XCTestCase {
 
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    private func launchedApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launch()
+        return app
+    }
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+    @MainActor
+    func testAppLaunchesToForeground() throws {
+        let app = launchedApp()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
+    }
+
+    @MainActor
+    func testMainScreenShowsTopicFieldAndStartButton() throws {
+        let app = launchedApp()
+        XCTAssertTrue(app.textFields["topicField"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["startLearningButton"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testStartLearningShowsAFlashcard() throws {
+        let app = launchedApp()
+
+        let topicField = app.textFields["topicField"]
+        XCTAssertTrue(topicField.waitForExistence(timeout: 5))
+        topicField.tap()
+        topicField.typeText("Biology")
+
+        app.buttons["startLearningButton"].tap()
+
+        // The card view exposes an accessibility label "<Type> flashcard. Question: …"
+        // (added with the VoiceOver work). A mock deck always appears, even offline.
+        let card = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS[c] %@", "flashcard"))
+            .firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 10),
+                      "A flashcard should appear after Start Learning (mock deck offline).")
+    }
+
+    @MainActor
+    func testMenuOpensSidebar() throws {
+        let app = launchedApp()
+        let menu = app.buttons["menuButton"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 5))
+        menu.tap()
+        // The "Close menu" button only exists inside the open sidebar, so it's a reliable
+        // proxy for "the sidebar is showing" (container identifiers don't always surface
+        // as queryable otherElements).
+        XCTAssertTrue(app.buttons["Close menu"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testNavBarSwitchesSections() throws {
+        let app = launchedApp()
+        // Nav buttons carry accessibility labels (Leaderboard / Learn / Calendar). Use
+        // .firstMatch because a section's content may also surface a matching label.
+        let leaderboard = app.buttons["Leaderboard"].firstMatch
+        XCTAssertTrue(leaderboard.waitForExistence(timeout: 5))
+
+        leaderboard.tap()
+        app.buttons["Calendar"].firstMatch.tap()
+        app.buttons["Learn"].firstMatch.tap()
+
+        // Back on the Learn screen, the topic field is present again.
+        XCTAssertTrue(app.textFields["topicField"].waitForExistence(timeout: 3))
     }
 
     @MainActor
     func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }

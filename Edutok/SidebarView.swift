@@ -57,6 +57,7 @@ struct SidebarView: View {
                                 .font(.title2)
                                 .foregroundColor(.white)
                         }
+                        .accessibilityLabel("Close menu")
                     }
 
                     // User stats summary (if authenticated)
@@ -414,6 +415,7 @@ struct SidebarView: View {
                 .padding(.bottom, 30)
             }
             .frame(width: sidebarWidth)
+            .accessibilityIdentifier("sidebar")
             .background(
                 LinearGradient(
                     gradient: Gradient(colors: [

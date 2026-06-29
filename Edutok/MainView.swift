@@ -80,6 +80,8 @@ struct MainView: View {
                                         )
                                 )
                         }
+                        .accessibilityLabel("Menu")
+                        .accessibilityIdentifier("menuButton")
 
                         Spacer()
 
@@ -226,6 +228,7 @@ struct MainView: View {
                                             .textFieldStyle(PlainTextFieldStyle())
                                             .foregroundColor(.white)
                                             .font(.system(.body, design: .rounded).weight(.medium))
+                                            .accessibilityIdentifier("topicField")
                                             .focused($isSearchFocused)
                                             .submitLabel(.go)
                                             .onSubmit {
@@ -291,6 +294,7 @@ struct MainView: View {
                                 }
                                 .buttonStyle(PrimaryButtonStyle(colors: [Theme.pink, Theme.purple, Theme.blue.opacity(0.8)]))
                                 .padding(.horizontal, 25)
+                                .accessibilityIdentifier("startLearningButton")
                                 .disabled(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                                 .scaleEffect(isLoading ? 0.95 : 1.0)
                                 .opacity(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1.0)
