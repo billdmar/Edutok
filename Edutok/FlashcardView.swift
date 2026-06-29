@@ -198,6 +198,18 @@ struct FlashcardView: View {
                         .foregroundColor(.white)
                 }
                 .frame(width: 44, height: 44) // Fixed square button
+                .accessibilityLabel("Menu")
+
+                // Share the current card
+                if let card = currentCard {
+                    ShareLink(item: shareText(for: card, topicTitle: topic.title)) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                    }
+                    .frame(width: 44, height: 44)
+                    .accessibilityLabel("Share this card")
+                }
 
                 Spacer()
 
@@ -713,6 +725,16 @@ struct FlashcardView: View {
         guard let topic = topicManager.currentTopic,
               currentCardIndex < topic.flashcards.count else { return nil }
         return topic.flashcards[currentCardIndex]
+    }
+
+    /// Formats a card as shareable text (question + answer + topic), used by `ShareLink`.
+    private func shareText(for card: Flashcard, topicTitle: String) -> String {
+        """
+        \(topicTitle) — learned on Edutok 📚
+
+        Q: \(card.question)
+        A: \(card.answer)
+        """
     }
 
     private func cardTypeIcon(for type: FlashcardType, showAnswer: Bool) -> String {

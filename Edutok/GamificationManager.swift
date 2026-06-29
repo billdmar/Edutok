@@ -118,7 +118,17 @@ class GamificationManager: ObservableObject {
         saveDailyChallenges()
     }
 
+    /// Regenerates the daily challenges if the current set has expired (e.g. the app was
+    /// left open past midnight). Safe to call often — it no-ops when challenges are current.
+    func refreshDailyChallengesIfNeeded() {
+        if dailyChallenges.isEmpty || dailyChallenges.contains(where: { $0.isExpired }) {
+            generateDailyChallenges()
+        }
+    }
+
     func updateChallengeProgress(type: ChallengeType, value: Int = 1) {
+        // Don't credit progress against a stale (expired) challenge set.
+        refreshDailyChallengesIfNeeded()
         for index in dailyChallenges.indices {
             if dailyChallenges[index].type == type && !dailyChallenges[index].isCompleted {
                 dailyChallenges[index].currentValue = min(dailyChallenges[index].currentValue + value, dailyChallenges[index].targetValue)

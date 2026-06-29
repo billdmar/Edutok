@@ -270,4 +270,24 @@ struct EdutokTests {
     @Test func unknownFlashcardTypeDefaultsToQuestion() {
         #expect(TopicManager.flashcardType(from: "gibberish") == .question)
     }
+
+    // MARK: - Daily challenge expiry
+
+    @Test func challengeWithFutureExpiryIsNotExpired() {
+        let challenge = DailyChallenge(
+            title: "T", description: "D", targetValue: 5, currentValue: 0,
+            xpReward: 50, isCompleted: false, type: .cardsCompleted,
+            expiresAt: Date().addingTimeInterval(3600)
+        )
+        #expect(!challenge.isExpired)
+    }
+
+    @Test func challengeWithPastExpiryIsExpired() {
+        let challenge = DailyChallenge(
+            title: "T", description: "D", targetValue: 5, currentValue: 0,
+            xpReward: 50, isCompleted: false, type: .cardsCompleted,
+            expiresAt: Date().addingTimeInterval(-3600)
+        )
+        #expect(challenge.isExpired)
+    }
 }
