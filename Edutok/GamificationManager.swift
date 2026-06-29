@@ -135,7 +135,7 @@ class GamificationManager: ObservableObject {
         shouldShowAchievement = true
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
             self.shouldShowAchievement = false
         }
     }
@@ -170,7 +170,7 @@ class GamificationManager: ObservableObject {
         addParticleEffect(.achievement)
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
             self.shouldShowMysteryBox = false
         }
 
@@ -228,7 +228,7 @@ class GamificationManager: ObservableObject {
         addParticleEffect(.achievement)
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
             self.shouldShowAchievement = false
         }
 
@@ -259,7 +259,7 @@ class GamificationManager: ObservableObject {
             recentXPGains.append(xpEvent)
 
             // Remove after animation
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
                 if let index = self.recentXPGains.firstIndex(where: { $0.id == xpEvent.id }) {
                     self.recentXPGains.remove(at: index)
                 }
@@ -367,7 +367,7 @@ class GamificationManager: ObservableObject {
         addParticleEffect(.levelUp)
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
             self.shouldShowLevelUp = false
         }
     }
@@ -379,7 +379,7 @@ class GamificationManager: ObservableObject {
             let data = try JSONEncoder().encode(userProgress)
             UserDefaults.standard.set(data, forKey: userDefaultsKey)
         } catch {
-            print("Error saving user progress: \(error)")
+            AppLog.error("Error saving user progress: \(error)", category: .persistence)
         }
     }
 
@@ -389,7 +389,7 @@ class GamificationManager: ObservableObject {
         do {
             userProgress = try JSONDecoder().decode(UserProgress.self, from: data)
         } catch {
-            print("Error loading user progress: \(error)")
+            AppLog.error("Error loading user progress: \(error)", category: .persistence)
             userProgress = UserProgress() // Reset to default
         }
     }

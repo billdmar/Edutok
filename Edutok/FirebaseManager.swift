@@ -181,7 +181,7 @@ class FirebaseManager: ObservableObject {
                 currentUser = newUser
             }
         } catch {
-            print("Error loading/creating user: \(error)")
+            AppLog.error("Error loading/creating user: \(error)", category: .auth)
 
             // Create a local user if database fails
             currentUser = AppUser(

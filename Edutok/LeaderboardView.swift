@@ -380,7 +380,7 @@ struct LeaderboardView: View {
                     isLoading = false
                 }
             } catch {
-                print("Error loading leaderboard: \(error)")
+                AppLog.error("Error loading leaderboard: \(error)", category: .network)
                 await MainActor.run {
                     loadError = true   // distinguish "couldn't load" from "no data yet"
                     isLoading = false
@@ -395,7 +395,7 @@ struct LeaderboardView: View {
             leaderboardEntries = entries
             loadError = false
         } catch {
-            print("Error refreshing leaderboard: \(error)")
+            AppLog.error("Error refreshing leaderboard: \(error)", category: .network)
             // Only surface an error if we have nothing to show; otherwise keep stale data.
             if leaderboardEntries.isEmpty { loadError = true }
         }
