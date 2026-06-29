@@ -18,8 +18,36 @@ struct Flashcard: Identifiable, Codable {
     var lastReviewedAt: Date?  // Most recent spaced-repetition review (nil = never reviewed)
     var reviewCount: Int = 0   // Number of completed review sessions for this card
 
+    init(type: FlashcardType, question: String, answer: String,
+         isUnderstood: Bool = false, isBookmarked: Bool = false, imageURL: String? = nil,
+         lastReviewedAt: Date? = nil, reviewCount: Int = 0) {
+        self.type = type
+        self.question = question
+        self.answer = answer
+        self.isUnderstood = isUnderstood
+        self.isBookmarked = isBookmarked
+        self.imageURL = imageURL
+        self.lastReviewedAt = lastReviewedAt
+        self.reviewCount = reviewCount
+    }
+
     enum CodingKeys: String, CodingKey {
         case type, question, answer, isUnderstood, isBookmarked, imageURL, lastReviewedAt, reviewCount
+    }
+
+    // Custom decoder so newly-added fields (reviewCount, lastReviewedAt) tolerate older
+    // persisted JSON that predates them. Without this, a missing non-optional key throws
+    // and `TopicManager.loadSavedTopics` would silently wipe a returning user's topics.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        type = try c.decode(FlashcardType.self, forKey: .type)
+        question = try c.decode(String.self, forKey: .question)
+        answer = try c.decode(String.self, forKey: .answer)
+        isUnderstood = try c.decodeIfPresent(Bool.self, forKey: .isUnderstood) ?? false
+        isBookmarked = try c.decodeIfPresent(Bool.self, forKey: .isBookmarked) ?? false
+        imageURL = try c.decodeIfPresent(String.self, forKey: .imageURL)
+        lastReviewedAt = try c.decodeIfPresent(Date.self, forKey: .lastReviewedAt)
+        reviewCount = try c.decodeIfPresent(Int.self, forKey: .reviewCount) ?? 0
     }
 }
 

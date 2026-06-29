@@ -354,4 +354,30 @@ struct EdutokTests {
         let result = ReviewScheduler.dueCards(from: [due, notDue, notUnderstood], asOf: now)
         #expect(result.count == 1)
     }
+
+    // MARK: - Flashcard backward-compatible decoding
+
+    @Test func decodesLegacyFlashcardJSONWithoutReviewFields() throws {
+        // A returning user's saved card predates lastReviewedAt/reviewCount. Decoding must
+        // NOT throw (a throw would wipe all saved topics in loadSavedTopics' catch block).
+        let legacy = """
+        {"type":"question","question":"Q","answer":"A","isUnderstood":true,"isBookmarked":false}
+        """.data(using: .utf8)!
+        let card = try JSONDecoder().decode(Flashcard.self, from: legacy)
+        #expect(card.question == "Q")
+        #expect(card.isUnderstood)        // preserved from old data
+        #expect(card.reviewCount == 0)    // defaulted, not thrown
+        #expect(card.lastReviewedAt == nil)
+    }
+
+    @Test func flashcardRoundTripsThroughCodable() throws {
+        var original = Flashcard(type: .definition, question: "Q", answer: "A")
+        original.isUnderstood = true
+        original.reviewCount = 3
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(Flashcard.self, from: data)
+        #expect(decoded.question == "Q")
+        #expect(decoded.isUnderstood)
+        #expect(decoded.reviewCount == 3)
+    }
 }
