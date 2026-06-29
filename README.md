@@ -33,7 +33,11 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 - **Leaderboard** — Compete with other learners on a global leaderboard.
 - **Streak calendar** — Visualize learning consistency over time.
 - **Local notifications** — Reminders to keep your streak alive.
-- **Accessibility** — Respects Reduce Motion, labels controls for VoiceOver, and uses ≥44 pt tap targets.
+- **Accessibility** — Respects Reduce Motion, labels controls for VoiceOver (the swipe-feed
+  actions are exposed as VoiceOver actions so the feed is fully navigable without sight),
+  scales text with Dynamic Type, and uses ≥44 pt tap targets.
+- **Smooth image feed** — Card photos are cached as decoded images, so scrolling back to a
+  card reuses it instead of re-downloading.
 
 ## Tech stack
 
@@ -104,16 +108,21 @@ A few choices worth calling out:
 
 ## Testing
 
-Core domain logic is covered by **30 unit tests** in `EdutokTests`, exercising the pure,
+Core domain logic is covered by **45 unit tests** in `EdutokTests`, exercising the pure,
 Firebase-free logic independently of the UI:
 
 - **XP / leveling** — thresholds, level-up detection, in-level progress.
 - **Streaks** (`StreakCalculator`) — single-day vs. consecutive-day runs, gap resets, and the
   regression test that many same-day events advance the streak by **one**, not N.
+- **Spaced repetition** (`ReviewScheduler`) — due/not-due across the interval schedule.
 - **Leaderboard ranking** — descending sort, 1-based ranks, current-user flagging.
+- **Networking** (`GeminiClient`) — success, HTTP-error, empty-response, and decode-failure
+  paths, exercised against a `URLProtocol` stub (no real network).
 - **LLM JSON sanitization** (`LLMJSON.extractJSONArray`) — markdown-fence stripping,
   prose-wrapped responses, smart-quote normalization.
-- **Mystery-box reward ranges** and topic-progress percentages.
+- **Backward-compatible decoding**, mystery-box reward ranges, and topic-progress percentages.
+
+Style is enforced by **SwiftLint** (config tuned for SwiftUI; runs as its own CI job).
 
 Run them with:
 

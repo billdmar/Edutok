@@ -156,6 +156,11 @@ and appends the next batch, with the same fallback behavior.
 > `Edutok/Secrets.swift`, which is **gitignored** and supplied per developer (CI
 > writes a non-functional stub so the project compiles — see below).
 
+> **Notifications.** Local-notification scheduling (study reminders, level-up
+> encouragement, streak warnings) lives in a small stateless `NotificationScheduler`;
+> `GamificationManager` composes it rather than owning `UNUserNotificationCenter` directly,
+> keeping the reward manager free of notification plumbing.
+
 ## Image fetching (Unsplash + Gemini keywords)
 
 `ImageManager` (`.shared`, `@MainActor`) resolves a relevant image URL per card and
@@ -171,6 +176,11 @@ caches results in two bounded `NSCache`s (`countLimit = 500` each):
    (`generateDiverseImageForFlashcard(question:topic:variation:)`).
 3. Non-200 responses (401 invalid key, 403 rate-limited, etc.) and decode failures
    return `nil`, in which case the card simply shows its gradient placeholder.
+
+**Decoded-image cache.** `ImageManager.image(for:)` downloads and decodes the photo for a
+URL **off the main thread** (`Task.detached`) and stores the resulting `UIImage` in a bounded
+`NSCache<NSString, UIImage>`. `AsyncImageLoader` routes through it, so a card scrolling back
+into view reuses the cached image instead of re-downloading and re-decoding it.
 
 ## Firebase Auth + Firestore: data model & sync
 
