@@ -10,6 +10,8 @@ struct SidebarView: View {
     #endif
     @State private var showCalendar = false  // Add this for calendar access
     @State private var showPhase1Dashboard = false // Add this for Phase 1 Dashboard
+    @State private var showBookmarks = false
+    @State private var showSettings = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -329,6 +331,16 @@ struct SidebarView: View {
                         )
                     }
 
+                    // Saved cards (bookmarks)
+                    SidebarActionRow(icon: "bookmark.fill", iconColor: .pink, title: "Saved Cards") {
+                        showBookmarks = true
+                    }
+
+                    // Settings (account, sign out, delete)
+                    SidebarActionRow(icon: "gearshape.fill", iconColor: .white.opacity(0.9), title: "Settings") {
+                        showSettings = true
+                    }
+
                     // Debug tools button — DEBUG builds only; never ships in Release.
                     #if DEBUG
                     Button(action: {
@@ -402,12 +414,54 @@ struct SidebarView: View {
             DebugView()
         }
         #endif
+        .sheet(isPresented: $showBookmarks) {
+            BookmarksView()
+                .environmentObject(topicManager)
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+                .environmentObject(gamificationManager)
+        }
         .fullScreenCover(isPresented: $showCalendar) {
             StandaloneCalendarView(isShowing: $showCalendar)
         }
         .sheet(isPresented: $showPhase1Dashboard) {
             Phase1DashboardView(gamificationManager: gamificationManager)
         }
+    }
+}
+
+/// A footer menu row in the sidebar (icon + title + chevron) with a tap action.
+struct SidebarActionRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(iconColor)
+                Text(title)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white.opacity(0.9))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            .padding(.horizontal, 15)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(0.08))
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 1))
+            )
+        }
+        .accessibilityLabel(title)
     }
 }
 
@@ -508,7 +562,10 @@ struct TopicRowView: View {
                     .padding(8)
                     .background(Color.red.opacity(0.1))
                     .clipShape(Circle())
+                    .frame(width: 44, height: 44) // ≥44pt accessible tap target
+                    .contentShape(Rectangle())
             }
+            .accessibilityLabel("Delete \(topic.title)")
         }
         .alert("Delete Topic", isPresented: $showDeleteAlert) {
             Button("Cancel", role: .cancel) { }

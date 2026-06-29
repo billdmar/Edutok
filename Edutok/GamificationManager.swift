@@ -434,7 +434,6 @@ class GamificationManager: ObservableObject {
             if isFirstTry {
                 awardXP(.perfectCard, animated: false)
                 totalXP += XPReward.perfectCard.rawValue
-                checkAchievement(.perfectionist)
             }
 
             // Speed bonus for answers under 5 seconds
@@ -464,8 +463,7 @@ class GamificationManager: ObservableObject {
             updateChallengeProgress(type: .correctAnswers)
         }
 
-        // Check achievements
-        checkAchievements()
+        // Check achievements (single source of truth — the enhanced system).
         checkEnhancedAchievements()
 
         // Add particle effects
@@ -474,79 +472,6 @@ class GamificationManager: ObservableObject {
         }
 
         saveProgress()
-    }
-
-    // MARK: - Achievement System
-
-    func checkAchievements() {
-        let hour = Calendar.current.component(.hour, from: Date())
-
-        // Check all achievements
-        if userProgress.totalCardsCompleted == 1 {
-            unlockAchievement(.firstCard)
-        }
-
-        if userProgress.totalCardsCompleted >= 100 {
-            unlockAchievement(.scholar)
-        }
-
-        if hour >= 23 || hour <= 5 {
-            unlockAchievement(.nightOwl)
-        }
-
-        // Add more achievement checks as needed
-    }
-
-    func checkAchievement(_ achievement: Achievement) {
-        guard !userProgress.achievementsUnlocked.contains(achievement.rawValue) else { return }
-
-        let shouldUnlock: Bool
-
-        switch achievement {
-        case .perfectionist:
-            // Count perfect cards (this would need tracking in actual implementation)
-            shouldUnlock = userProgress.totalCorrectAnswers >= 25 // Simplified
-        case .explorer:
-            // This would need topic tracking
-            shouldUnlock = false // Implement when topic tracking is added
-        case .speedDemon:
-            // This would need session tracking
-            shouldUnlock = false // Implement when session tracking is added
-        default:
-            shouldUnlock = false
-        }
-
-        if shouldUnlock {
-            unlockAchievement(achievement)
-        }
-    }
-
-    private func unlockAchievement(_ achievement: Achievement) {
-        guard !userProgress.achievementsUnlocked.contains(achievement.rawValue) else { return }
-
-        userProgress.achievementsUnlocked.append(achievement.rawValue)
-        newAchievement = CustomAchievement(
-            title: achievement.title,
-            description: achievement.description,
-            xpReward: achievement.xpReward,
-            emoji: achievement.emoji
-        )
-        shouldShowAchievement = true
-
-        // Award XP for achievement
-        let didLevelUp = userProgress.addXP(achievement.xpReward)
-        if didLevelUp {
-            showLevelUpAnimation()
-        }
-
-        // Add celebration particle effect
-        addParticleEffect(.achievement)
-        Task {
-            await FirebaseManager.shared.trackAchievement(achievement.rawValue)
-        }
-
-        saveProgress()
-
     }
 
     // MARK: - Particle Effects

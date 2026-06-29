@@ -26,19 +26,16 @@ class ImageManager: ObservableObject {
         return cache
     }() // Cache for specific question-image pairs
 
+    private let geminiClient = GeminiClient()
+
     /// Asks Gemini for specific, visual search keywords describing the question.
     /// Always returns a usable string: on any failure (bad URL, non-200, decode/network
     /// error) it returns a fallback derived from the topic and question text.
     func generateImageKeywords(for question: String, topic: String) async -> String {
         // Enhanced fallback that includes question content for more variety.
-        // Computed up front so any early-exit path can return it.
+        // Computed up front so any failure path can return it.
         let fallbackKeywords = "\(topic), \(question.prefix(50))".replacingOccurrences(of: "?", with: "").replacingOccurrences(of: "What", with: "").replacingOccurrences(of: "How", with: "").replacingOccurrences(of: "Why", with: "")
 
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=\(Secrets.geminiAPIKey)") else {
-            return fallbackKeywords
-        }
-
-        // Create a more specific and varied prompt for unique images
         let prompt = """
         Generate 3-4 highly specific and visual image search keywords for this educational flashcard question.
         Topic: \(topic)
@@ -52,59 +49,15 @@ class ImageManager: ObservableObject {
         Example format: "DNA double helix structure, molecular biology laboratory, genetic code visualization"
         """
 
-        let requestBody: [String: Any] = [
-            "contents": [
-                [
-                    "parts": [
-                        ["text": prompt]
-                    ]
-                ]
-            ],
-            "generationConfig": [
-                "temperature": 0.7, // Increased temperature for more variety
-                "maxOutputTokens": 100
-            ]
-        ]
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 20
-
         do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-            // Send the POST `request` we just built (not a bare GET to `url`).
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            // Fall through to the keyword fallback on any non-200 response.
-            if (response as? HTTPURLResponse)?.statusCode != 200 {
-                return fallbackKeywords
-            }
-
-            struct GeminiResponse: Codable {
-                let candidates: [Candidate]
-                struct Candidate: Codable {
-                    let content: Content
-                    struct Content: Codable {
-                        let parts: [Part]
-                        struct Part: Codable {
-                            let text: String
-                        }
-                    }
-                }
-            }
-
-            let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
-            if let keywords = geminiResponse.candidates.first?.content.parts.first?.text {
-                return keywords.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
+            let keywords = try await geminiClient.generateText(prompt: prompt, maxOutputTokens: 100)
+            return keywords.isEmpty ? fallbackKeywords : keywords
         } catch {
             #if DEBUG
             print("Error generating keywords: \(error)")
             #endif
+            return fallbackKeywords
         }
-
-        return fallbackKeywords
     }
 
     /// Searches Unsplash for the given keywords and returns a small-resolution image URL,

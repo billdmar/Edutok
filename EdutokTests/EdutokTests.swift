@@ -231,4 +231,43 @@ struct EdutokTests {
         #expect(ranked.count == 1)
         #expect(ranked[0].isCurrentUser == false)
     }
+
+    // MARK: - LLM JSON extraction
+
+    @Test func extractsArrayFromMarkdownFences() {
+        let raw = "```json\n[{\"a\":1}]\n```"
+        #expect(LLMJSON.extractJSONArray(from: raw) == "[{\"a\":1}]")
+    }
+
+    @Test func extractsArrayFromProseWrappedResponse() {
+        let raw = "Here are your cards:\n[{\"x\":1}]\nHope that helps!"
+        #expect(LLMJSON.extractJSONArray(from: raw) == "[{\"x\":1}]")
+    }
+
+    @Test func leavesCleanArrayUnchanged() {
+        let raw = "[{\"q\":\"a\"}]"
+        #expect(LLMJSON.extractJSONArray(from: raw) == raw)
+    }
+
+    @Test func normalizesSmartQuotes() {
+        let raw = "[{\u{201C}q\u{201D}:\u{2018}a\u{2019}}]"
+        #expect(LLMJSON.extractJSONArray(from: raw) == "[{\"q\":'a'}]")
+    }
+
+    @Test func returnsTrimmedTextWhenNoArrayPresent() {
+        #expect(LLMJSON.extractJSONArray(from: "  no json here  ") == "no json here")
+    }
+
+    // MARK: - Flashcard type mapping
+
+    @Test func mapsKnownFlashcardTypes() {
+        #expect(TopicManager.flashcardType(from: "definition") == .definition)
+        #expect(TopicManager.flashcardType(from: "True/False") == .truefalse)
+        #expect(TopicManager.flashcardType(from: "fill_in_blank") == .fillblank)
+        #expect(TopicManager.flashcardType(from: "question") == .question)
+    }
+
+    @Test func unknownFlashcardTypeDefaultsToQuestion() {
+        #expect(TopicManager.flashcardType(from: "gibberish") == .question)
+    }
 }

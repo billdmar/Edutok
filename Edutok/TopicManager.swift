@@ -19,6 +19,7 @@ class TopicManager: ObservableObject {
     @Published var currentTopic: Topic?
 
     private let userDefaultsKey = "SavedTopics"
+    private let geminiClient = GeminiClient()
 
     /// Generates the first batch of flashcards for a new topic, attaches a unique image
     /// to each card, then saves and activates the topic. Falls back to mock cards on error.
@@ -154,69 +155,18 @@ class TopicManager: ObservableObject {
         }
     }
 
-    /// Calls the Gemini API for one batch of flashcards and decodes the response.
-    /// Throws `APIError.invalidResponse` on a bad URL, non-200 status, missing
-    /// candidates, or JSON that cannot be parsed, so the caller can fall back to mocks.
+    /// Calls Gemini (via `GeminiClient`) for one batch of flashcards and decodes the
+    /// response. Throws a typed `APIError` on any failure so the caller falls back to mocks.
     private func fetchFlashcardsFromGemini(topic: String, batchNumber: Int) async throws -> [Flashcard] {
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=\(Secrets.geminiAPIKey)") else {
-            // Malformed URL: surface as an API error so callers fall back to mock data.
-            throw APIError.invalidResponse
-        }
-
         let prompt = createEnhancedFactsPrompt(for: topic, batchNumber: batchNumber)
+        let rawText = try await geminiClient.generateText(
+            prompt: prompt,
+            maxOutputTokens: 3000,
+            temperature: 0.7,
+            topP: 0.8
+        )
 
-        let requestBody: [String: Any] = [
-            "contents": [
-                [
-                    "parts": [
-                        ["text": prompt]
-                    ]
-                ]
-            ],
-            "generationConfig": [
-                "temperature": 0.7,
-                "maxOutputTokens": 3000,
-                "topP": 0.8
-            ]
-        ]
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 20
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        // Surface non-200 responses as an API error so callers fall back to mock data.
-        if (response as? HTTPURLResponse)?.statusCode != 200 {
-            throw APIError.invalidResponse
-        }
-
-        struct GeminiResponse: Codable {
-            let candidates: [Candidate]
-
-            struct Candidate: Codable {
-                let content: Content
-
-                struct Content: Codable {
-                    let parts: [Part]
-
-                    struct Part: Codable {
-                        let text: String
-                    }
-                }
-            }
-        }
-
-        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
-
-        guard let firstCandidate = geminiResponse.candidates.first,
-              let firstPart = firstCandidate.content.parts.first else {
-            throw APIError.invalidResponse
-        }
-
-        let jsonText = cleanJSONResponse(firstPart.text)
+        let jsonText = LLMJSON.extractJSONArray(from: rawText)
 
         struct FlashcardData: Codable {
             let type: String
@@ -225,39 +175,38 @@ class TopicManager: ObservableObject {
         }
 
         guard let jsonData = jsonText.data(using: .utf8) else {
-            // Could not encode the cleaned text as UTF-8; treat as an invalid response.
-            throw APIError.invalidResponse
+            throw APIError.decoding("response was not valid UTF-8")
         }
 
         do {
             let flashcardData = try JSONDecoder().decode([FlashcardData].self, from: jsonData)
 
-            return flashcardData.compactMap { data in
-                let normalizedType = data.type.lowercased().replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "_", with: "")
-
-                let flashcardType: FlashcardType?
-                switch normalizedType {
-                case "definition":
-                    flashcardType = .definition
-                case "question":
-                    flashcardType = .question
-                case "truefalse", "true/false":
-                    flashcardType = .truefalse
-                case "fillinblank", "fillblank", "fill-in-blank", "fillintheblank":
-                    flashcardType = .fillblank
-                default:
-                    flashcardType = .question // Default fallback
-                }
-
-                guard let type = flashcardType else { return nil }
-                return Flashcard(type: type, question: data.question, answer: data.answer)
+            return flashcardData.map { data in
+                Flashcard(type: Self.flashcardType(from: data.type),
+                          question: data.question,
+                          answer: data.answer)
             }
         } catch {
             #if DEBUG
             print("JSON parsing error: \(error)")
             print("Received JSON: \(jsonText)")
             #endif
-            throw APIError.invalidResponse
+            throw APIError.decoding(error.localizedDescription)
+        }
+    }
+
+    /// Maps a model-provided type string onto the `FlashcardType` enum, defaulting to
+    /// `.question` for anything unrecognized. `nonisolated` so it's a pure helper callable
+    /// off the main actor (and from synchronous tests).
+    nonisolated static func flashcardType(from raw: String) -> FlashcardType {
+        let normalized = raw.lowercased()
+            .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "_", with: "")
+        switch normalized {
+        case "definition": return .definition
+        case "truefalse", "true/false": return .truefalse
+        case "fillinblank", "fillblank", "fill-in-blank", "fillintheblank": return .fillblank
+        default: return .question
         }
     }
 
@@ -370,30 +319,6 @@ class TopicManager: ObservableObject {
         }
     }
 
-    /// Strips markdown code fences and normalizes smart quotes from the model's reply,
-    /// then narrows the text to the outermost `[ ... ]` JSON array so it can be decoded.
-    private func cleanJSONResponse(_ text: String) -> String {
-        var cleaned = text
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "```json", with: "")
-            .replacingOccurrences(of: "```", with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // Replace smart quotes with regular quotes
-        cleaned = cleaned.replacingOccurrences(of: "\u{201C}", with: "\"") // Left double quote
-        cleaned = cleaned.replacingOccurrences(of: "\u{201D}", with: "\"") // Right double quote
-        cleaned = cleaned.replacingOccurrences(of: "\u{2018}", with: "'")  // Left single quote
-        cleaned = cleaned.replacingOccurrences(of: "\u{2019}", with: "'")  // Right single quote
-
-        // Find the JSON array bounds
-        if let startIndex = cleaned.firstIndex(of: "["),
-           let endIndex = cleaned.lastIndex(of: "]") {
-            return String(cleaned[startIndex...endIndex])
-        }
-
-        return cleaned
-    }
-
     /// Builds a fixed set of topic-templated flashcards used as an offline fallback
     /// when the Gemini request fails, so the user always sees a full deck.
     private func createEnhancedMockFlashcards(for topic: String, batchNumber: Int = 1) -> [Flashcard] {
@@ -464,6 +389,18 @@ class TopicManager: ObservableObject {
         }
     }
 
+    /// All bookmarked cards across every saved topic, paired with the topic title and
+    /// the card's index within that topic (so callers can un-bookmark via `toggleBookmark`).
+    var bookmarkedCards: [BookmarkedCard] {
+        savedTopics.flatMap { topic in
+            topic.flashcards.enumerated().compactMap { index, card in
+                card.isBookmarked
+                    ? BookmarkedCard(card: card, topicId: topic.id, topicTitle: topic.title, cardIndex: index)
+                    : nil
+            }
+        }
+    }
+
     func toggleBookmark(topicId: UUID, cardIndex: Int) {
         guard let topicIndex = savedTopics.firstIndex(where: { $0.id == topicId }),
               cardIndex < savedTopics[topicIndex].flashcards.count else { return }
@@ -501,9 +438,4 @@ class TopicManager: ObservableObject {
             savedTopics = []
         }
     }
-}
-
-enum APIError: Error {
-    case invalidResponse
-    case noData
 }
