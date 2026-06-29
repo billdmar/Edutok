@@ -21,6 +21,62 @@ struct HeartButtonStyle: ButtonStyle {
     }
 }
 
+/// One of the on-card action buttons (Skip / Got it). Both shared the same ~85-line chrome
+/// (gradient capsule + stroke + shadow + bounce-scale + 3D-flip sync) differing only in
+/// icon/label/colors/effect/action — extracted here to remove that duplication.
+struct CardActionButton: View {
+    enum Effect { case bounce, pulse }
+
+    let icon: String
+    let label: String
+    let symbolEffect: Effect
+    let colors: [Color]
+    let shadowColor: Color
+    let isCurrentCard: Bool
+    let showAnswer: Bool
+    let cardRotation: Double
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                symbol
+                Text(label)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(LinearGradient(gradient: Gradient(colors: colors),
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .overlay(RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.white.opacity(0.4), lineWidth: 2))
+                    .shadow(color: shadowColor.opacity(0.5), radius: 8, x: 0, y: 4)
+            )
+        }
+        .scaleEffect(isCurrentCard ? 1.0 : 0.8)
+        .buttonStyle(BouncyButtonStyle())
+        .rotation3DEffect(
+            .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
+            axis: (x: 0, y: 1, z: 0)
+        )
+        .accessibilityLabel(label)
+    }
+
+    @ViewBuilder private var symbol: some View {
+        let image = Image(systemName: icon).font(.title2).foregroundColor(.white)
+        switch symbolEffect {
+        case .bounce:
+            image.symbolEffect(.bounce, options: .repeat(.continuous).speed(0.5))
+        case .pulse:
+            image.symbolEffect(.pulse, options: .repeat(.continuous).speed(0.7))
+        }
+    }
+}
+
 struct FlashcardView: View {
     @EnvironmentObject var topicManager: TopicManager
     @EnvironmentObject var gamificationManager: GamificationManager
@@ -454,93 +510,30 @@ struct FlashcardView: View {
                         )
                         .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: showAnswer)
 
-                        // Action buttons on card
+                        // Action buttons on card (shared chrome via CardActionButton)
                         HStack(spacing: 30) {
-                            // Skip button with enhanced animations
-                                                        Button(action: {
-                                                            nextCard()
-                                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                                            impactFeedback.impactOccurred()
-                                                        }) {
-                                                            VStack(spacing: 6) {
-                                                                                                Image(systemName: "arrow.right.circle.fill")
-                                                                                                    .font(.title2)
-                                                                                                    .foregroundColor(.white)
-                                                                                                    .symbolEffect(.bounce, options: .repeat(.continuous).speed(0.5))
-
-                                                                                                Text("Skip")
-                                                                                                    .font(.caption)
-                                                                                                    .fontWeight(.semibold)
-                                                                                                    .foregroundColor(.white.opacity(0.8))
-                                                                                            }
-                                                                                            .padding(.horizontal, 20)
-                                                                                            .padding(.vertical, 12)
-                                                                                            .background(
-                                                                                                RoundedRectangle(cornerRadius: 20)
-                                                                                                    .fill(
-                                                                                                        LinearGradient(
-                                                                                                            gradient: Gradient(colors: [Color.orange, Color.red.opacity(0.8)]),
-                                                                                                            startPoint: .topLeading,
-                                                                                                            endPoint: .bottomTrailing
-                                                                                                        )
-                                                                                                    )
-                                                                                                    .overlay(
-                                                                                                        RoundedRectangle(cornerRadius: 20)
-                                                                                                            .stroke(Color.white.opacity(0.4), lineWidth: 2)
-                                                                                                    )
-                                                                                                    .shadow(color: .orange.opacity(0.5), radius: 8, x: 0, y: 4)
-                                                                                            )
+                            CardActionButton(
+                                icon: "arrow.right.circle.fill", label: "Skip",
+                                symbolEffect: .bounce,
+                                colors: [Color.orange, Color.red.opacity(0.8)],
+                                shadowColor: .orange,
+                                isCurrentCard: isCurrentCard, showAnswer: showAnswer, cardRotation: cardRotation
+                            ) {
+                                nextCard()
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             }
-                            .scaleEffect(isCurrentCard ? 1.0 : 0.8)
-                            .buttonStyle(BouncyButtonStyle())
-                            .rotation3DEffect(
-                                .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
-                                axis: (x: 0, y: 1, z: 0)
-                            )
 
-                            // Got it button
-                            Button(action: {
+                            CardActionButton(
+                                icon: "checkmark.circle.fill", label: "Got it",
+                                symbolEffect: .pulse,
+                                colors: [Color.green, Color.mint],
+                                shadowColor: .green,
+                                isCurrentCard: isCurrentCard, showAnswer: showAnswer, cardRotation: cardRotation
+                            ) {
                                 markAsUnderstood()
                                 nextCard()
-
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
-                                impactFeedback.impactOccurred()
-                            }) {
-                                VStack(spacing: 6) {
-                                                                    Image(systemName: "checkmark.circle.fill")
-                                                                        .font(.title2)
-                                                                        .foregroundColor(.white)
-                                                                        .symbolEffect(.pulse, options: .repeat(.continuous).speed(0.7))
-
-                                                                    Text("Got it")
-                                                                        .font(.caption)
-                                                                        .fontWeight(.semibold)
-                                                                        .foregroundColor(.white.opacity(0.8))
-                                                                }
-                                                                .padding(.horizontal, 20)
-                                                                .padding(.vertical, 12)
-                                                                .background(
-                                                                    RoundedRectangle(cornerRadius: 20)
-                                                                        .fill(
-                                                                            LinearGradient(
-                                                                                gradient: Gradient(colors: [Color.green, Color.mint]),
-                                                                                startPoint: .topLeading,
-                                                                                endPoint: .bottomTrailing
-                                                                            )
-                                                                        )
-                                                                        .overlay(
-                                                                            RoundedRectangle(cornerRadius: 20)
-                                                                                .stroke(Color.white.opacity(0.4), lineWidth: 2)
-                                                                        )
-                                                                        .shadow(color: .green.opacity(0.5), radius: 8, x: 0, y: 4)
-                                                                )
+                                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                             }
-                            .scaleEffect(isCurrentCard ? 1.0 : 0.8)
-                            .buttonStyle(BouncyButtonStyle())
-                            .rotation3DEffect(
-                                .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
-                                axis: (x: 0, y: 1, z: 0)
-                            )
                         }
                         .padding(.horizontal, 25)
                     }
