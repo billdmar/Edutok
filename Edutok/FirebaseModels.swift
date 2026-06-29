@@ -103,6 +103,32 @@ struct LeaderboardEntry: Identifiable {
     }
 }
 
+/// A raw leaderboard row as read from Firestore, before sorting/ranking.
+struct LeaderboardRow {
+    let userId: String
+    let username: String
+    let value: Int
+}
+
+extension LeaderboardEntry {
+    /// Sorts rows by descending value and assigns 1-based ranks, flagging the current
+    /// user. Pure and Firebase-free so it can be unit-tested in isolation.
+    static func ranked(from rows: [LeaderboardRow], currentUserId: String?) -> [LeaderboardEntry] {
+        rows
+            .sorted { $0.value > $1.value }
+            .enumerated()
+            .map { index, row in
+                LeaderboardEntry(
+                    userId: row.userId,
+                    username: row.username,
+                    value: row.value,
+                    rank: index + 1,
+                    isCurrentUser: row.userId == currentUserId
+                )
+            }
+    }
+}
+
 // MARK: - Calendar Event Models
 struct CalendarDay: Identifiable {
     let id = UUID()

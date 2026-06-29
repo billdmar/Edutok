@@ -1,0 +1,61 @@
+# SwiftLint configuration for Edutok.
+#
+# Tuned for a SwiftUI codebase: the long view bodies, nested view builders, and
+# trailing-closure call sites that SwiftUI encourages are not real smells, so the
+# size/line-length/trailing-closure rules are relaxed. Genuinely useful rules
+# (unused declarations, redundant code, complexity) stay on.
+
+included:
+  - Edutok
+  - EdutokTests
+
+excluded:
+  - Edutok/Secrets.swift          # generated/gitignored
+  - "**/.build"
+
+# Long, deeply-nested SwiftUI view bodies are idiomatic — don't treat them as smells.
+disabled_rules:
+  - multiple_closures_with_trailing_closure  # idiomatic in SwiftUI (e.g. Button {} label: {})
+  - trailing_comma                            # multiline literals read fine with trailing commas
+  - todo                                      # documented TODOs are acceptable in a portfolio repo
+
+line_length:
+  warning: 140
+  error: 320          # only catch truly runaway lines; long prompt/mock content strings live here
+  ignores_comments: true
+  ignores_urls: true
+
+# SwiftUI view files are legitimately large; warn generously, never error.
+file_length:
+  warning: 1000
+  error: 2000
+
+type_body_length:
+  warning: 800
+  error: 1200
+
+# SwiftUI `body`-style functions get large; warn but don't fail the build.
+function_body_length:
+  warning: 120
+  error: 400
+
+# A SwiftUI `body` is one big expression; allow deeper nesting than the default.
+function_parameter_count:
+  warning: 8
+  error: 10
+
+cyclomatic_complexity:
+  warning: 20
+  error: 30
+
+# Short names like `id`, `c`, `x`, `y` are common and readable in this code.
+identifier_name:
+  min_length: 1
+  excluded: [id, x, y, c, vs]
+
+# Opt-in rules that add real value without churn.
+opt_in_rules:
+  - empty_count
+  - first_where
+  - contains_over_filter_count
+  - redundant_nil_coalescing

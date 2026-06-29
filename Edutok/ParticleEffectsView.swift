@@ -54,6 +54,7 @@ struct XPGainView: View {
 struct LevelUpView: View {
     @Binding var isShowing: Bool
     let level: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scale: CGFloat = 0.5
     @State private var rotation: Double = 0
     @State private var sparkleScale: CGFloat = 0
@@ -123,8 +124,11 @@ struct LevelUpView: View {
                 sparkleScale = 1.0
             }
 
-            withAnimation(.linear(duration: 4.0).repeatForever(autoreverses: false)) {
-                rotation = 360
+            // Honor Reduce Motion: skip the continuously spinning sparkle ring.
+            if !reduceMotion {
+                withAnimation(.linear(duration: 4.0).repeatForever(autoreverses: false)) {
+                    rotation = 360
+                }
             }
         }
     }
@@ -135,7 +139,7 @@ struct LevelUpView: View {
             sparkleScale = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
             isShowing = false
         }
     }
@@ -231,7 +235,7 @@ struct AchievementView: View {
             }
 
             // Auto dismiss after 4 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.particleBurst) {
                 dismissAnimation()
             }
         }
@@ -243,7 +247,7 @@ struct AchievementView: View {
             glowOpacity = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
             isShowing = false
         }
     }
@@ -339,7 +343,7 @@ struct CustomAchievementView: View {
             }
 
             // Auto dismiss after 4 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.particleBurst) {
                 dismissAnimation()
             }
         }
@@ -351,7 +355,7 @@ struct CustomAchievementView: View {
             glowOpacity = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
             isShowing = false
         }
     }
@@ -360,6 +364,7 @@ struct CustomAchievementView: View {
 // MARK: - Particle System
 struct ParticleSystemView: View {
     let effect: ParticleEffect
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var particles: [Particle] = []
 
     var body: some View {
@@ -374,6 +379,8 @@ struct ParticleSystemView: View {
             }
         }
         .onAppear {
+            // Honor Reduce Motion: render no flying particles at all.
+            guard !reduceMotion else { return }
             generateParticles()
             animateParticles()
         }

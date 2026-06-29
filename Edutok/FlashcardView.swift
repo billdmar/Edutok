@@ -21,6 +21,62 @@ struct HeartButtonStyle: ButtonStyle {
     }
 }
 
+/// One of the on-card action buttons (Skip / Got it). Both shared the same ~85-line chrome
+/// (gradient capsule + stroke + shadow + bounce-scale + 3D-flip sync) differing only in
+/// icon/label/colors/effect/action — extracted here to remove that duplication.
+struct CardActionButton: View {
+    enum Effect { case bounce, pulse }
+
+    let icon: String
+    let label: String
+    let symbolEffect: Effect
+    let colors: [Color]
+    let shadowColor: Color
+    let isCurrentCard: Bool
+    let showAnswer: Bool
+    let cardRotation: Double
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                symbol
+                Text(label)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(LinearGradient(gradient: Gradient(colors: colors),
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .overlay(RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.white.opacity(0.4), lineWidth: 2))
+                    .shadow(color: shadowColor.opacity(0.5), radius: 8, x: 0, y: 4)
+            )
+        }
+        .scaleEffect(isCurrentCard ? 1.0 : 0.8)
+        .buttonStyle(BouncyButtonStyle())
+        .rotation3DEffect(
+            .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
+            axis: (x: 0, y: 1, z: 0)
+        )
+        .accessibilityLabel(label)
+    }
+
+    @ViewBuilder private var symbol: some View {
+        let image = Image(systemName: icon).font(.title2).foregroundColor(.white)
+        switch symbolEffect {
+        case .bounce:
+            image.symbolEffect(.bounce, options: .repeat(.continuous).speed(0.5))
+        case .pulse:
+            image.symbolEffect(.pulse, options: .repeat(.continuous).speed(0.7))
+        }
+    }
+}
+
 struct FlashcardView: View {
     @EnvironmentObject var topicManager: TopicManager
     @EnvironmentObject var gamificationManager: GamificationManager
@@ -30,12 +86,16 @@ struct FlashcardView: View {
     @State private var showAnswer = false
     @State private var cardRotation: Double = 0
     @State private var showSidebar = false
-    @State private var isTransitioning = false
     @State private var dotIndex = 2 // Start at middle dot (0-4 range)
     @State private var cardTransitionDirection: CardTransitionDirection = .none
     @State private var answerStartTime: Date?
     @State private var hasTrackedCardFlip = false
-    @State private var cardXPAwarded: Set<UUID> = []
+    // Cards whose answer has been viewed (for the one-time "viewed" XP).
+    @State private var cardViewed: Set<UUID> = []
+    // Cards already graded this session (Got it / Again) — grade counts once per card.
+    @State private var cardGraded: Set<UUID> = []
+    // Cards the user marked "Again" (wrong) this session — so a later "Got it" isn't "first try".
+    @State private var cardMarkedWrong: Set<UUID> = []
 
     var body: some View {
         GeometryReader { geometry in
@@ -58,6 +118,11 @@ struct FlashcardView: View {
                     VStack(spacing: 0) {
                         // Header
                         headerView(topic: topic, geometry: geometry)
+
+                        // Offline / sample-cards notice (Gemini was unreachable)
+                        if topic.usingFallback {
+                            fallbackBanner()
+                        }
 
                         // Infinite scroll flashcard stack
                         ZStack {
@@ -148,7 +213,7 @@ struct FlashcardView: View {
                     .zIndex(1000)
                 }
             }
-            .onChange(of: topicManager.currentTopic?.id) { _ in
+            .onChange(of: topicManager.currentTopic?.id) { _, _ in
                 // Reset to the first card whenever the active topic changes,
                 // so currentCardIndex never points past the new topic's bounds.
                 currentCardIndex = 0
@@ -198,6 +263,18 @@ struct FlashcardView: View {
                         .foregroundColor(.white)
                 }
                 .frame(width: 44, height: 44) // Fixed square button
+                .accessibilityLabel("Menu")
+
+                // Share the current card
+                if let card = currentCard {
+                    ShareLink(item: shareText(for: card, topicTitle: topic.title)) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                    }
+                    .frame(width: 44, height: 44)
+                    .accessibilityLabel("Share this card")
+                }
 
                 Spacer()
 
@@ -264,7 +341,7 @@ struct FlashcardView: View {
             // Centered topic title and dots - now in separate layer
             VStack(spacing: 8) {
                 Text(topic.title)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundColor(.white)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
@@ -438,93 +515,32 @@ struct FlashcardView: View {
                         )
                         .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: showAnswer)
 
-                        // Action buttons on card
+                        // Self-grade buttons: "Again" (didn't recall → base XP, breaks streak,
+                        // resurfaces in Review) and "Got it" (recalled → full recall reward).
                         HStack(spacing: 30) {
-                            // Skip button with enhanced animations
-                                                        Button(action: {
-                                                            nextCard()
-                                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                                            impactFeedback.impactOccurred()
-                                                        }) {
-                                                            VStack(spacing: 6) {
-                                                                                                Image(systemName: "arrow.right.circle.fill")
-                                                                                                    .font(.title2)
-                                                                                                    .foregroundColor(.white)
-                                                                                                    .symbolEffect(.bounce, options: .repeat(.continuous).speed(0.5))
-
-                                                                                                Text("Skip")
-                                                                                                    .font(.caption)
-                                                                                                    .fontWeight(.semibold)
-                                                                                                    .foregroundColor(.white.opacity(0.8))
-                                                                                            }
-                                                                                            .padding(.horizontal, 20)
-                                                                                            .padding(.vertical, 12)
-                                                                                            .background(
-                                                                                                RoundedRectangle(cornerRadius: 20)
-                                                                                                    .fill(
-                                                                                                        LinearGradient(
-                                                                                                            gradient: Gradient(colors: [Color.orange, Color.red.opacity(0.8)]),
-                                                                                                            startPoint: .topLeading,
-                                                                                                            endPoint: .bottomTrailing
-                                                                                                        )
-                                                                                                    )
-                                                                                                    .overlay(
-                                                                                                        RoundedRectangle(cornerRadius: 20)
-                                                                                                            .stroke(Color.white.opacity(0.4), lineWidth: 2)
-                                                                                                    )
-                                                                                                    .shadow(color: .orange.opacity(0.5), radius: 8, x: 0, y: 4)
-                                                                                            )
+                            CardActionButton(
+                                icon: "arrow.counterclockwise.circle.fill", label: "Again",
+                                symbolEffect: .bounce,
+                                colors: [Color.orange, Color.red.opacity(0.8)],
+                                shadowColor: .orange,
+                                isCurrentCard: isCurrentCard, showAnswer: showAnswer, cardRotation: cardRotation
+                            ) {
+                                markNeedsReview()
+                                nextCard()
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             }
-                            .scaleEffect(isCurrentCard ? 1.0 : 0.8)
-                            .buttonStyle(BouncyButtonStyle())
-                            .rotation3DEffect(
-                                .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
-                                axis: (x: 0, y: 1, z: 0)
-                            )
 
-                            // Got it button
-                            Button(action: {
+                            CardActionButton(
+                                icon: "checkmark.circle.fill", label: "Got it",
+                                symbolEffect: .pulse,
+                                colors: [Color.green, Color.mint],
+                                shadowColor: .green,
+                                isCurrentCard: isCurrentCard, showAnswer: showAnswer, cardRotation: cardRotation
+                            ) {
                                 markAsUnderstood()
                                 nextCard()
-
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
-                                impactFeedback.impactOccurred()
-                            }) {
-                                VStack(spacing: 6) {
-                                                                    Image(systemName: "checkmark.circle.fill")
-                                                                        .font(.title2)
-                                                                        .foregroundColor(.white)
-                                                                        .symbolEffect(.pulse, options: .repeat(.continuous).speed(0.7))
-
-                                                                    Text("Got it")
-                                                                        .font(.caption)
-                                                                        .fontWeight(.semibold)
-                                                                        .foregroundColor(.white.opacity(0.8))
-                                                                }
-                                                                .padding(.horizontal, 20)
-                                                                .padding(.vertical, 12)
-                                                                .background(
-                                                                    RoundedRectangle(cornerRadius: 20)
-                                                                        .fill(
-                                                                            LinearGradient(
-                                                                                gradient: Gradient(colors: [Color.green, Color.mint]),
-                                                                                startPoint: .topLeading,
-                                                                                endPoint: .bottomTrailing
-                                                                            )
-                                                                        )
-                                                                        .overlay(
-                                                                            RoundedRectangle(cornerRadius: 20)
-                                                                                .stroke(Color.white.opacity(0.4), lineWidth: 2)
-                                                                        )
-                                                                        .shadow(color: .green.opacity(0.5), radius: 8, x: 0, y: 4)
-                                                                )
+                                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                             }
-                            .scaleEffect(isCurrentCard ? 1.0 : 0.8)
-                            .buttonStyle(BouncyButtonStyle())
-                            .rotation3DEffect(
-                                .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
-                                axis: (x: 0, y: 1, z: 0)
-                            )
                         }
                         .padding(.horizontal, 25)
                     }
@@ -564,16 +580,13 @@ struct FlashcardView: View {
                     cardRotation = showAnswer ? 180 : 0
                 }
 
-                // Award XP for revealing answer (only once per card)
-                                if showAnswer && !cardXPAwarded.contains(card.id) {
-                                    cardXPAwarded.insert(card.id)
-                                    let timeToAnswer = answerStartTime?.timeIntervalSinceNow ?? 0
-                                    gamificationManager.awardXPForCardCompletion(
-                                        wasCorrect: true, // Assume correct for now
-                                        isFirstTry: true,
-                                        timeToAnswer: abs(timeToAnswer)
-                                    )
-                                }
+                // Revealing the answer is "viewing" — award a small participation XP once per
+                // card. The real recall reward comes from grading the card (Got it / Again),
+                // so flipping no longer hands out the full correct+perfect combo.
+                if showAnswer && !cardViewed.contains(card.id) {
+                    cardViewed.insert(card.id)
+                    gamificationManager.awardXP(.cardCompleted)
+                }
 
                 // Haptic feedback
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -601,8 +614,9 @@ struct FlashcardView: View {
                         previousCard()
                         let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
                         snapFeedback.impactOccurred()
-                    } else if gesture.translation.width > swipeThreshold * 2 {
-                        // Swipe right - mark as understood
+                    } else if gesture.translation.width > swipeThreshold * 2 && showAnswer {
+                        // Swipe right - mark as understood. Only when the answer has been
+                        // revealed, so "Got it" can't be earned without seeing the card.
                         markAsUnderstood()
                         nextCard()
                         let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
@@ -626,6 +640,54 @@ struct FlashcardView: View {
                 }
             : nil
         )
+        // VoiceOver: the swipe gestures above are invisible to VoiceOver (it intercepts
+        // drags), so expose the same actions explicitly on the current card. The card is
+        // read as one element announcing its question/answer.
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(isCurrentCard ? accessibilityCardLabel(for: card) : Text(""))
+        .accessibilityHint(isCurrentCard ? "Double-tap to flip between question and answer" : "")
+        .accessibilityAddTraits(isCurrentCard ? .isButton : [])
+        .accessibilityActions {
+            if isCurrentCard {
+                Button("Next card") { nextCard() }
+                Button("Previous card") { previousCard() }
+                Button("Got it") { markAsUnderstood(); nextCard() }
+                Button("Review again") { markNeedsReview(); nextCard() }
+                Button(card.isBookmarked ? "Remove bookmark" : "Bookmark this card") { toggleBookmark() }
+            }
+        }
+    }
+
+    /// Shown when the deck came from the offline mock fallback (Gemini unreachable), so the
+    /// user knows these are sample cards rather than freshly AI-generated ones.
+    private func fallbackBanner() -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.caption)
+            Text("Showing sample cards — couldn't reach the AI. Check your connection.")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundColor(.white.opacity(0.9))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.orange.opacity(0.25))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.orange.opacity(0.4), lineWidth: 1))
+        )
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Showing sample cards. Couldn't reach the AI; check your connection.")
+    }
+
+    /// VoiceOver announcement for a card: type + the currently-visible side (Q or A).
+    private func accessibilityCardLabel(for card: Flashcard) -> Text {
+        let side = showAnswer ? "Answer: \(card.answer)" : "Question: \(card.question)"
+        return Text("\(card.type.rawValue.capitalized) flashcard. \(side)")
     }
 
     private func actionOverlayButtons(geometry: GeometryProxy) -> some View {
@@ -697,6 +759,7 @@ struct FlashcardView: View {
                     )
                 }
                 .buttonStyle(HeartButtonStyle())
+                .accessibilityLabel(topicManager.currentTopic?.isLiked == true ? "Liked. Tap to unlike topic" : "Like this topic")
 
                 Spacer()
 
@@ -713,6 +776,16 @@ struct FlashcardView: View {
         guard let topic = topicManager.currentTopic,
               currentCardIndex < topic.flashcards.count else { return nil }
         return topic.flashcards[currentCardIndex]
+    }
+
+    /// Formats a card as shareable text (question + answer + topic), used by `ShareLink`.
+    private func shareText(for card: Flashcard, topicTitle: String) -> String {
+        """
+        \(topicTitle) — learned on Edutok 📚
+
+        Q: \(card.question)
+        A: \(card.answer)
+        """
     }
 
     private func cardTypeIcon(for type: FlashcardType, showAnswer: Bool) -> String {
@@ -755,7 +828,7 @@ struct FlashcardView: View {
         }
 
         // Reset transition direction after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
             cardTransitionDirection = .none
         }
     }
@@ -781,17 +854,38 @@ struct FlashcardView: View {
         }
 
         // Reset transition direction after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
             cardTransitionDirection = .none
         }
     }
 
+    /// "Got it" — the user recalled the card correctly. Awards the real recall XP
+    /// (correct + perfect-if-first-try + speed) and advances the correct-streak. "First try"
+    /// means they didn't mark it "Again" earlier in this session. Graded once per card.
     private func markAsUnderstood() {
         guard let topic = topicManager.currentTopic else { return }
         topicManager.markCardAsUnderstood(topicId: topic.id, cardIndex: currentCardIndex)
 
-        // Award XP for understanding the card
-        gamificationManager.awardXP(.perfectCard)
+        guard let card = currentCard, !cardGraded.contains(card.id) else { return }
+        cardGraded.insert(card.id)
+        let timeToAnswer = answerStartTime.map { abs($0.timeIntervalSinceNow) } ?? .greatestFiniteMagnitude
+        gamificationManager.awardXPForCardCompletion(
+            wasCorrect: true,
+            isFirstTry: !cardMarkedWrong.contains(card.id),
+            timeToAnswer: timeToAnswer
+        )
+    }
+
+    /// "Again" — the user didn't recall the card. Awards base XP only, breaks the
+    /// correct-streak, and flags the card to resurface sooner in Review. Doesn't auto-advance.
+    private func markNeedsReview() {
+        guard let topic = topicManager.currentTopic, let card = currentCard else { return }
+        cardMarkedWrong.insert(card.id)
+        topicManager.resetReview(topicId: topic.id, cardIndex: currentCardIndex)
+
+        guard !cardGraded.contains(card.id) else { return }
+        cardGraded.insert(card.id)
+        gamificationManager.awardXPForCardCompletion(wasCorrect: false, isFirstTry: false, timeToAnswer: 0)
     }
 
     private func toggleBookmark() {
@@ -819,7 +913,7 @@ struct FlashcardView: View {
                 .onAppear {
                     calculateOptimalFontSize()
                 }
-                .onChange(of: text) { _ in
+                .onChange(of: text) { _, _ in
                     calculateOptimalFontSize()
                 }
         }

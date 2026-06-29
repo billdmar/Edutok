@@ -56,7 +56,7 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: topicManager.currentTopic) { topic in
+        .onChange(of: topicManager.currentTopic) { _, topic in
             // Automatically switch to flashcards section when a topic is selected
             if topic != nil {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -104,6 +104,9 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Leaderboard")
+            .accessibilityAddTraits(currentSection == .leaderboard ? [.isButton, .isSelected] : .isButton)
 
             // Main/Learn button (center)
             Button(action: {
@@ -125,6 +128,9 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Learn")
+            .accessibilityAddTraits(currentSection == .main ? [.isButton, .isSelected] : .isButton)
 
             // Calendar button (right)
             Button(action: {
@@ -156,6 +162,9 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Calendar")
+            .accessibilityAddTraits(currentSection == .calendar ? [.isButton, .isSelected] : .isButton)
         }
         .background(
             RoundedRectangle(cornerRadius: 25)
@@ -178,21 +187,4 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Extensions
-extension Color {
-    static let flashTokPurple = Color(red: 0.6, green: 0.4, blue: 0.8)
-    static let flashTokPink = Color(red: 0.9, green: 0.4, blue: 0.6)
-    static let flashTokBlue = Color(red: 0.3, green: 0.6, blue: 0.9)
-}
-
-extension View {
-    func flashTokStyle() -> some View {
-        self.background(
-            LinearGradient(
-                gradient: Gradient(colors: [Color.flashTokPurple, Color.flashTokPink]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-    }
-}
+// The brand palette and reusable styles live in `Theme` (DesignSystem.swift).

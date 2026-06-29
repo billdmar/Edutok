@@ -8,6 +8,7 @@ struct MainView: View {
     @Binding var showSidebar: Bool
     @State private var searchSuggestions: [String] = []
     @State private var showSuggestions = false
+    @State private var trendingTopics: [String] = []
     @FocusState private var isSearchFocused: Bool
 
     // Enhanced topic suggestions with better variety
@@ -79,6 +80,8 @@ struct MainView: View {
                                         )
                                 )
                         }
+                        .accessibilityLabel("Menu")
+                        .accessibilityIdentifier("menuButton")
 
                         Spacer()
 
@@ -194,7 +197,7 @@ struct MainView: View {
 
                                 VStack(spacing: 8) {
                                     Text("Edutok")
-                                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
                                         .foregroundStyle(
                                             LinearGradient(
                                                 colors: [.white, .white.opacity(0.9)],
@@ -205,7 +208,7 @@ struct MainView: View {
                                         .shadow(color: .purple.opacity(0.3), radius: 10, x: 0, y: 5)
 
                                     Text("Learn anything, TikTok style")
-                                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                                        .font(.system(.headline, design: .rounded).weight(.medium))
                                         .foregroundColor(.white.opacity(0.85))
                                 }
                             }
@@ -224,13 +227,14 @@ struct MainView: View {
                                         TextField("What do you want to learn today?", text: $topicInput)
                                             .textFieldStyle(PlainTextFieldStyle())
                                             .foregroundColor(.white)
-                                            .font(.system(size: 17, weight: .medium, design: .rounded))
+                                            .font(.system(.body, design: .rounded).weight(.medium))
+                                            .accessibilityIdentifier("topicField")
                                             .focused($isSearchFocused)
                                             .submitLabel(.go)
                                             .onSubmit {
                                                 startLearning()
                                             }
-                                            .onChange(of: topicInput) { newValue in
+                                            .onChange(of: topicInput) { _, newValue in
                                                 updateSearchSuggestions(for: newValue)
                                             }
 
@@ -273,7 +277,7 @@ struct MainView: View {
                                     }
                                 }
 
-                                // Beautiful start learning button
+                                // Start learning button (uses the shared PrimaryButtonStyle)
                                 Button(action: startLearning) {
                                     HStack(spacing: 12) {
                                         if isLoading {
@@ -286,29 +290,11 @@ struct MainView: View {
                                         }
 
                                         Text(isLoading ? "Creating Your Cards..." : "Start Learning")
-                                            .font(.system(size: 18, weight: .bold, design: .rounded))
                                     }
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 40)
-                                    .padding(.vertical, 18)
-                                    .background(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.pink,
-                                                Color.purple,
-                                                Color.blue.opacity(0.8)
-                                            ]),
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .cornerRadius(30)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 30)
-                                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                                    )
-                                    .shadow(color: .pink.opacity(0.5), radius: 20, x: 0, y: 8)
                                 }
+                                .buttonStyle(PrimaryButtonStyle(colors: [Theme.pink, Theme.purple, Theme.blue.opacity(0.8)]))
+                                .padding(.horizontal, 25)
+                                .accessibilityIdentifier("startLearningButton")
                                 .disabled(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                                 .scaleEffect(isLoading ? 0.95 : 1.0)
                                 .opacity(topicInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1.0)
@@ -323,52 +309,33 @@ struct MainView: View {
                                             Text("🔥")
                                                 .font(.title2)
                                             Text("Trending Topics")
-                                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                                .font(.system(.title3, design: .rounded).weight(.bold))
                                                 .foregroundColor(.white)
                                         }
 
                                         Spacer()
 
                                         Button(action: {
-                                            // Refresh topics
+                                            withAnimation(.easeInOut(duration: 0.3)) {
+                                                trendingTopics = Array(popularTopics.shuffled().prefix(8))
+                                            }
                                         }) {
                                             Image(systemName: "arrow.clockwise")
                                                 .font(.system(size: 16))
                                                 .foregroundColor(.white.opacity(0.7))
                                         }
+                                        .accessibilityLabel("Refresh trending topics")
                                     }
                                     .padding(.horizontal, 25)
 
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 14) {
-                                            ForEach(popularTopics.shuffled().prefix(8), id: \.self) { suggestion in
-                                                Button(action: {
+                                            ForEach(trendingTopics, id: \.self) { suggestion in
+                                                Button(suggestion) {
                                                     topicInput = suggestion
-                                                }) {
-                                                    Text(suggestion)
-                                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                                                        .foregroundColor(.white)
-                                                        .padding(.horizontal, 20)
-                                                        .padding(.vertical, 12)
-                                                        .background(
-                                                            RoundedRectangle(cornerRadius: 22)
-                                                                .fill(
-                                                                    LinearGradient(
-                                                                        colors: [
-                                                                            Color.white.opacity(0.2),
-                                                                            Color.white.opacity(0.1)
-                                                                        ],
-                                                                        startPoint: .topLeading,
-                                                                        endPoint: .bottomTrailing
-                                                                    )
-                                                                )
-                                                                .overlay(
-                                                                    RoundedRectangle(cornerRadius: 22)
-                                                                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
-                                                                )
-                                                        )
-                                                        .shadow(color: .purple.opacity(0.2), radius: 5, x: 0, y: 3)
                                                 }
+                                                .buttonStyle(ChipButtonStyle())
+                                                .shadow(color: .purple.opacity(0.2), radius: 5, x: 0, y: 3)
                                             }
                                         }
                                         .padding(.horizontal, 25)
@@ -413,6 +380,11 @@ struct MainView: View {
                     showSuggestions = false
                     isSearchFocused = false
                 }
+            }
+        }
+        .onAppear {
+            if trendingTopics.isEmpty {
+                trendingTopics = Array(popularTopics.shuffled().prefix(8))
             }
         }
     }

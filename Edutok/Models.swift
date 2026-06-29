@@ -15,9 +15,39 @@ struct Flashcard: Identifiable, Codable {
     var isUnderstood: Bool = false
     var isBookmarked: Bool = false
     var imageURL: String?  // NEW: Image URL for the flashcard
+    var lastReviewedAt: Date?  // Most recent spaced-repetition review (nil = never reviewed)
+    var reviewCount: Int = 0   // Number of completed review sessions for this card
+
+    init(type: FlashcardType, question: String, answer: String,
+         isUnderstood: Bool = false, isBookmarked: Bool = false, imageURL: String? = nil,
+         lastReviewedAt: Date? = nil, reviewCount: Int = 0) {
+        self.type = type
+        self.question = question
+        self.answer = answer
+        self.isUnderstood = isUnderstood
+        self.isBookmarked = isBookmarked
+        self.imageURL = imageURL
+        self.lastReviewedAt = lastReviewedAt
+        self.reviewCount = reviewCount
+    }
 
     enum CodingKeys: String, CodingKey {
-        case type, question, answer, isUnderstood, isBookmarked, imageURL
+        case type, question, answer, isUnderstood, isBookmarked, imageURL, lastReviewedAt, reviewCount
+    }
+
+    // Custom decoder so newly-added fields (reviewCount, lastReviewedAt) tolerate older
+    // persisted JSON that predates them. Without this, a missing non-optional key throws
+    // and `TopicManager.loadSavedTopics` would silently wipe a returning user's topics.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        type = try c.decode(FlashcardType.self, forKey: .type)
+        question = try c.decode(String.self, forKey: .question)
+        answer = try c.decode(String.self, forKey: .answer)
+        isUnderstood = try c.decodeIfPresent(Bool.self, forKey: .isUnderstood) ?? false
+        isBookmarked = try c.decodeIfPresent(Bool.self, forKey: .isBookmarked) ?? false
+        imageURL = try c.decodeIfPresent(String.self, forKey: .imageURL)
+        lastReviewedAt = try c.decodeIfPresent(Date.self, forKey: .lastReviewedAt)
+        reviewCount = try c.decodeIfPresent(Int.self, forKey: .reviewCount) ?? 0
     }
 }
 
@@ -28,6 +58,10 @@ struct Topic: Identifiable, Codable, Equatable {
     var flashcards: [Flashcard]
     let createdAt: Date = Date()
     var isLiked: Bool = false
+    /// True when this deck came from the offline mock fallback (Gemini was unreachable).
+    /// Transient — deliberately NOT in `CodingKeys`, so it never affects persisted data and
+    /// defaults to `false` on reload (the banner is a this-session signal).
+    var usingFallback: Bool = false
 
     static func == (lhs: Topic, rhs: Topic) -> Bool {
         lhs.id == rhs.id
@@ -120,10 +154,10 @@ struct MysteryBox: Identifiable, Codable {
 }
 
 enum BoxRarity: String, CaseIterable, Codable {
-    case common = "common"
-    case rare = "rare"
-    case epic = "epic"
-    case legendary = "legendary"
+    case common
+    case rare
+    case epic
+    case legendary
 
     var color: String {
         switch self {
@@ -165,10 +199,10 @@ struct EnhancedAchievement: Identifiable, Codable {
 }
 
 enum AchievementRarity: String, CaseIterable, Codable {
-    case common = "common"
-    case rare = "rare"
-    case epic = "epic"
-    case legendary = "legendary"
+    case common
+    case rare
+    case epic
+    case legendary
 
     var color: String {
         switch self {
@@ -181,10 +215,10 @@ enum AchievementRarity: String, CaseIterable, Codable {
 }
 
 enum AchievementCategory: String, CaseIterable, Codable {
-    case learning = "learning"
-    case social = "social"
-    case time = "time"
-    case special = "special"
+    case learning
+    case social
+    case time
+    case special
 
     var displayName: String {
         switch self {

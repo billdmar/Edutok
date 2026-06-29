@@ -26,19 +26,24 @@ class ImageManager: ObservableObject {
         return cache
     }() // Cache for specific question-image pairs
 
+    // Decoded-image cache so a card scrolling back into view doesn't re-download and
+    // re-decode its photo. Bounded; NSCache also evicts under memory pressure.
+    private let decodedImageCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 120
+        return cache
+    }()
+
+    private let geminiClient = GeminiClient()
+
     /// Asks Gemini for specific, visual search keywords describing the question.
     /// Always returns a usable string: on any failure (bad URL, non-200, decode/network
     /// error) it returns a fallback derived from the topic and question text.
     func generateImageKeywords(for question: String, topic: String) async -> String {
         // Enhanced fallback that includes question content for more variety.
-        // Computed up front so any early-exit path can return it.
+        // Computed up front so any failure path can return it.
         let fallbackKeywords = "\(topic), \(question.prefix(50))".replacingOccurrences(of: "?", with: "").replacingOccurrences(of: "What", with: "").replacingOccurrences(of: "How", with: "").replacingOccurrences(of: "Why", with: "")
 
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=\(Secrets.geminiAPIKey)") else {
-            return fallbackKeywords
-        }
-
-        // Create a more specific and varied prompt for unique images
         let prompt = """
         Generate 3-4 highly specific and visual image search keywords for this educational flashcard question.
         Topic: \(topic)
@@ -52,59 +57,15 @@ class ImageManager: ObservableObject {
         Example format: "DNA double helix structure, molecular biology laboratory, genetic code visualization"
         """
 
-        let requestBody: [String: Any] = [
-            "contents": [
-                [
-                    "parts": [
-                        ["text": prompt]
-                    ]
-                ]
-            ],
-            "generationConfig": [
-                "temperature": 0.7, // Increased temperature for more variety
-                "maxOutputTokens": 100
-            ]
-        ]
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 20
-
         do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-            // Send the POST `request` we just built (not a bare GET to `url`).
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            // Fall through to the keyword fallback on any non-200 response.
-            if (response as? HTTPURLResponse)?.statusCode != 200 {
-                return fallbackKeywords
-            }
-
-            struct GeminiResponse: Codable {
-                let candidates: [Candidate]
-                struct Candidate: Codable {
-                    let content: Content
-                    struct Content: Codable {
-                        let parts: [Part]
-                        struct Part: Codable {
-                            let text: String
-                        }
-                    }
-                }
-            }
-
-            let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
-            if let keywords = geminiResponse.candidates.first?.content.parts.first?.text {
-                return keywords.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
+            let keywords = try await geminiClient.generateText(prompt: prompt, maxOutputTokens: 100)
+            return keywords.isEmpty ? fallbackKeywords : keywords
         } catch {
             #if DEBUG
             print("Error generating keywords: \(error)")
             #endif
+            return fallbackKeywords
         }
-
-        return fallbackKeywords
     }
 
     /// Searches Unsplash for the given keywords and returns a small-resolution image URL,
@@ -112,7 +73,7 @@ class ImageManager: ObservableObject {
     /// the request is rate-limited/unauthorized, errors, or yields no results.
     func fetchImage(keywords: String, question: String? = nil) async -> String? {
         // Create a unique cache key that includes both keywords and question
-        let cacheKey = question != nil ? "\(keywords)_\(question!.prefix(30))" : keywords
+        let cacheKey = question.map { "\(keywords)_\($0.prefix(30))" } ?? keywords
 
         // Check question-specific cache first
         if question != nil, let cachedURL = questionImageCache.object(forKey: cacheKey as NSString) {
@@ -233,10 +194,37 @@ class ImageManager: ObservableObject {
         }
     }
 
+    /// Returns the decoded image for a URL, caching the result so repeated appearances
+    /// (e.g. scrolling a card back into view) don't re-download or re-decode. The download
+    /// and `UIImage(data:)` decode run off the main thread; only the cache read/write and
+    /// return happen on the main actor. Returns `nil` on bad URL, network error, or decode
+    /// failure (caller falls back to its gradient placeholder).
+    func image(for urlString: String) async -> UIImage? {
+        let key = urlString as NSString
+        if let cached = decodedImageCache.object(forKey: key) {
+            return cached
+        }
+        guard let url = URL(string: urlString) else { return nil }
+
+        let decoded: UIImage? = await Task.detached(priority: .userInitiated) {
+            guard let (data, response) = try? await URLSession.shared.data(from: url),
+                  (response as? HTTPURLResponse).map({ $0.statusCode == 200 }) ?? true else {
+                return nil
+            }
+            return UIImage(data: data)
+        }.value
+
+        if let decoded {
+            decodedImageCache.setObject(decoded, forKey: key)
+        }
+        return decoded
+    }
+
     // Clear cache to free memory
     func clearCache() {
         imageCache.removeAllObjects()
         questionImageCache.removeAllObjects()
+        decodedImageCache.removeAllObjects()
     }
 }
 
@@ -285,31 +273,18 @@ struct AsyncImageLoader: View {
     }
 
     private func loadImage() {
-        guard let urlString = url, let imageURL = URL(string: urlString) else {
+        guard let urlString = url else {
             isLoading = false
             return
         }
 
-        Task {
-            do {
-                let (data, _) = try await URLSession.shared.data(from: imageURL)
-                if let loadedImage = UIImage(data: data) {
-                    await MainActor.run {
-                        withAnimation(.easeIn(duration: 0.3)) {
-                            self.image = loadedImage
-                            self.isLoading = false
-                        }
-                    }
-                } else {
-                    await MainActor.run {
-                        isLoading = false
-                    }
-                }
-            } catch {
-                print("Error loading image: \(error)")
-                await MainActor.run {
-                    isLoading = false
-                }
+        Task { @MainActor in
+            // Routed through ImageManager's decoded-image cache, so a card returning to
+            // screen reuses the cached UIImage instead of re-downloading.
+            let loaded = await ImageManager.shared.image(for: urlString)
+            withAnimation(.easeIn(duration: 0.3)) {
+                self.image = loaded
+                self.isLoading = false
             }
         }
     }
