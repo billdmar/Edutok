@@ -1,0 +1,64 @@
+//
+//  LevelingTests.swift
+//  EdutokTests
+//
+//  XP/leveling math tests.
+//
+
+import Foundation
+import Testing
+
+@testable import Edutok
+
+struct LevelingTests {
+    @Test func newUserStartsAtLevelOne() {
+        let progress = UserProgress()
+        #expect(progress.currentLevel == 1)
+        #expect(progress.totalXP == 0)
+    }
+
+    @Test func addingXPAccumulatesTotal() {
+        var progress = UserProgress()
+        _ = progress.addXP(30)
+        _ = progress.addXP(20)
+        #expect(progress.totalXP == 50)
+    }
+
+    @Test func crossingThresholdReportsLevelUp() {
+        var progress = UserProgress()
+        // Level 2 requires 100 XP (per the documented formula).
+        let leveledUp = progress.addXP(100)
+        #expect(leveledUp)
+        #expect(progress.currentLevel == 2)
+    }
+
+    @Test func stayingBelowThresholdDoesNotLevelUp() {
+        var progress = UserProgress()
+        let leveledUp = progress.addXP(99)
+        #expect(!leveledUp)
+        #expect(progress.currentLevel == 1)
+    }
+
+    @Test func levelThresholdsFollowFormula() {
+        // Verified against the model's own formula
+        // ((level-1)^2 * 50) + ((level-1) * 50): L2=100, L3=300, L4=600.
+        var atTwo = UserProgress()
+        _ = atTwo.addXP(100)
+        #expect(atTwo.currentLevel == 2)
+
+        var atThree = UserProgress()
+        _ = atThree.addXP(300)
+        #expect(atThree.currentLevel == 3)
+
+        var atFour = UserProgress()
+        _ = atFour.addXP(600)
+        #expect(atFour.currentLevel == 4)
+    }
+
+    @Test func levelProgressIsWithinUnitInterval() {
+        var progress = UserProgress()
+        _ = progress.addXP(150) // between level 2 (100) and level 3 (300)
+        #expect(progress.levelProgress >= 0.0)
+        #expect(progress.levelProgress <= 1.0)
+    }
+}
