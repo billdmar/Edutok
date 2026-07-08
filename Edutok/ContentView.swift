@@ -16,13 +16,7 @@ struct ContentView: View {
             // Main content based on current section
             Group {
                 switch currentSection {
-                case .main:
-                    if topicManager.currentTopic != nil {
-                        FlashcardView()
-                    } else {
-                        MainView(showSidebar: $showSidebar)
-                    }
-                case .flashcards:
+                case .main, .flashcards:
                     if topicManager.currentTopic != nil {
                         FlashcardView()
                     } else {
@@ -48,13 +42,6 @@ struct ContentView: View {
         }
         .onAppear {
             topicManager.loadSavedTopics()
-
-            // Auto-authenticate if not already authenticated
-            if !firebaseManager.isAuthenticated {
-                Task {
-                    try? await firebaseManager.signInAnonymously()
-                }
-            }
         }
         .onChange(of: topicManager.currentTopic) { _, topic in
             // Automatically switch to flashcards section when a topic is selected

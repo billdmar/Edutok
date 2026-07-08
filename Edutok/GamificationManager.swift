@@ -56,7 +56,7 @@ class GamificationManager: ObservableObject {
 
     private func setupNotificationListeners() {
         topicExploredObserver = NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("TopicExplored"),
+            forName: .topicExplored,
             object: nil,
             queue: .main
         ) { [weak self] _ in

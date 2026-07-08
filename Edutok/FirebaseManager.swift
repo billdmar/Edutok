@@ -68,12 +68,7 @@ class FirebaseManager: ObservableObject {
     func signInWithPhone(phoneNumber: String) async throws -> String {
         // Note: Phone auth requires additional setup in Firebase Console
         // and may not work in simulator
-        do {
-            let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
-            return verificationID
-        } catch {
-            throw error
-        }
+        try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
     }
 
     func verifyPhoneCode(verificationID: String, verificationCode: String) async throws {

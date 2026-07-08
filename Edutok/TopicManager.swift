@@ -79,7 +79,7 @@ class TopicManager: ObservableObject {
         // This will be called from the GamificationManager when it's available
         // For now, we'll use a simple notification approach
         NotificationCenter.default.post(
-            name: NSNotification.Name("TopicExplored"),
+            name: .topicExplored,
             object: nil
         )
     }
