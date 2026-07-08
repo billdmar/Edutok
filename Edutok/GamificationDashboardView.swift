@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct Phase1DashboardView: View {
+struct GamificationDashboardView: View {
     @ObservedObject var gamificationManager: GamificationManager
     @State private var showDailyChallenges = false
     @State private var showEnhancedAchievements = false
@@ -419,5 +419,5 @@ struct StatPreviewCard: View {
 }
 
 #Preview {
-    Phase1DashboardView(gamificationManager: GamificationManager())
+    GamificationDashboardView(gamificationManager: GamificationManager())
 }

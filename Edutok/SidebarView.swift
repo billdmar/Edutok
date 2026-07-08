@@ -9,7 +9,7 @@ struct SidebarView: View {
     @State private var showDebugView = false
     #endif
     @State private var showCalendar = false  // Add this for calendar access
-    @State private var showPhase1Dashboard = false // Add this for Phase 1 Dashboard
+    @State private var showGamificationDashboard = false
     @State private var showBookmarks = false
     @State private var showSettings = false
     @State private var showReview = false
@@ -152,9 +152,9 @@ struct SidebarView: View {
                     }
                     .padding(.horizontal, 20)
 
-                    // Phase 1 Dashboard button
+                    // Gamification Dashboard button
                     Button(action: {
-                        showPhase1Dashboard = true
+                        showGamificationDashboard = true
                     }) {
                         HStack {
                             Image(systemName: "trophy.fill")
@@ -453,8 +453,8 @@ struct SidebarView: View {
         .fullScreenCover(isPresented: $showCalendar) {
             StandaloneCalendarView(isShowing: $showCalendar)
         }
-        .sheet(isPresented: $showPhase1Dashboard) {
-            Phase1DashboardView(gamificationManager: gamificationManager)
+        .sheet(isPresented: $showGamificationDashboard) {
+            GamificationDashboardView(gamificationManager: gamificationManager)
         }
     }
 }

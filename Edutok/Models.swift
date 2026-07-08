@@ -14,7 +14,7 @@ struct Flashcard: Identifiable, Codable {
     let answer: String
     var isUnderstood: Bool = false
     var isBookmarked: Bool = false
-    var imageURL: String?  // NEW: Image URL for the flashcard
+    var imageURL: String?
     var lastReviewedAt: Date?  // Most recent spaced-repetition review (nil = never reviewed)
     var reviewCount: Int = 0   // Number of completed review sessions for this card
 
@@ -78,7 +78,7 @@ struct Topic: Identifiable, Codable, Equatable {
     }
 }
 
-// MARK: - New Phase 1 Models
+// MARK: - Gamification Models
 
 struct CustomAchievement: Identifiable, Codable {
     let id = UUID()

@@ -45,7 +45,6 @@ class TopicManager: ObservableObject {
             saveTopics()
             await FirebaseManager.shared.trackTopicExplored()
 
-            // NEW: Update challenge progress for topic exploration
             updateTopicExplorationChallenge()
 
         } catch {
@@ -72,12 +71,10 @@ class TopicManager: ObservableObject {
             currentTopic = newTopic
             saveTopics()
 
-            // NEW: Update challenge progress for topic exploration
             updateTopicExplorationChallenge()
         }
     }
 
-    // NEW: Helper function to update topic exploration challenge
     private func updateTopicExplorationChallenge() {
         // This will be called from the GamificationManager when it's available
         // For now, we'll use a simple notification approach

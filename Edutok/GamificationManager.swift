@@ -18,7 +18,6 @@ class GamificationManager: ObservableObject {
     @Published var newAchievement: CustomAchievement?
     @Published var particleEffects: [ParticleEffect] = []
 
-    // NEW: Phase 1 features
     @Published var dailyChallenges: [DailyChallenge] = []
     @Published var availableMysteryBoxes: [MysteryBox] = []
     @Published var enhancedAchievements: [EnhancedAchievement] = []
@@ -49,14 +48,12 @@ class GamificationManager: ObservableObject {
             generateMysteryBoxes()
         }
 
-        // NEW: Listen for topic exploration notifications
         setupNotificationListeners()
 
         // Check enhanced achievements after loading progress
         checkEnhancedAchievements()
     }
 
-    // NEW: Setup notification listeners for cross-component communication
     private func setupNotificationListeners() {
         topicExploredObserver = NotificationCenter.default.addObserver(
             forName: NSNotification.Name("TopicExplored"),
