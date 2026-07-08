@@ -378,7 +378,7 @@ struct AuthenticationView: View {
     }
 
     private func verificationCodeView() -> some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 30) {
                 Text("Enter Verification Code")
                     .font(.title2)
@@ -434,7 +434,7 @@ struct AuthenticationView: View {
     }
 
     private func usernamePromptView() -> some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 30) {
                 VStack(spacing: 15) {
                     Image(systemName: "person.circle.fill")

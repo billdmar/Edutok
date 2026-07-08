@@ -6,7 +6,7 @@ struct EnhancedAchievementsView: View {
     @State private var selectedCategory: AchievementCategory = .learning
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 // Background gradient
                 LinearGradient(

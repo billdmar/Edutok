@@ -6,7 +6,7 @@ struct GamificationDashboardView: View {
     @State private var showEnhancedAchievements = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 // Background gradient
                 LinearGradient(

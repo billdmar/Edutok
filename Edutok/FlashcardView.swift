@@ -19,6 +19,9 @@ struct FlashcardView: View {
     @State private var cardGraded: Set<UUID> = []
     // Cards the user marked "Again" (wrong) this session — so a later "Got it" isn't "first try".
     @State private var cardMarkedWrong: Set<UUID> = []
+    @State private var lightHapticTrigger = 0
+    @State private var mediumHapticTrigger = 0
+    @State private var heavyHapticTrigger = 0
 
     var body: some View {
         GeometryReader { geometry in
@@ -141,6 +144,9 @@ struct FlashcardView: View {
                 // so currentCardIndex never points past the new topic's bounds.
                 currentCardIndex = 0
             }
+            .sensoryFeedback(.impact(weight: .light), trigger: lightHapticTrigger)
+            .sensoryFeedback(.impact(weight: .medium), trigger: mediumHapticTrigger)
+            .sensoryFeedback(.impact(weight: .heavy), trigger: heavyHapticTrigger)
         }
     }
 
@@ -450,7 +456,7 @@ struct FlashcardView: View {
                             ) {
                                 markNeedsReview()
                                 nextCard()
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                lightHapticTrigger += 1
                             }
 
                             CardActionButton(
@@ -462,7 +468,7 @@ struct FlashcardView: View {
                             ) {
                                 markAsUnderstood()
                                 nextCard()
-                                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                                heavyHapticTrigger += 1
                             }
                         }
                         .padding(.horizontal, 25)
@@ -512,8 +518,8 @@ struct FlashcardView: View {
                 }
 
                 // Haptic feedback
-                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                impactFeedback.impactOccurred()
+                lightHapticTrigger += 1
+                
             }
         }
         .gesture(
@@ -530,20 +536,20 @@ struct FlashcardView: View {
                     if gesture.translation.height < -swipeThreshold || gesture.predictedEndTranslation.height < -velocityThreshold {
                         // Swipe up - next card
                         nextCard()
-                        let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        snapFeedback.impactOccurred()
+                        mediumHapticTrigger += 1
+                        
                     } else if gesture.translation.height > swipeThreshold || gesture.predictedEndTranslation.height > velocityThreshold {
                         // Swipe down - previous card
                         previousCard()
-                        let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        snapFeedback.impactOccurred()
+                        mediumHapticTrigger += 1
+                        
                     } else if gesture.translation.width > swipeThreshold * 2 && showAnswer {
                         // Swipe right - mark as understood. Only when the answer has been
                         // revealed, so "Got it" can't be earned without seeing the card.
                         markAsUnderstood()
                         nextCard()
-                        let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        snapFeedback.impactOccurred()
+                        mediumHapticTrigger += 1
+                        
                     } else if gesture.translation.width < -swipeThreshold * 2 {
                         // Swipe left - bookmark
                         toggleBookmark()
@@ -552,8 +558,8 @@ struct FlashcardView: View {
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                             dragOffset = CGSize.zero
                         }
-                        let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        snapFeedback.impactOccurred()
+                        mediumHapticTrigger += 1
+                        
                     } else {
                         // Return to center
                         withAnimation(.spring()) {
@@ -653,8 +659,8 @@ struct FlashcardView: View {
                     if let topic = topicManager.currentTopic {
                         topicManager.toggleTopicLike(topicId: topic.id)
 
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        impactFeedback.impactOccurred()
+                        mediumHapticTrigger += 1
+                        
                     }
                 }) {
                     VStack(spacing: 8) {
@@ -751,7 +757,7 @@ struct FlashcardView: View {
         }
 
         // Reset transition direction after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.transitionReset))
             cardTransitionDirection = .none
         }
     }
@@ -777,7 +783,7 @@ struct FlashcardView: View {
         }
 
         // Reset transition direction after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.transitionReset))
             cardTransitionDirection = .none
         }
     }

@@ -488,7 +488,7 @@ struct DayDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 20) {
                 // Date header
                 Text(dayFormatter.string(from: dailyStat.date))
