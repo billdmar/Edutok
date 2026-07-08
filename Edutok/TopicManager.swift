@@ -1,7 +1,7 @@
 /// TopicManager.swift
 ///
 /// Owns the user's learning topics and the flashcards within them. Flashcards are
-/// generated in batches by Google's Gemini model (`gemini-1.5-flash-latest`); the
+/// generated in batches by Google's Gemini model (`gemini-2.0-flash`); the
 /// model returns JSON wrapped in markdown code fences, which is stripped and decoded
 /// here. If the network call fails or returns malformed data, the manager falls back
 /// to locally generated mock flashcards so the UI is never left empty.

@@ -46,7 +46,7 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 | --------------- | ------------------------------------- |
 | UI              | SwiftUI (iOS 18.5+)                   |
 | Language        | Swift 5 / Xcode 16                    |
-| AI content      | Google Gemini (`gemini-1.5-flash-latest`)    |
+| AI content      | Google Gemini (`gemini-2.0-flash`)           |
 | Images          | Unsplash API                          |
 | Auth & database | Firebase Auth + Cloud Firestore       |
 | Architecture    | MVVM with `ObservableObject` managers — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
@@ -88,7 +88,7 @@ A few choices worth calling out:
   — each owns a single domain and is injected into the SwiftUI tree. All are `@MainActor`,
   so published state mutates on the main thread and the UI updates without data races. This
   keeps each concern isolated and made the gamification logic unit-testable on its own.
-- **Resilient AI integration.** Flashcards come from Google Gemini (`gemini-1.5-flash-latest`)
+- **Resilient AI integration.** Flashcards come from Google Gemini (`gemini-2.0-flash`)
   over its REST endpoint via a small `GeminiClient` networking layer (one place for the URL,
   model id, status checking, and decoding — shared with image-keyword generation). Cards are
   generated in **batches of 15** with a prompt whose depth and topic aspect vary by batch
