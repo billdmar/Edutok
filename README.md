@@ -9,12 +9,15 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 </p>
 
 [![CI](https://github.com/billdmar/Edutok/actions/workflows/ci.yml/badge.svg)](https://github.com/billdmar/Edutok/actions/workflows/ci.yml)
-![Swift](https://img.shields.io/badge/Swift-5-orange?logo=swift&logoColor=white)
+![Coverage](https://img.shields.io/badge/coverage-14.8%25_(pure_logic)-blue)
+![Swift](https://img.shields.io/badge/Swift-6-orange?logo=swift&logoColor=white)
 ![iOS](https://img.shields.io/badge/iOS-18.5%2B-000000?logo=apple&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0071e3)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-FFCA28?logo=firebase&logoColor=black)
 ![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=google&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
+
+Making an AI-powered learning feed reliable when the AI is unreliable — LLM responses arrive wrapped in markdown fences, include hallucinated JSON keys, and time out unpredictably. This project's core bet: the feed is never empty and always graceful, whether the model cooperates or not. Every failure path falls back to deterministic content, so the user experience degrades smoothly rather than crashing. The interesting engineering lives in the space between "ask the model for JSON" and "render a card on screen."
 
 ---
 
@@ -45,8 +48,8 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 | Area            | Technology                            |
 | --------------- | ------------------------------------- |
 | UI              | SwiftUI (iOS 18.5+)                   |
-| Language        | Swift 5 / Xcode 16                    |
-| AI content      | Google Gemini (`gemini-2.0-flash`)           |
+| Language        | Swift 6 / Xcode 16                    |
+| AI content      | Google Gemini (`gemini-2.0-flash`)    |
 | Images          | Unsplash API                          |
 | Auth & database | Firebase Auth + Cloud Firestore       |
 | Architecture    | MVVM with `ObservableObject` managers — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
@@ -70,17 +73,18 @@ Edutok/
 ├── ContentView.swift          # Root view & routing
 ├── MainView.swift             # Primary flashcard feed
 ├── FlashcardView.swift        # Individual card UI
-├── CardStyles.swift           # Flashcard interaction styles
-├── AutoSizedText.swift        # Dynamic font-sizing component
 ├── TopicManager.swift         # Gemini flashcard generation
 ├── ImageManager.swift         # Unsplash image fetching
 ├── FirebaseManager.swift      # Auth & Firestore access
 ├── GamificationManager.swift  # Streaks, XP, achievements
-├── DesignSystem.swift         # Brand palette & semantic tokens
 ├── *CalendarView.swift        # Streak calendar views
 ├── LeaderboardView.swift      # Global leaderboard
 └── Models.swift               # Core data models
 ```
+
+### Resilience pattern
+
+Every AI call flows through `GeminiClient.generateText` → `LLMJSON.extractJSONArray` (strips markdown fences, smart quotes, extracts the outermost `[...]`) → typed `Codable` decode. Any failure at any stage falls back to deterministic mock flashcards, so the UI is never empty. This pattern is unit-tested: the `GeminiClientTests` suite exercises success, HTTP-error, empty-response, and decode-failure paths.
 
 ## Engineering decisions
 
@@ -110,10 +114,42 @@ A few choices worth calling out:
   particle effects); Firebase Auth + Firestore for zero-backend auth, cross-device sync, and
   the global leaderboard without standing up a server.
 
+## Hard numbers
+
+| Metric | Value |
+| ------ | ----- |
+| Production Swift | ~10,000 LOC across 42 source files |
+| Unit tests | 68 across 11 focused suites |
+| Unit test coverage | 14.8% of app target (pure logic — UI coverage requires snapshot infrastructure) |
+| CI jobs | 3 parallel (build + test, SwiftLint, UI smoke tests) |
+| Flashcard batch size | 15 cards per Gemini round-trip |
+| Image cache bounds | 500 URL entries + 120 decoded UIImages (NSCache, LRU) |
+| Level curve | ((n-1)² · 50) + ((n-1) · 50) XP to reach level n |
+| Fallback guarantee | 0% chance of empty feed (mock deck on any failure path) |
+
+## Honest assessment
+
+What's a limitation and why:
+
+- **Spaced repetition uses a fixed interval ladder** (1/3/7/14/30 days), not adaptive SM-2 or FSRS. Chosen for simplicity; the `ReviewScheduler` is isolated so upgrading is a localized change.
+- **Review difficulty is not personalized** — same schedule for all users.
+- **API keys are compiled into the binary** (documented limitation; the `GeminiClient`/`ImageManager` architecture isolates the fix to one networking layer — see SECURITY.md).
+- **XP curve is hand-tuned, not A/B-tested.** Would need real user data to validate.
+- **Leaderboard scores are self-reported** (Firestore security rules prevent cross-user writes but can't prevent a motivated client from inflating their own score — Cloud Functions would fix this).
+- **Firestore writes are best-effort** (`try?`) with no offline queue.
+
+## What I'd build next
+
+- **SwiftData** — replace UserDefaults JSON persistence with proper schema, migrations, and CloudKit sync.
+- **@Observable** — replace `ObservableObject` with fine-grained observation (views only re-render when their actually-read properties change).
+- **Protocol-based DI** — inject mock services to enable integration testing of `TopicManager.generateFlashcards` end-to-end.
+- **Widget extension** — streak count and daily challenge progress on the home/lock screen.
+- **Server proxy** — move API keys off-device via a lightweight relay.
+
 ## Testing
 
-Core domain logic is covered by **68 unit tests** across 11 focused test suites in
-`EdutokTests/`, exercising the pure, Firebase-free logic independently of the UI:
+Core domain logic is covered by **68 unit tests** in `EdutokTests`, exercising the pure,
+Firebase-free logic independently of the UI:
 
 - **XP / leveling** — thresholds, level-up detection, in-level progress.
 - **Streaks** (`StreakCalculator`) — single-day vs. consecutive-day runs, gap resets, and the
@@ -137,6 +173,40 @@ xcodebuild test -scheme Edutok \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
   -only-testing:EdutokTests
 ```
+
+## Screenshots
+
+| Home & topic search | Flashcard question | Answer & level-up |
+| :--: | :--: | :--: |
+| ![Home](docs/home.png) | ![Question](docs/question.png) | ![Level up](docs/flashcard.png) |
+
+| Learning journey | Daily leaderboard | Streak calendar |
+| :--: | :--: | :--: |
+| ![Sidebar](docs/sidebar.png) | ![Leaderboard](docs/leaderboard.png) | ![Streak](docs/streak.png) |
+
+## Roadmap
+
+- [x] AI flashcard generation, swipe feed, gamification, global leaderboard
+- [ ] Study groups & social features
+- [ ] Skill trees / topic specializations
+- [ ] On-device personalization of card difficulty
+
+See the [gamification design notes](docs/gamification-design.md) for the full plan.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for the full model. In short:
+
+- API keys live in `Edutok/Secrets.swift` (**gitignored**); the Firebase
+  `GoogleService-Info.plist` is **gitignored** and supplied per-developer. No secrets are
+  committed anywhere in the repository or its history (CI builds against non-functional stubs).
+- [`firestore.rules`](firestore.rules) constrains every Firestore write to the authenticated
+  owner — a user can only edit their own profile and can't post a leaderboard score under
+  another user's id, closing the cross-user spoofing hole.
+- App Transport Security uses defaults (TLS 1.2+ with forward secrecy); no ATS exceptions.
+- Because the app has no backend, the embedded API keys are extractable from the binary — a
+  documented limitation whose natural fix is a server-side proxy (SECURITY.md explains why the
+  manager architecture makes that a localized change).
 
 ## Getting started
 
@@ -176,40 +246,6 @@ xcodebuild test -scheme Edutok \
    open Edutok.xcodeproj
    ```
    Select a simulator and press **⌘R**.
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for the full model. In short:
-
-- API keys live in `Edutok/Secrets.swift` (**gitignored**); the Firebase
-  `GoogleService-Info.plist` is **gitignored** and supplied per-developer. No secrets are
-  committed anywhere in the repository or its history (CI builds against non-functional stubs).
-- [`firestore.rules`](firestore.rules) constrains every Firestore write to the authenticated
-  owner — a user can only edit their own profile and can't post a leaderboard score under
-  another user's id, closing the cross-user spoofing hole.
-- App Transport Security uses defaults (TLS 1.2+ with forward secrecy); no ATS exceptions.
-- Because the app has no backend, the embedded API keys are extractable from the binary — a
-  documented limitation whose natural fix is a server-side proxy (SECURITY.md explains why the
-  manager architecture makes that a localized change).
-
-## Screenshots
-
-| Home & topic search | Flashcard question | Answer & level-up |
-| :--: | :--: | :--: |
-| ![Home](docs/home.png) | ![Question](docs/question.png) | ![Level up](docs/flashcard.png) |
-
-| Learning journey | Daily leaderboard | Streak calendar |
-| :--: | :--: | :--: |
-| ![Sidebar](docs/sidebar.png) | ![Leaderboard](docs/leaderboard.png) | ![Streak](docs/streak.png) |
-
-## Roadmap
-
-- [x] AI flashcard generation, swipe feed, gamification, global leaderboard
-- [ ] Study groups & social features
-- [ ] Skill trees / topic specializations
-- [ ] On-device personalization of card difficulty
-
-See the [gamification design notes](docs/gamification-design.md) for the full plan.
 
 ## License
 
