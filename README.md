@@ -70,10 +70,13 @@ Edutok/
 ├── ContentView.swift          # Root view & routing
 ├── MainView.swift             # Primary flashcard feed
 ├── FlashcardView.swift        # Individual card UI
+├── CardStyles.swift           # Flashcard interaction styles
+├── AutoSizedText.swift        # Dynamic font-sizing component
 ├── TopicManager.swift         # Gemini flashcard generation
 ├── ImageManager.swift         # Unsplash image fetching
 ├── FirebaseManager.swift      # Auth & Firestore access
 ├── GamificationManager.swift  # Streaks, XP, achievements
+├── DesignSystem.swift         # Brand palette & semantic tokens
 ├── *CalendarView.swift        # Streak calendar views
 ├── LeaderboardView.swift      # Global leaderboard
 └── Models.swift               # Core data models
@@ -109,8 +112,8 @@ A few choices worth calling out:
 
 ## Testing
 
-Core domain logic is covered by **68 unit tests** in `EdutokTests`, exercising the pure,
-Firebase-free logic independently of the UI:
+Core domain logic is covered by **68 unit tests** across 11 focused test suites in
+`EdutokTests/`, exercising the pure, Firebase-free logic independently of the UI:
 
 - **XP / leveling** — thresholds, level-up detection, in-level progress.
 - **Streaks** (`StreakCalculator`) — single-day vs. consecutive-day runs, gap resets, and the
