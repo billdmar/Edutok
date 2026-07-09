@@ -55,10 +55,10 @@ struct JSONParsingTests {
     @Test func decodesLegacyFlashcardJSONWithoutReviewFields() throws {
         // A returning user's saved card predates lastReviewedAt/reviewCount. Decoding must
         // NOT throw (a throw would wipe all saved topics in loadSavedTopics' catch block).
-        let legacy = """
+        let legacyJSON = """
         {"type":"question","question":"Q","answer":"A","isUnderstood":true,"isBookmarked":false}
-        """Data((.*).utf8)
-        let card = try JSONDecoder().decode(Flashcard.self, from: legacy)
+        """
+        let card = try JSONDecoder().decode(Flashcard.self, from: Data(legacyJSON.utf8))
         #expect(card.question == "Q")
         #expect(card.isUnderstood)        // preserved from old data
         #expect(card.reviewCount == 0)    // defaulted, not thrown
@@ -81,12 +81,12 @@ struct JSONParsingTests {
     @Test func decodesLegacyUserProgressWithoutConsecutiveField() throws {
         // A returning user's saved progress predates consecutiveCorrectAnswers. Decoding must
         // NOT throw (a throw would reset all their XP/level in loadProgress' catch).
-        let legacy = """
+        let legacyProgress = """
         {"totalXP":250,"currentLevel":3,"xpInCurrentLevel":50,"totalCardsCompleted":12,
          "totalCorrectAnswers":9,"currentStreak":4,"xpGainedToday":40,
          "lastActiveDate":760000000}
-        """Data((.*).utf8)
-        let decoded = try JSONDecoder().decode(UserProgress.self, from: legacy)
+        """
+        let decoded = try JSONDecoder().decode(UserProgress.self, from: Data(legacyProgress.utf8))
         #expect(decoded.totalXP == 250)
         #expect(decoded.currentLevel == 3)
         #expect(decoded.totalCorrectAnswers == 9)
