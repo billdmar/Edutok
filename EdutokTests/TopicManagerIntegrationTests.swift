@@ -40,9 +40,14 @@ struct TopicManagerIntegrationTests {
 
     /// JSON-escapes a string value (wraps in quotes, escapes inner quotes/newlines).
     private func jsonEscaped(_ s: String) -> String {
-        // swiftlint:disable:next force_try
-        let data = try! JSONSerialization.data(withJSONObject: s)
-        return String(data: data, encoding: .utf8) ?? "\"\(s)\""
+        // Wrap in an array — JSONSerialization requires a top-level container type.
+        guard let data = try? JSONSerialization.data(withJSONObject: [s]),
+              let array = String(data: data, encoding: .utf8) else {
+            return "\"\(s)\""
+        }
+        let start = array.index(after: array.startIndex)
+        let end = array.index(before: array.endIndex)
+        return String(array[start..<end])
     }
 
     private func respond(status: Int, body: String) {
