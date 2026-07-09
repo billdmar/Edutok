@@ -3,6 +3,7 @@
 /// Home screen with topic search, trending suggestions, and the entry point for generating
 /// new flashcard decks.
 import SwiftUI
+import TipKit
 
 struct MainView: View {
     @Environment(TopicManager.self) var topicManager
@@ -14,6 +15,7 @@ struct MainView: View {
     @State private var showSuggestions = false
     @State private var trendingTopics: [String] = []
     @FocusState private var isSearchFocused: Bool
+    private let streakTip = StreakTip()
 
     // Enhanced topic suggestions with better variety
     private let popularTopics = [
@@ -145,6 +147,7 @@ struct MainView: View {
                                 )
                         )
                         .shadow(color: .purple.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .popoverTip(streakTip)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
