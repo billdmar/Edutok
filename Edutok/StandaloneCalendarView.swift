@@ -16,6 +16,7 @@ struct StandaloneCalendarView: View {
             if showSidebar {
                 Color.black.opacity(0.3)
                     .ignoresSafeArea()
+                    .accessibilityHidden(true)
                     .onTapGesture {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             showSidebar = false

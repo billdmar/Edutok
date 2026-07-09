@@ -54,6 +54,7 @@ struct GamificationDashboardView: View {
                                 }
                                 .font(.subheadline)
                                 .foregroundColor(.purple)
+                                .accessibilityLabel("View all daily challenges")
                             }
 
                             // Challenge preview cards
@@ -117,6 +118,7 @@ struct GamificationDashboardView: View {
                                 }
                                 .font(.subheadline)
                                 .foregroundColor(.purple)
+                                .accessibilityLabel("View all achievements")
                             }
 
                             // Achievement preview cards
@@ -266,6 +268,8 @@ struct ChallengePreviewCard: View {
                         )
                 )
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(challenge.title), \(challenge.isCompleted ? "completed" : "\(challenge.currentValue) of \(challenge.targetValue)"), plus \(challenge.xpReward) XP")
     }
 }
 
@@ -335,6 +339,9 @@ struct MysteryBoxPreviewCard: View {
             )
         }
         .disabled(box.isOpened)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(box.rarity.rawValue.capitalized) mystery box, \(box.isOpened ? "opened, \(box.xpAmount) XP" : "tap to open")")
+        .accessibilityAddTraits(box.isOpened ? [] : .isButton)
     }
 }
 
@@ -384,6 +391,8 @@ struct AchievementPreviewCard: View {
                         .stroke(Color.green.opacity(0.3), lineWidth: 1)
                 )
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(achievement.title), unlocked, plus \(achievement.xpReward) XP")
     }
 }
 
@@ -419,6 +428,8 @@ struct StatPreviewCard: View {
                         .stroke(Color.white.opacity(0.1), lineWidth: 1)
                 )
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(value)")
     }
 }
 

@@ -65,6 +65,7 @@ struct SettingsView: View {
                     Task { await firebaseManager.updateUsername(draftUsername) }
                 }
                 .disabled(draftUsername.trimmingCharacters(in: .whitespaces).isEmpty)
+                .accessibilityHint("Saves your new username")
             }
         }
     }
@@ -94,12 +95,14 @@ struct SettingsView: View {
             } label: {
                 Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
             }
+            .accessibilityHint("Signs you out of your account")
 
             Button(role: .destructive) {
                 showDeleteConfirm = true
             } label: {
                 Label("Delete Account", systemImage: "trash")
             }
+            .accessibilityHint("Permanently deletes your account and all data")
         } footer: {
             Text("Edutok signs you in anonymously by default; sign out to start fresh.")
         }

@@ -151,6 +151,7 @@ struct LeaderboardView: View {
                         RoundedRectangle(cornerRadius: 15)
                             .fill(Color.orange.opacity(0.2))
                     )
+                    .accessibilityLabel("\(user.currentStreak) day streak")
             }
 
             HStack(spacing: 20) {
@@ -269,6 +270,8 @@ struct LeaderboardView: View {
             color: entry.isCurrentUser ? .yellow.opacity(0.3) : .clear,
             radius: entry.isCurrentUser ? 8 : 0
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Rank \(entry.rank), \(entry.username)\(entry.isCurrentUser ? ", you" : ""), \(entry.value) \(selectedType == .cardsFlipped ? "cards" : "topics")")
     }
 
     private func leaderboardLoadingRow() -> some View {
@@ -605,5 +608,7 @@ struct StatCard: View {
         )
         .scaleEffect(isSelected ? 1.05 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(value)")
     }
 }

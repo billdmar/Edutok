@@ -40,6 +40,8 @@ struct XPGainView: View {
         .scaleEffect(scale)
         .opacity(opacity)
         .offset(y: offset)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Earned \(xpEvent.amount) XP, \(xpEvent.reason)")
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 scale = 1.0
@@ -121,6 +123,8 @@ struct LevelUpView: View {
                 .cornerRadius(25)
             }
             .scaleEffect(scale)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Level up! You reached level \(level)")
         }
         .onAppear {
             withAnimation(.spring(response: 0.8, dampingFraction: 0.6)) {
@@ -161,6 +165,7 @@ struct AchievementView: View {
         ZStack {
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
+                .accessibilityHidden(true)
                 .onTapGesture {
                     dismissAnimation()
                 }
@@ -269,6 +274,7 @@ struct CustomAchievementView: View {
         ZStack {
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
+                .accessibilityHidden(true)
                 .onTapGesture {
                     dismissAnimation()
                 }
@@ -400,6 +406,7 @@ struct ParticleSystemView: View {
                 startTime = .now
                 generateParticles()
             }
+            .accessibilityHidden(true)
         }
     }
 
@@ -449,6 +456,9 @@ struct ProgressRing: View {
                 .animation(.easeInOut(duration: 1.0), value: progress)
         }
         .frame(width: size, height: size)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Progress")
+        .accessibilityValue("\(Int(progress * 100)) percent")
     }
 }
 
