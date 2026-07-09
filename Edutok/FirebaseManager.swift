@@ -12,15 +12,15 @@ import FirebaseFirestore
 import FirebaseAuth
 
 /// Shared, main-actor singleton wrapping Firebase Auth and Firestore for the app.
-@MainActor
-class FirebaseManager: ObservableObject {
+@Observable @MainActor
+class FirebaseManager {
     static let shared = FirebaseManager()
 
-    private let db = Firestore.firestore()
-    private let auth = Auth.auth()
+    @ObservationIgnored private let db = Firestore.firestore()
+    @ObservationIgnored private let auth = Auth.auth()
 
-    @Published var currentUser: AppUser?
-    @Published var isAuthenticated = false
+    var currentUser: AppUser?
+    var isAuthenticated = false
 
     private init() {
         // Configure Firebase
@@ -68,7 +68,12 @@ class FirebaseManager: ObservableObject {
     func signInWithPhone(phoneNumber: String) async throws -> String {
         // Note: Phone auth requires additional setup in Firebase Console
         // and may not work in simulator
-        try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
+        do {
+            let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
+            return verificationID
+        } catch {
+            throw error
+        }
     }
 
     func verifyPhoneCode(verificationID: String, verificationCode: String) async throws {

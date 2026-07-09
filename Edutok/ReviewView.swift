@@ -7,7 +7,7 @@
 import SwiftUI
 
 struct ReviewView: View {
-    @EnvironmentObject var topicManager: TopicManager
+    @Environment(TopicManager.self) var topicManager
     @Environment(\.dismiss) private var dismiss
 
     @State private var queue: [CardLocator] = []

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct EnhancedAchievementsView: View {
-    @ObservedObject var gamificationManager: GamificationManager
+    var gamificationManager: GamificationManager
     @Environment(\.dismiss) private var dismiss
     @State private var selectedCategory: AchievementCategory = .learning
 

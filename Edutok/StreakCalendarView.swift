@@ -2,7 +2,7 @@
 import SwiftUI
 
 struct StreakCalendarView: View {
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    private var firebaseManager = FirebaseManager.shared
     @State private var selectedDate = Date()
     @State private var currentMonth = Date()
     @State private var selectedDayStat: DailyStat?

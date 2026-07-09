@@ -1,7 +1,7 @@
 /// TopicManager.swift
 ///
 /// Owns the user's learning topics and the flashcards within them. Flashcards are
-/// generated in batches by Google's Gemini model (`gemini-2.0-flash`); the
+/// generated in batches by Google's Gemini model (`gemini-1.5-flash-latest`); the
 /// model returns JSON wrapped in markdown code fences, which is stripped and decoded
 /// here. If the network call fails or returns malformed data, the manager falls back
 /// to locally generated mock flashcards so the UI is never left empty.
@@ -13,13 +13,13 @@ import SwiftUI
 /// Topics are persisted to `UserDefaults` as JSON. All flashcard generation runs on
 /// the main actor and is resilient: any failure path produces mock flashcards rather
 /// than surfacing an error to the user.
-@MainActor
-class TopicManager: ObservableObject {
-    @Published var savedTopics: [Topic] = []
-    @Published var currentTopic: Topic?
+@Observable @MainActor
+class TopicManager {
+    var savedTopics: [Topic] = []
+    var currentTopic: Topic?
 
-    private let userDefaultsKey = "SavedTopics"
-    private let geminiClient = GeminiClient()
+    @ObservationIgnored private let userDefaultsKey = "SavedTopics"
+    @ObservationIgnored private let geminiClient = GeminiClient()
 
     /// Generates the first batch of flashcards for a new topic, attaches a unique image
     /// to each card, then saves and activates the topic. Falls back to mock cards on error.
@@ -45,6 +45,7 @@ class TopicManager: ObservableObject {
             saveTopics()
             await FirebaseManager.shared.trackTopicExplored()
 
+            // NEW: Update challenge progress for topic exploration
             updateTopicExplorationChallenge()
 
         } catch {
@@ -71,15 +72,17 @@ class TopicManager: ObservableObject {
             currentTopic = newTopic
             saveTopics()
 
+            // NEW: Update challenge progress for topic exploration
             updateTopicExplorationChallenge()
         }
     }
 
+    // NEW: Helper function to update topic exploration challenge
     private func updateTopicExplorationChallenge() {
         // This will be called from the GamificationManager when it's available
         // For now, we'll use a simple notification approach
         NotificationCenter.default.post(
-            name: .topicExplored,
+            name: NSNotification.Name("TopicExplored"),
             object: nil
         )
     }

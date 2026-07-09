@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct FlashcardView: View {
-    @EnvironmentObject var topicManager: TopicManager
-    @EnvironmentObject var gamificationManager: GamificationManager
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    @Environment(TopicManager.self) var topicManager
+    @Environment(GamificationManager.self) var gamificationManager
+    private var firebaseManager = FirebaseManager.shared
     @State private var currentCardIndex = 0
     @State private var dragOffset = CGSize.zero
     @State private var showAnswer = false
@@ -24,6 +24,7 @@ struct FlashcardView: View {
     @State private var heavyHapticTrigger = 0
 
     var body: some View {
+        @Bindable var gamificationManager = gamificationManager
         GeometryReader { geometry in
             ZStack {
                 // Background gradient

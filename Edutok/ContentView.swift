@@ -6,8 +6,8 @@ enum AppSection {
 }
 
 struct ContentView: View {
-    @EnvironmentObject var topicManager: TopicManager
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    @Environment(TopicManager.self) var topicManager
+    private var firebaseManager = FirebaseManager.shared
     @State private var currentSection: AppSection = .main
     @State private var showSidebar = false
 
@@ -16,7 +16,13 @@ struct ContentView: View {
             // Main content based on current section
             Group {
                 switch currentSection {
-                case .main, .flashcards:
+                case .main:
+                    if topicManager.currentTopic != nil {
+                        FlashcardView()
+                    } else {
+                        MainView(showSidebar: $showSidebar)
+                    }
+                case .flashcards:
                     if topicManager.currentTopic != nil {
                         FlashcardView()
                     } else {
@@ -42,6 +48,13 @@ struct ContentView: View {
         }
         .onAppear {
             topicManager.loadSavedTopics()
+
+            // Auto-authenticate if not already authenticated
+            if !firebaseManager.isAuthenticated {
+                Task {
+                    try? await firebaseManager.signInAnonymously()
+                }
+            }
         }
         .onChange(of: topicManager.currentTopic) { _, topic in
             // Automatically switch to flashcards section when a topic is selected

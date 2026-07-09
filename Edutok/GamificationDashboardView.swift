@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct GamificationDashboardView: View {
-    @ObservedObject var gamificationManager: GamificationManager
+    @Bindable var gamificationManager: GamificationManager
     @State private var showDailyChallenges = false
     @State private var showEnhancedAchievements = false
 

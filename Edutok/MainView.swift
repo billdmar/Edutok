@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct MainView: View {
-    @EnvironmentObject var topicManager: TopicManager
-    @EnvironmentObject var gamificationManager: GamificationManager
+    @Environment(TopicManager.self) var topicManager
+    @Environment(GamificationManager.self) var gamificationManager
     @State private var topicInput = ""
     @State private var isLoading = false
     @Binding var showSidebar: Bool
@@ -11,7 +11,22 @@ struct MainView: View {
     @State private var trendingTopics: [String] = []
     @FocusState private var isSearchFocused: Bool
 
-    private let popularTopics = TopicSuggestions.popular
+    // Enhanced topic suggestions with better variety
+    private let popularTopics = [
+        "Python Programming", "World War 2", "Photosynthesis",
+        "Machine Learning", "Spanish Verbs", "Ancient Rome", "Quantum Physics",
+        "Shakespeare", "Cell Biology", "Jazz Music", "Renaissance Art",
+        "Climate Change", "Cryptocurrency", "Greek Mythology", "Space Exploration",
+        "Human Anatomy", "French Cooking", "Stock Market", "Ancient Egypt",
+        "Artificial Intelligence", "Guitar Basics", "Marine Biology", "Photography",
+        "Meditation", "Economics", "Chess Strategy", "Japanese Culture",
+        "Nutrition", "Interior Design", "Dinosaurs", "Psychology",
+        "Solar System", "Digital Marketing", "Yoga", "History of Rock Music",
+        "Wine Tasting", "Creative Writing", "Chemistry Basics", "Architecture",
+        "Gardening", "Philosophy", "Astronomy", "Fitness Training",
+        "Cooking Techniques", "Art History", "Computer Science", "Languages",
+        "Music Theory", "Environmental Science", "Literature", "Mathematics"
+    ]
 
     var body: some View {
         GeometryReader { _ in

@@ -15,16 +15,19 @@ struct EdutokApp: App {
     // Register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
-    @StateObject private var topicManager = TopicManager()
-    @StateObject private var gamificationManager = GamificationManager()
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    @State private var topicManager = TopicManager()
+    @State private var gamificationManager = GamificationManager()
+    // Computed (not stored) so the singleton isn't created during App.init() —
+    // FirebaseManager's Firestore/Auth members require FirebaseApp.configure(),
+    // which the AppDelegate runs after this struct is initialized.
+    private var firebaseManager: FirebaseManager { .shared }
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(topicManager)
-                .environmentObject(gamificationManager)
+                .environment(topicManager)
+                .environment(gamificationManager)
                 .preferredColorScheme(.dark)
                 .onAppear {
                     // Schedule initial study reminders

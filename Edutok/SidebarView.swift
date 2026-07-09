@@ -2,14 +2,14 @@ import SwiftUI
 
 struct SidebarView: View {
     @Binding var isShowing: Bool
-    @EnvironmentObject var topicManager: TopicManager
-    @EnvironmentObject var gamificationManager: GamificationManager
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    @Environment(TopicManager.self) var topicManager
+    @Environment(GamificationManager.self) var gamificationManager
+    let firebaseManager = FirebaseManager.shared
     #if DEBUG
     @State private var showDebugView = false
     #endif
     @State private var showCalendar = false  // Add this for calendar access
-    @State private var showGamificationDashboard = false
+    @State private var showGamificationDashboard = false 
     @State private var showBookmarks = false
     @State private var showSettings = false
     @State private var showReview = false
@@ -152,7 +152,7 @@ struct SidebarView: View {
                     }
                     .padding(.horizontal, 20)
 
-                    // Gamification Dashboard button
+                    // Phase 1 Dashboard button
                     Button(action: {
                         showGamificationDashboard = true
                     }) {
@@ -436,19 +436,19 @@ struct SidebarView: View {
         #endif
         .sheet(isPresented: $showReview) {
             ReviewView()
-                .environmentObject(topicManager)
+                .environment(topicManager)
         }
         .sheet(isPresented: $showTopicSearch) {
             TopicSearchView()
-                .environmentObject(topicManager)
+                .environment(topicManager)
         }
         .sheet(isPresented: $showBookmarks) {
             BookmarksView()
-                .environmentObject(topicManager)
+                .environment(topicManager)
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
-                .environmentObject(gamificationManager)
+                .environment(gamificationManager)
         }
         .fullScreenCover(isPresented: $showCalendar) {
             StandaloneCalendarView(isShowing: $showCalendar)

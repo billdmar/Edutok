@@ -2,7 +2,7 @@
 import SwiftUI
 
 struct DebugView: View {
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    private var firebaseManager = FirebaseManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var debugLog: [String] = []
     @State private var isLoading = false

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DailyChallengesView: View {
-    @ObservedObject var gamificationManager: GamificationManager
+    @Bindable var gamificationManager: GamificationManager
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
