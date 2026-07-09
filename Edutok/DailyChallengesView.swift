@@ -188,8 +188,15 @@ struct ChallengeCard: View {
         .scaleEffect(challenge.isCompleted ? 1.02 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: challenge.isCompleted)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(challenge.title), \(challenge.isCompleted ? "completed" : "\(challenge.currentValue) of \(challenge.targetValue)"), \(challenge.xpReward) XP reward")
+        .accessibilityLabel(challengeLabel)
         .accessibilityValue("\(Int(challenge.progressPercentage * 100)) percent complete")
+    }
+
+    private var challengeLabel: String {
+        let status = challenge.isCompleted
+            ? "completed"
+            : "\(challenge.currentValue) of \(challenge.targetValue)"
+        return "\(challenge.title), \(status), \(challenge.xpReward) XP reward"
     }
 }
 

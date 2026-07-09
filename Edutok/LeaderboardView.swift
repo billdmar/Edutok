@@ -271,7 +271,13 @@ struct LeaderboardView: View {
             radius: entry.isCurrentUser ? 8 : 0
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Rank \(entry.rank), \(entry.username)\(entry.isCurrentUser ? ", you" : ""), \(entry.value) \(selectedType == .cardsFlipped ? "cards" : "topics")")
+        .accessibilityLabel(leaderboardRowLabel(entry: entry))
+    }
+
+    private func leaderboardRowLabel(entry: LeaderboardEntry) -> String {
+        let userSuffix = entry.isCurrentUser ? ", you" : ""
+        let unit = selectedType == .cardsFlipped ? "cards" : "topics"
+        return "Rank \(entry.rank), \(entry.username)\(userSuffix), \(entry.value) \(unit)"
     }
 
     private func leaderboardLoadingRow() -> some View {
