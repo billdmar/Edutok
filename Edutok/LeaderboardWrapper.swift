@@ -1,4 +1,7 @@
-// LeaderboardWrapper.swift
+/// LeaderboardWrapper.swift
+///
+/// Wrapper view that layers the sidebar overlay on top of the LeaderboardView for consistent
+/// navigation.
 import SwiftUI
 
 struct LeaderboardWrapper: View {

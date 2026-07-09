@@ -1,8 +1,11 @@
-// LeaderboardView.swift
+/// LeaderboardView.swift
+///
+/// Daily leaderboard displaying ranked users with XP scores, current-user highlighting,
+/// and an authentication prompt for anonymous users.
 import SwiftUI
 
 struct LeaderboardView: View {
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    private var firebaseManager = FirebaseManager.shared
     @State private var selectedType: LeaderboardType = .cardsFlipped
     @State private var leaderboardEntries: [LeaderboardEntry] = []
     @State private var isLoading = true
@@ -416,7 +419,7 @@ struct LeaderboardView: View {
 }
 
 struct AuthenticationPromptView: View {
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    private var firebaseManager = FirebaseManager.shared
     @State private var showAuthView = false
 
     var body: some View {

@@ -1,11 +1,15 @@
+/// DailyChallengesView.swift
+///
+/// Daily challenge cards with animated progress bars, completion rewards, and a mystery-box
+/// sheet trigger.
 import SwiftUI
 
 struct DailyChallengesView: View {
-    @ObservedObject var gamificationManager: GamificationManager
+    @Bindable var gamificationManager: GamificationManager
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 // Background gradient
                 LinearGradient(

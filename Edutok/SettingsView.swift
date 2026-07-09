@@ -6,8 +6,8 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @ObservedObject var firebaseManager = FirebaseManager.shared
-    @EnvironmentObject var gamificationManager: GamificationManager
+    var firebaseManager = FirebaseManager.shared
+    @Environment(GamificationManager.self) var gamificationManager
     @Environment(\.dismiss) private var dismiss
 
     @State private var draftUsername = ""

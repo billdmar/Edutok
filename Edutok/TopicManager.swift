@@ -13,13 +13,13 @@ import SwiftUI
 /// Topics are persisted to `UserDefaults` as JSON. All flashcard generation runs on
 /// the main actor and is resilient: any failure path produces mock flashcards rather
 /// than surfacing an error to the user.
-@MainActor
-class TopicManager: ObservableObject {
-    @Published var savedTopics: [Topic] = []
-    @Published var currentTopic: Topic?
+@Observable @MainActor
+class TopicManager {
+    var savedTopics: [Topic] = []
+    var currentTopic: Topic?
 
-    private let userDefaultsKey = "SavedTopics"
-    private let geminiClient = GeminiClient()
+    @ObservationIgnored private let userDefaultsKey = "SavedTopics"
+    @ObservationIgnored private let geminiClient = GeminiClient()
 
     /// Generates the first batch of flashcards for a new topic, attaches a unique image
     /// to each card, then saves and activates the topic. Falls back to mock cards on error.
@@ -275,12 +275,12 @@ class TopicManager: ObservableObject {
             {
                 "type": "question",
                 "question": "How do electric eels generate electricity without harming themselves?",
-                "answer": "Electric eels have specialized cells called electrocytes that act like biological batteries. They're insulated by layers of fat and generate current in controlled directions, with the electric organs making up 80% of their body length."
+                "answer": "They have specialized electrocyte cells that act like biological batteries, insulated by fat layers. The electric organs make up 80% of their body."
             },
             {
                 "type": "truefalse",
                 "question": "Electric eels are actually a type of fish, not true eels.",
-                "answer": "True. Despite their name, electric eels are knife fish more closely related to catfish and carp. True eels belong to a completely different order and cannot generate electricity."
+                "answer": "True. Despite their name, electric eels are knife fish related to catfish and carp, not true eels."
             }
         ]
 

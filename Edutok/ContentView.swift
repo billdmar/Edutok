@@ -1,4 +1,7 @@
-// ContentView.swift
+/// ContentView.swift
+///
+/// Root view router: switches between the main feed, leaderboard, and streak calendar sections
+/// via a floating bottom navigation bar.
 import SwiftUI
 
 enum AppSection {
@@ -6,8 +9,8 @@ enum AppSection {
 }
 
 struct ContentView: View {
-    @EnvironmentObject var topicManager: TopicManager
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    @Environment(TopicManager.self) var topicManager
+    private var firebaseManager = FirebaseManager.shared
     @State private var currentSection: AppSection = .main
     @State private var showSidebar = false
 

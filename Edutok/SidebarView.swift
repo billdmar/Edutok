@@ -1,15 +1,19 @@
+/// SidebarView.swift
+///
+/// Slide-out navigation drawer providing access to topic history, bookmarks, settings,
+/// gamification dashboard, and debug tools.
 import SwiftUI
 
 struct SidebarView: View {
     @Binding var isShowing: Bool
-    @EnvironmentObject var topicManager: TopicManager
-    @EnvironmentObject var gamificationManager: GamificationManager
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    @Environment(TopicManager.self) var topicManager
+    @Environment(GamificationManager.self) var gamificationManager
+    let firebaseManager = FirebaseManager.shared
     #if DEBUG
     @State private var showDebugView = false
     #endif
     @State private var showCalendar = false  // Add this for calendar access
-    @State private var showPhase1Dashboard = false // Add this for Phase 1 Dashboard
+    @State private var showGamificationDashboard = false
     @State private var showBookmarks = false
     @State private var showSettings = false
     @State private var showReview = false
@@ -154,7 +158,7 @@ struct SidebarView: View {
 
                     // Phase 1 Dashboard button
                     Button(action: {
-                        showPhase1Dashboard = true
+                        showGamificationDashboard = true
                     }) {
                         HStack {
                             Image(systemName: "trophy.fill")
@@ -436,25 +440,25 @@ struct SidebarView: View {
         #endif
         .sheet(isPresented: $showReview) {
             ReviewView()
-                .environmentObject(topicManager)
+                .environment(topicManager)
         }
         .sheet(isPresented: $showTopicSearch) {
             TopicSearchView()
-                .environmentObject(topicManager)
+                .environment(topicManager)
         }
         .sheet(isPresented: $showBookmarks) {
             BookmarksView()
-                .environmentObject(topicManager)
+                .environment(topicManager)
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
-                .environmentObject(gamificationManager)
+                .environment(gamificationManager)
         }
         .fullScreenCover(isPresented: $showCalendar) {
             StandaloneCalendarView(isShowing: $showCalendar)
         }
-        .sheet(isPresented: $showPhase1Dashboard) {
-            Phase1DashboardView(gamificationManager: gamificationManager)
+        .sheet(isPresented: $showGamificationDashboard) {
+            GamificationDashboardView(gamificationManager: gamificationManager)
         }
     }
 }

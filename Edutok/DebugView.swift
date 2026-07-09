@@ -1,14 +1,17 @@
-// DebugView.swift
+/// DebugView.swift
+///
+/// Developer debug panel for inspecting Firebase state, current user info, and triggering
+/// diagnostic operations.
 import SwiftUI
 
 struct DebugView: View {
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    private var firebaseManager = FirebaseManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var debugLog: [String] = []
     @State private var isLoading = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
                     // Header

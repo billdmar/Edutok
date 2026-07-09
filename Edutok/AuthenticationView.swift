@@ -1,9 +1,12 @@
-// AuthenticationView.swift
+/// AuthenticationView.swift
+///
+/// Sign-in flow UI supporting email/password and anonymous authentication via Firebase,
+/// with loading states and inline error display.
 import SwiftUI
 import FirebaseAuth
 
 struct AuthenticationView: View {
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    private var firebaseManager = FirebaseManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var authMode: AuthMode = .signIn
     @State private var email = ""
@@ -276,29 +279,6 @@ struct AuthenticationView: View {
 
     private func socialLoginSection() -> some View {
         VStack(spacing: 15) {
-            // Google Sign In Button
-            Button(action: googleSignIn) {
-                HStack {
-                    Image(systemName: "globe")
-                        .font(.headline)
-
-                    Text("Continue with Google")
-                        .fontWeight(.semibold)
-                        .font(.headline)
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 30)
-                .padding(.vertical, 15)
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [Color.red.opacity(0.8), Color.orange.opacity(0.6)]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .cornerRadius(25)
-            }
-
             // Anonymous Sign In Button
             Button(action: anonymousSignIn) {
                 HStack {
@@ -378,7 +358,7 @@ struct AuthenticationView: View {
     }
 
     private func verificationCodeView() -> some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 30) {
                 Text("Enter Verification Code")
                     .font(.title2)
@@ -434,7 +414,7 @@ struct AuthenticationView: View {
     }
 
     private func usernamePromptView() -> some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 30) {
                 VStack(spacing: 15) {
                     Image(systemName: "person.circle.fill")
@@ -530,12 +510,6 @@ struct AuthenticationView: View {
                 }
             }
         }
-    }
-
-    private func googleSignIn() {
-        // TODO: Implement Google Sign-In
-        // This requires additional setup with GoogleSignIn SDK
-        errorMessage = "Google Sign-In coming soon! Use email or anonymous for now."
     }
 
     private func anonymousSignIn() {

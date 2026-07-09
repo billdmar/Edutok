@@ -17,7 +17,7 @@ struct CardLocator: Identifiable {
 }
 
 struct BookmarksView: View {
-    @EnvironmentObject var topicManager: TopicManager
+    @Environment(TopicManager.self) var topicManager
     @Environment(\.dismiss) private var dismiss
 
     private var cards: [CardLocator] { topicManager.bookmarkedCards }
