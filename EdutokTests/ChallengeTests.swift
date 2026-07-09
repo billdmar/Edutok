@@ -54,9 +54,9 @@ struct ChallengeTests {
         let challenges = store.makeDailyChallenges()
         // Card Master targets 15 cardsCompleted; advance by 20 → clamps to 15 and completes.
         let result = store.applyProgress(to: challenges, type: .cardsCompleted, value: 20)
-        let cardMaster = result.challenges.first { $0.type == .cardsCompleted }!
-        #expect(cardMaster.currentValue == 15)
-        #expect(cardMaster.isCompleted)
+        let cardChallenge = result.challenges.first { $0.type == .cardsCompleted }!
+        #expect(cardChallenge.currentValue == 15)
+        #expect(cardChallenge.isCompleted)
         #expect(result.newlyCompleted.contains { $0.type == .cardsCompleted })
     }
 

@@ -18,12 +18,14 @@ disabled_rules:
   - multiple_closures_with_trailing_closure  # idiomatic in SwiftUI (e.g. Button {} label: {})
   - trailing_comma                            # multiline literals read fine with trailing commas
   - todo                                      # documented TODOs are acceptable in a portfolio repo
+  - large_tuple                               # mock data generation uses descriptive tuples
 
 line_length:
-  warning: 140
-  error: 320          # only catch truly runaway lines; long prompt/mock content strings live here
+  warning: 200        # generous for multiline prompt templates and mock flashcard content
+  error: 320          # only catch truly runaway lines
   ignores_comments: true
   ignores_urls: true
+  ignores_interpolated_strings: true
 
 # SwiftUI view files are legitimately large; warn generously, never error.
 file_length:
@@ -36,8 +38,11 @@ type_body_length:
 
 # SwiftUI `body`-style functions get large; warn but don't fail the build.
 function_body_length:
-  warning: 120
+  warning: 250
   error: 400
+
+nesting:
+  type_level: 4       # allow nested Codable response types (Gemini/Unsplash API shapes)
 
 # A SwiftUI `body` is one big expression; allow deeper nesting than the default.
 function_parameter_count:

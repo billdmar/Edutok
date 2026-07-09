@@ -275,12 +275,12 @@ class TopicManager {
             {
                 "type": "question",
                 "question": "How do electric eels generate electricity without harming themselves?",
-                "answer": "Electric eels have specialized cells called electrocytes that act like biological batteries. They're insulated by layers of fat and generate current in controlled directions, with the electric organs making up 80% of their body length."
+                "answer": "They have specialized electrocyte cells that act like biological batteries, insulated by fat layers. The electric organs make up 80% of their body."
             },
             {
                 "type": "truefalse",
                 "question": "Electric eels are actually a type of fish, not true eels.",
-                "answer": "True. Despite their name, electric eels are knife fish more closely related to catfish and carp. True eels belong to a completely different order and cannot generate electricity."
+                "answer": "True. Despite their name, electric eels are knife fish related to catfish and carp, not true eels."
             }
         ]
 

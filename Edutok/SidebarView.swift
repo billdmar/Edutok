@@ -13,7 +13,7 @@ struct SidebarView: View {
     @State private var showDebugView = false
     #endif
     @State private var showCalendar = false  // Add this for calendar access
-    @State private var showGamificationDashboard = false 
+    @State private var showGamificationDashboard = false
     @State private var showBookmarks = false
     @State private var showSettings = false
     @State private var showReview = false

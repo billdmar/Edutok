@@ -524,7 +524,7 @@ struct FlashcardView: View {
 
                 // Haptic feedback
                 lightHapticTrigger += 1
-                
+
             }
         }
         .gesture(
@@ -542,19 +542,19 @@ struct FlashcardView: View {
                         // Swipe up - next card
                         nextCard()
                         mediumHapticTrigger += 1
-                        
+
                     } else if gesture.translation.height > swipeThreshold || gesture.predictedEndTranslation.height > velocityThreshold {
                         // Swipe down - previous card
                         previousCard()
                         mediumHapticTrigger += 1
-                        
+
                     } else if gesture.translation.width > swipeThreshold * 2 && showAnswer {
                         // Swipe right - mark as understood. Only when the answer has been
                         // revealed, so "Got it" can't be earned without seeing the card.
                         markAsUnderstood()
                         nextCard()
                         mediumHapticTrigger += 1
-                        
+
                     } else if gesture.translation.width < -swipeThreshold * 2 {
                         // Swipe left - bookmark
                         toggleBookmark()
@@ -564,7 +564,7 @@ struct FlashcardView: View {
                             dragOffset = CGSize.zero
                         }
                         mediumHapticTrigger += 1
-                        
+
                     } else {
                         // Return to center
                         withAnimation(.spring()) {
@@ -665,7 +665,7 @@ struct FlashcardView: View {
                         topicManager.toggleTopicLike(topicId: topic.id)
 
                         mediumHapticTrigger += 1
-                        
+
                     }
                 }) {
                     VStack(spacing: 8) {

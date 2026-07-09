@@ -1,3 +1,7 @@
+/// TopicSuggestions.swift
+///
+/// Curated list of popular learning topics displayed as suggestions on the home screen.
+
 import Foundation
 
 enum TopicSuggestions {

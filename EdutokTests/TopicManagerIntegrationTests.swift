@@ -40,8 +40,9 @@ struct TopicManagerIntegrationTests {
 
     /// JSON-escapes a string value (wraps in quotes, escapes inner quotes/newlines).
     private func jsonEscaped(_ s: String) -> String {
+        // swiftlint:disable:next force_try
         let data = try! JSONSerialization.data(withJSONObject: s)
-        return String(data: data, encoding: .utf8)!
+        return String(data: data, encoding: .utf8) ?? "\"\(s)\""
     }
 
     private func respond(status: Int, body: String) {
@@ -57,7 +58,10 @@ struct TopicManagerIntegrationTests {
     /// Valid JSON response decodes into flashcards correctly through the full pipeline.
     @Test func validJSONResponseProducesFlashcards() async throws {
         let flashcardsJSON = """
-        [{"type":"definition","question":"What is photosynthesis?","answer":"The process by which plants convert light to energy."},{"type":"question","question":"Where does photosynthesis occur?","answer":"In the chloroplasts of plant cells."}]
+        [{"type":"definition","question":"What is photosynthesis?",\
+        "answer":"The process by which plants convert light to energy."},\
+        {"type":"question","question":"Where does photosynthesis occur?",\
+        "answer":"In the chloroplasts of plant cells."}]
         """
         respond(status: 200, body: geminiEnvelope(flashcardsJSON))
 
@@ -96,7 +100,9 @@ struct TopicManagerIntegrationTests {
 
     /// Smart quotes in response are normalized to ASCII and decoded.
     @Test func smartQuotesAreNormalized() async throws {
-        let smartQuoteJSON = "[{\u{201C}type\u{201D}:\u{201C}definition\u{201D},\u{201C}question\u{201D}:\u{201C}What is DNA?\u{201D},\u{201C}answer\u{201D}:\u{201C}Deoxyribonucleic acid.\u{201D}}]"
+        let smartQuoteJSON = "[{\u{201C}type\u{201D}:\u{201C}definition\u{201D},"
+            + "\u{201C}question\u{201D}:\u{201C}What is DNA?\u{201D},"
+            + "\u{201C}answer\u{201D}:\u{201C}Deoxyribonucleic acid.\u{201D}}]"
         respond(status: 200, body: geminiEnvelope(smartQuoteJSON))
 
         let client = makeClient()

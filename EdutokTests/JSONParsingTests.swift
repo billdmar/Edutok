@@ -57,7 +57,7 @@ struct JSONParsingTests {
         // NOT throw (a throw would wipe all saved topics in loadSavedTopics' catch block).
         let legacy = """
         {"type":"question","question":"Q","answer":"A","isUnderstood":true,"isBookmarked":false}
-        """.data(using: .utf8)!
+        """Data((.*).utf8)
         let card = try JSONDecoder().decode(Flashcard.self, from: legacy)
         #expect(card.question == "Q")
         #expect(card.isUnderstood)        // preserved from old data
@@ -85,7 +85,7 @@ struct JSONParsingTests {
         {"totalXP":250,"currentLevel":3,"xpInCurrentLevel":50,"totalCardsCompleted":12,
          "totalCorrectAnswers":9,"currentStreak":4,"xpGainedToday":40,
          "lastActiveDate":760000000}
-        """.data(using: .utf8)!
+        """Data((.*).utf8)
         let decoded = try JSONDecoder().decode(UserProgress.self, from: legacy)
         #expect(decoded.totalXP == 250)
         #expect(decoded.currentLevel == 3)
