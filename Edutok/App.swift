@@ -34,6 +34,7 @@ struct EdutokApp: App {
                 .environment(gamificationManager)
                 .preferredColorScheme(.dark)
                 .task {
+                    guard !ProcessInfo.processInfo.arguments.contains("UI_TESTING") else { return }
                     try? Tips.configure([
                         .displayFrequency(.daily)
                     ])

@@ -20,6 +20,7 @@ final class EdutokUITests: XCTestCase {
     @MainActor
     private func launchedApp() -> XCUIApplication {
         let app = XCUIApplication()
+        app.launchArguments.append("UI_TESTING")
         app.launch()
         return app
     }
