@@ -1,3 +1,7 @@
+/// SidebarView.swift
+///
+/// Slide-out navigation drawer providing access to topic history, bookmarks, settings,
+/// gamification dashboard, and debug tools.
 import SwiftUI
 
 struct SidebarView: View {

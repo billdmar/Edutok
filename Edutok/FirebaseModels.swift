@@ -1,4 +1,7 @@
-// FirebaseModels.swift
+/// FirebaseModels.swift
+///
+/// Firestore-backed data models: AppUser profile, DailyStat activity records, and their
+/// backward-compatible Codable conformances.
 import Foundation
 
 // MARK: - App User Model

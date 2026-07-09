@@ -1,4 +1,7 @@
-// ContentView.swift
+/// ContentView.swift
+///
+/// Root view router: switches between the main feed, leaderboard, and streak calendar sections
+/// via a floating bottom navigation bar.
 import SwiftUI
 
 enum AppSection {

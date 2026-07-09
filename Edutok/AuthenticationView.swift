@@ -1,4 +1,7 @@
-// AuthenticationView.swift
+/// AuthenticationView.swift
+///
+/// Sign-in flow UI supporting email/password and anonymous authentication via Firebase,
+/// with loading states and inline error display.
 import SwiftUI
 import FirebaseAuth
 

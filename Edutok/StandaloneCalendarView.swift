@@ -1,4 +1,6 @@
-// StandaloneCalendarView.swift
+/// StandaloneCalendarView.swift
+///
+/// Full-screen wrapper for the streak calendar with an embedded sidebar for navigation.
 import SwiftUI
 
 struct StandaloneCalendarView: View {

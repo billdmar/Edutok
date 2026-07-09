@@ -1,3 +1,7 @@
+/// MainView.swift
+///
+/// Home screen with topic search, trending suggestions, and the entry point for generating
+/// new flashcard decks.
 import SwiftUI
 
 struct MainView: View {

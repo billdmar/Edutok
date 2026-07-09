@@ -1,4 +1,7 @@
-// StreakCalendarView.swift
+/// StreakCalendarView.swift
+///
+/// Monthly calendar grid showing daily study activity, streak counts, and per-day stat
+/// detail sheets.
 import SwiftUI
 
 struct StreakCalendarView: View {

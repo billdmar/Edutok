@@ -1,3 +1,7 @@
+/// ParticleEffectsView.swift
+///
+/// Animated particle and XP-gain overlay views used for rewarding user interactions with
+/// visual feedback.
 import SwiftUI
 
 // MARK: - XP Gain Animation View

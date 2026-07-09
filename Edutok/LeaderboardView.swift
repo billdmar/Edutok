@@ -1,4 +1,7 @@
-// LeaderboardView.swift
+/// LeaderboardView.swift
+///
+/// Daily leaderboard displaying ranked users with XP scores, current-user highlighting,
+/// and an authentication prompt for anonymous users.
 import SwiftUI
 
 struct LeaderboardView: View {

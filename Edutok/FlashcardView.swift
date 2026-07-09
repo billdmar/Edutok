@@ -1,3 +1,7 @@
+/// FlashcardView.swift
+///
+/// The core swipe-feed: infinite-scroll flashcard stack with tap-to-flip, self-graded recall
+/// (Got it / Again), drag gestures, and XP reward animations.
 import SwiftUI
 
 struct FlashcardView: View {

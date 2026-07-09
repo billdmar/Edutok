@@ -1,3 +1,7 @@
+/// DailyChallengesView.swift
+///
+/// Daily challenge cards with animated progress bars, completion rewards, and a mystery-box
+/// sheet trigger.
 import SwiftUI
 
 struct DailyChallengesView: View {

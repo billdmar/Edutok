@@ -1,4 +1,6 @@
-// StatsSectionView.swift
+/// StatsSectionView.swift
+///
+/// Tabbed stats section toggling between the streak calendar and leaderboard views.
 import SwiftUI
 
 enum StatsViewMode: String, CaseIterable {

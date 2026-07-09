@@ -1,3 +1,7 @@
+/// EnhancedAchievementsView.swift
+///
+/// Achievement gallery grouped by category (Learning, Social, Time, Special) with
+/// rarity-colored lock/unlock states.
 import SwiftUI
 
 struct EnhancedAchievementsView: View {

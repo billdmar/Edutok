@@ -1,3 +1,7 @@
+/// Phase1DashboardView.swift
+///
+/// Gamification overview dashboard: level progress ring, daily challenges summary, mystery box
+/// grid, and achievement highlights.
 import SwiftUI
 
 struct GamificationDashboardView: View {

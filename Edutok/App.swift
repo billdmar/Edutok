@@ -1,4 +1,7 @@
-// App.swift
+/// App.swift
+///
+/// App entry point: registers the Firebase AppDelegate, creates the observable state managers,
+/// and injects them into the SwiftUI environment.
 import SwiftUI
 import FirebaseCore
 

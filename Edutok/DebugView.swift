@@ -1,4 +1,7 @@
-// DebugView.swift
+/// DebugView.swift
+///
+/// Developer debug panel for inspecting Firebase state, current user info, and triggering
+/// diagnostic operations.
 import SwiftUI
 
 struct DebugView: View {

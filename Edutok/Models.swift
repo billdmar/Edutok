@@ -1,3 +1,7 @@
+/// Models.swift
+///
+/// Core domain models: Flashcard types, the Flashcard value type with spaced-repetition
+/// metadata, and related enumerations.
 import Foundation
 
 enum FlashcardType: String, CaseIterable, Codable {
