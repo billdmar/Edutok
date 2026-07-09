@@ -3,6 +3,7 @@
 /// Root view router: switches between the main feed, leaderboard, and streak calendar sections
 /// via a floating bottom navigation bar.
 import SwiftUI
+import TipKit
 
 enum AppSection {
     case main, flashcards, leaderboard, calendar
@@ -59,7 +60,7 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: topicManager.currentTopic) { _, topic in
+        .onChange(of: topicManager.currentTopic) { oldTopic, topic in
             // Automatically switch to flashcards section when a topic is selected
             if topic != nil {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -70,6 +71,11 @@ struct ContentView: View {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentSection = .main
                 }
+            }
+
+            // Donate to StreakTip when a study session ends (topic goes from non-nil to nil)
+            if oldTopic != nil && topic == nil {
+                Task { await StreakTip.sessionCompleted.donate() }
             }
         }
     }
