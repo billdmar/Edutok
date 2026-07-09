@@ -20,6 +20,27 @@ private struct FlashcardData: Codable {
     let answer: String
 }
 
+/// Isolated stub protocol for integration tests — avoids sharing StubURLProtocol's
+/// static handler with GeminiClientTests when suites run concurrently.
+private final class IntegrationStubProtocol: URLProtocol {
+    nonisolated(unsafe) static var handler: ((URLRequest) -> (HTTPURLResponse, Data))?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+
+    override func startLoading() {
+        guard let handler = IntegrationStubProtocol.handler else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+        let (response, data) = handler(request)
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: data)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+}
+
 @Suite(.serialized)
 struct TopicManagerIntegrationTests {
 
@@ -27,7 +48,7 @@ struct TopicManagerIntegrationTests {
 
     private func makeClient() -> GeminiClient {
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [StubURLProtocol.self]
+        config.protocolClasses = [IntegrationStubProtocol.self]
         return GeminiClient(session: URLSession(configuration: config), apiKey: "test-key")
     }
 
@@ -40,13 +61,18 @@ struct TopicManagerIntegrationTests {
 
     /// JSON-escapes a string value (wraps in quotes, escapes inner quotes/newlines).
     private func jsonEscaped(_ s: String) -> String {
-        // swiftlint:disable:next force_try
-        let data = try! JSONSerialization.data(withJSONObject: s)
-        return String(data: data, encoding: .utf8) ?? "\"\(s)\""
+        // Wrap in an array — JSONSerialization requires a top-level container type.
+        guard let data = try? JSONSerialization.data(withJSONObject: [s]),
+              let array = String(data: data, encoding: .utf8) else {
+            return "\"\(s)\""
+        }
+        let start = array.index(after: array.startIndex)
+        let end = array.index(before: array.endIndex)
+        return String(array[start..<end])
     }
 
     private func respond(status: Int, body: String) {
-        StubURLProtocol.handler = { request in
+        IntegrationStubProtocol.handler = { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: status,
                                            httpVersion: nil, headerFields: nil)!
             return (response, Data(body.utf8))
