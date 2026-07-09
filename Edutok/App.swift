@@ -4,6 +4,7 @@
 /// and injects them into the SwiftUI environment.
 import SwiftUI
 import FirebaseCore
+import TipKit
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
@@ -32,6 +33,12 @@ struct EdutokApp: App {
                 .environment(topicManager)
                 .environment(gamificationManager)
                 .preferredColorScheme(.dark)
+                .task {
+                    guard !ProcessInfo.processInfo.arguments.contains("UI_TESTING") else { return }
+                    try? Tips.configure([
+                        .displayFrequency(.daily)
+                    ])
+                }
                 .onAppear {
                     // Schedule initial study reminders
                     gamificationManager.scheduleStudyReminder()

@@ -3,11 +3,15 @@
 /// The core swipe-feed: infinite-scroll flashcard stack with tap-to-flip, self-graded recall
 /// (Got it / Again), drag gestures, and XP reward animations.
 import SwiftUI
+import TipKit
 
 struct FlashcardView: View {
     @Environment(TopicManager.self) var topicManager
     @Environment(GamificationManager.self) var gamificationManager
     private var firebaseManager = FirebaseManager.shared
+    private let swipeTip = SwipeTip()
+    private let flipTip = FlipTip()
+    private let gradeTip = GradeTip()
     @State private var currentCardIndex = 0
     @State private var dragOffset = CGSize.zero
     @State private var showAnswer = false
@@ -66,6 +70,7 @@ struct FlashcardView: View {
                         }
                         .frame(maxHeight: .infinity)
                         .clipped()
+                        .popoverTip(swipeTip)
 
                         // Action overlay buttons (floating)
                         actionOverlayButtons(geometry: geometry)
@@ -477,6 +482,7 @@ struct FlashcardView: View {
                             }
                         }
                         .padding(.horizontal, 25)
+                        .popoverTip(gradeTip)
                     }
                     .padding(.bottom, 25)
                 }
@@ -512,6 +518,11 @@ struct FlashcardView: View {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     showAnswer.toggle()
                     cardRotation = showAnswer ? 180 : 0
+                }
+
+                // Donate to TipKit event so the GradeTip becomes eligible
+                if showAnswer {
+                    Task { await GradeTip.cardFlipped.donate() }
                 }
 
                 // Revealing the answer is "viewing" — award a small participation XP once per
@@ -737,6 +748,9 @@ struct FlashcardView: View {
 
     private func nextCard() {
         guard let topic = topicManager.currentTopic else { return }
+
+        // Donate to TipKit event so the BookmarkTip becomes eligible after 3 cards
+        Task { await BookmarkTip.cardsViewed.donate() }
 
         // Set transition direction from top
         cardTransitionDirection = .fromTop
