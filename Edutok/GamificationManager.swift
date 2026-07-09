@@ -9,28 +9,28 @@ import Foundation
 import SwiftUI
 
 /// Observable, main-actor store of the player's progression and reward state.
-@MainActor
-class GamificationManager: ObservableObject {
-    @Published var userProgress = UserProgress()
-    @Published var recentXPGains: [XPGainEvent] = []
-    @Published var shouldShowLevelUp = false
-    @Published var shouldShowAchievement = false
-    @Published var newAchievement: CustomAchievement?
-    @Published var particleEffects: [ParticleEffect] = []
+@Observable @MainActor
+class GamificationManager {
+    var userProgress = UserProgress()
+    var recentXPGains: [XPGainEvent] = []
+    var shouldShowLevelUp = false
+    var shouldShowAchievement = false
+    var newAchievement: CustomAchievement?
+    var particleEffects: [ParticleEffect] = []
 
     // NEW: Phase 1 features
-    @Published var dailyChallenges: [DailyChallenge] = []
-    @Published var availableMysteryBoxes: [MysteryBox] = []
-    @Published var enhancedAchievements: [EnhancedAchievement] = []
-    @Published var shouldShowMysteryBox = false
-    @Published var currentMysteryBox: MysteryBox?
+    var dailyChallenges: [DailyChallenge] = []
+    var availableMysteryBoxes: [MysteryBox] = []
+    var enhancedAchievements: [EnhancedAchievement] = []
+    var shouldShowMysteryBox = false
+    var currentMysteryBox: MysteryBox?
 
-    private let userDefaultsKey = "UserProgress"
-    private let challengeStore = ChallengeStore()
-    private let mysteryBoxStore = MysteryBoxStore()
-    private let achievementEvaluator = AchievementEvaluator()
-    private let notifications = NotificationScheduler()
-    private var topicExploredObserver: NSObjectProtocol?
+    @ObservationIgnored private let userDefaultsKey = "UserProgress"
+    @ObservationIgnored private let challengeStore = ChallengeStore()
+    @ObservationIgnored private let mysteryBoxStore = MysteryBoxStore()
+    @ObservationIgnored private let achievementEvaluator = AchievementEvaluator()
+    @ObservationIgnored private let notifications = NotificationScheduler()
+    @ObservationIgnored private var topicExploredObserver: NSObjectProtocol?
 
     init() {
         loadProgress()
@@ -146,7 +146,7 @@ class GamificationManager: ObservableObject {
         shouldShowAchievement = true
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.rewardDisplay))
             self.shouldShowAchievement = false
         }
     }
@@ -181,7 +181,7 @@ class GamificationManager: ObservableObject {
         addParticleEffect(.achievement)
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.rewardDisplay))
             self.shouldShowMysteryBox = false
         }
 
@@ -239,7 +239,7 @@ class GamificationManager: ObservableObject {
         addParticleEffect(.achievement)
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.rewardDisplay))
             self.shouldShowAchievement = false
         }
 
@@ -270,7 +270,7 @@ class GamificationManager: ObservableObject {
             recentXPGains.append(xpEvent)
 
             // Remove after animation
-            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
+            Task { try? await Task.sleep(for: .seconds(AnimationConstants.rewardDisplay))
                 if let index = self.recentXPGains.firstIndex(where: { $0.id == xpEvent.id }) {
                     self.recentXPGains.remove(at: index)
                 }
@@ -366,7 +366,7 @@ class GamificationManager: ObservableObject {
         particleEffects.append(effect)
 
         // Remove after animation completes
-        DispatchQueue.main.asyncAfter(deadline: .now() + effect.duration) {
+        Task { try? await Task.sleep(for: .seconds(effect.duration))
             if let index = self.particleEffects.firstIndex(where: { $0.id == effect.id }) {
                 self.particleEffects.remove(at: index)
             }
@@ -380,7 +380,7 @@ class GamificationManager: ObservableObject {
         addParticleEffect(.levelUp)
 
         // Hide after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.rewardDisplay) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.rewardDisplay))
             self.shouldShowLevelUp = false
         }
     }

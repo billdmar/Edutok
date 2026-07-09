@@ -1,3 +1,7 @@
+/// ParticleEffectsView.swift
+///
+/// Animated particle and XP-gain overlay views used for rewarding user interactions with
+/// visual feedback.
 import SwiftUI
 
 // MARK: - XP Gain Animation View
@@ -139,7 +143,7 @@ struct LevelUpView: View {
             sparkleScale = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.transitionReset))
             isShowing = false
         }
     }
@@ -235,7 +239,7 @@ struct AchievementView: View {
             }
 
             // Auto dismiss after 4 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.particleBurst) {
+            Task { try? await Task.sleep(for: .seconds(AnimationConstants.particleBurst))
                 dismissAnimation()
             }
         }
@@ -247,7 +251,7 @@ struct AchievementView: View {
             glowOpacity = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.transitionReset))
             isShowing = false
         }
     }
@@ -343,7 +347,7 @@ struct CustomAchievementView: View {
             }
 
             // Auto dismiss after 4 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.particleBurst) {
+            Task { try? await Task.sleep(for: .seconds(AnimationConstants.particleBurst))
                 dismissAnimation()
             }
         }
@@ -355,75 +359,69 @@ struct CustomAchievementView: View {
             glowOpacity = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.transitionReset))
             isShowing = false
         }
     }
 }
 
-// MARK: - Particle System
+// MARK: - Particle System (Canvas + TimelineView for single-pass rendering)
 struct ParticleSystemView: View {
     let effect: ParticleEffect
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var particles: [Particle] = []
+    @State private var startTime: Date = .now
 
     var body: some View {
-        ZStack {
-            ForEach(particles) { particle in
-                Circle()
-                    .fill(particle.color)
-                    .frame(width: particle.size, height: particle.size)
-                    .offset(x: particle.position.x, y: particle.position.y)
-                    .opacity(particle.opacity)
-                    .scaleEffect(particle.scale)
+        if reduceMotion {
+            EmptyView()
+        } else {
+            TimelineView(.animation) { timeline in
+                Canvas { context, size in
+                    let elapsed = timeline.date.timeIntervalSince(startTime)
+                    let progress = min(elapsed / effect.duration, 1.0)
+
+                    for particle in particles {
+                        let x = size.width / 2 + particle.velocity.x * progress
+                        let y = size.height / 2 + particle.velocity.y * progress
+                        let opacity = 1.0 - progress
+                        let scale = 1.0 - (progress * 0.5)
+                        let radius = particle.size * scale / 2
+
+                        context.opacity = opacity
+                        let rect = CGRect(x: x - radius, y: y - radius,
+                                          width: radius * 2, height: radius * 2)
+                        context.fill(Circle().path(in: rect),
+                                     with: .color(particle.color))
+                    }
+                }
             }
-        }
-        .onAppear {
-            // Honor Reduce Motion: render no flying particles at all.
-            guard !reduceMotion else { return }
-            generateParticles()
-            animateParticles()
+            .onAppear {
+                startTime = .now
+                generateParticles()
+            }
         }
     }
 
     private func generateParticles() {
         particles = (0..<effect.type.particleCount).map { _ in
             Particle(
-                position: CGPoint(x: 0, y: 0),
                 velocity: CGPoint(
                     x: Double.random(in: -100...100),
                     y: Double.random(in: -150...50)
                 ),
                 color: effect.type.colors.randomElement() ?? .white,
-                size: Double.random(in: 3...8),
-                opacity: 1.0,
-                scale: 1.0
+                size: Double.random(in: 3...8)
             )
-        }
-    }
-
-    private func animateParticles() {
-        withAnimation(.easeOut(duration: effect.duration)) {
-            particles = particles.map { particle in
-                var newParticle = particle
-                newParticle.position.x += particle.velocity.x
-                newParticle.position.y += particle.velocity.y
-                newParticle.opacity = 0
-                newParticle.scale = 0.5
-                return newParticle
-            }
         }
     }
 }
 
 struct Particle: Identifiable {
     let id = UUID()
-    var position: CGPoint
     let velocity: CGPoint
     let color: Color
     let size: Double
-    var opacity: Double
-    var scale: Double
 }
 
 // MARK: - Progress Ring

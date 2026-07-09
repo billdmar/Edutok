@@ -1,86 +1,13 @@
+/// FlashcardView.swift
+///
+/// The core swipe-feed: infinite-scroll flashcard stack with tap-to-flip, self-graded recall
+/// (Got it / Again), drag gestures, and XP reward animations.
 import SwiftUI
 
-enum CardTransitionDirection {
-    case none, fromTop, fromBottom
-}
-
-struct BouncyButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.85 : 1.0)
-            .brightness(configuration.isPressed ? 0.2 : 0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
-    }
-}
-
-struct HeartButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 1.3 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
-/// One of the on-card action buttons (Skip / Got it). Both shared the same ~85-line chrome
-/// (gradient capsule + stroke + shadow + bounce-scale + 3D-flip sync) differing only in
-/// icon/label/colors/effect/action — extracted here to remove that duplication.
-struct CardActionButton: View {
-    enum Effect { case bounce, pulse }
-
-    let icon: String
-    let label: String
-    let symbolEffect: Effect
-    let colors: [Color]
-    let shadowColor: Color
-    let isCurrentCard: Bool
-    let showAnswer: Bool
-    let cardRotation: Double
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                symbol
-                Text(label)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white.opacity(0.8))
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(LinearGradient(gradient: Gradient(colors: colors),
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .overlay(RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color.white.opacity(0.4), lineWidth: 2))
-                    .shadow(color: shadowColor.opacity(0.5), radius: 8, x: 0, y: 4)
-            )
-        }
-        .scaleEffect(isCurrentCard ? 1.0 : 0.8)
-        .buttonStyle(BouncyButtonStyle())
-        .rotation3DEffect(
-            .degrees(isCurrentCard && showAnswer ? -cardRotation : 0),
-            axis: (x: 0, y: 1, z: 0)
-        )
-        .accessibilityLabel(label)
-    }
-
-    @ViewBuilder private var symbol: some View {
-        let image = Image(systemName: icon).font(.title2).foregroundColor(.white)
-        switch symbolEffect {
-        case .bounce:
-            image.symbolEffect(.bounce, options: .repeat(.continuous).speed(0.5))
-        case .pulse:
-            image.symbolEffect(.pulse, options: .repeat(.continuous).speed(0.7))
-        }
-    }
-}
-
 struct FlashcardView: View {
-    @EnvironmentObject var topicManager: TopicManager
-    @EnvironmentObject var gamificationManager: GamificationManager
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    @Environment(TopicManager.self) var topicManager
+    @Environment(GamificationManager.self) var gamificationManager
+    private var firebaseManager = FirebaseManager.shared
     @State private var currentCardIndex = 0
     @State private var dragOffset = CGSize.zero
     @State private var showAnswer = false
@@ -96,8 +23,12 @@ struct FlashcardView: View {
     @State private var cardGraded: Set<UUID> = []
     // Cards the user marked "Again" (wrong) this session — so a later "Got it" isn't "first try".
     @State private var cardMarkedWrong: Set<UUID> = []
+    @State private var lightHapticTrigger = 0
+    @State private var mediumHapticTrigger = 0
+    @State private var heavyHapticTrigger = 0
 
     var body: some View {
+        @Bindable var gamificationManager = gamificationManager
         GeometryReader { geometry in
             ZStack {
                 // Background gradient
@@ -218,6 +149,9 @@ struct FlashcardView: View {
                 // so currentCardIndex never points past the new topic's bounds.
                 currentCardIndex = 0
             }
+            .sensoryFeedback(.impact(weight: .light), trigger: lightHapticTrigger)
+            .sensoryFeedback(.impact(weight: .medium), trigger: mediumHapticTrigger)
+            .sensoryFeedback(.impact(weight: .heavy), trigger: heavyHapticTrigger)
         }
     }
 
@@ -527,7 +461,7 @@ struct FlashcardView: View {
                             ) {
                                 markNeedsReview()
                                 nextCard()
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                lightHapticTrigger += 1
                             }
 
                             CardActionButton(
@@ -539,7 +473,7 @@ struct FlashcardView: View {
                             ) {
                                 markAsUnderstood()
                                 nextCard()
-                                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                                heavyHapticTrigger += 1
                             }
                         }
                         .padding(.horizontal, 25)
@@ -589,8 +523,8 @@ struct FlashcardView: View {
                 }
 
                 // Haptic feedback
-                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                impactFeedback.impactOccurred()
+                lightHapticTrigger += 1
+
             }
         }
         .gesture(
@@ -607,20 +541,20 @@ struct FlashcardView: View {
                     if gesture.translation.height < -swipeThreshold || gesture.predictedEndTranslation.height < -velocityThreshold {
                         // Swipe up - next card
                         nextCard()
-                        let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        snapFeedback.impactOccurred()
+                        mediumHapticTrigger += 1
+
                     } else if gesture.translation.height > swipeThreshold || gesture.predictedEndTranslation.height > velocityThreshold {
                         // Swipe down - previous card
                         previousCard()
-                        let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        snapFeedback.impactOccurred()
+                        mediumHapticTrigger += 1
+
                     } else if gesture.translation.width > swipeThreshold * 2 && showAnswer {
                         // Swipe right - mark as understood. Only when the answer has been
                         // revealed, so "Got it" can't be earned without seeing the card.
                         markAsUnderstood()
                         nextCard()
-                        let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        snapFeedback.impactOccurred()
+                        mediumHapticTrigger += 1
+
                     } else if gesture.translation.width < -swipeThreshold * 2 {
                         // Swipe left - bookmark
                         toggleBookmark()
@@ -629,8 +563,8 @@ struct FlashcardView: View {
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                             dragOffset = CGSize.zero
                         }
-                        let snapFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        snapFeedback.impactOccurred()
+                        mediumHapticTrigger += 1
+
                     } else {
                         // Return to center
                         withAnimation(.spring()) {
@@ -730,8 +664,8 @@ struct FlashcardView: View {
                     if let topic = topicManager.currentTopic {
                         topicManager.toggleTopicLike(topicId: topic.id)
 
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        impactFeedback.impactOccurred()
+                        mediumHapticTrigger += 1
+
                     }
                 }) {
                     VStack(spacing: 8) {
@@ -828,7 +762,7 @@ struct FlashcardView: View {
         }
 
         // Reset transition direction after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.transitionReset))
             cardTransitionDirection = .none
         }
     }
@@ -854,7 +788,7 @@ struct FlashcardView: View {
         }
 
         // Reset transition direction after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationConstants.transitionReset) {
+        Task { try? await Task.sleep(for: .seconds(AnimationConstants.transitionReset))
             cardTransitionDirection = .none
         }
     }
@@ -891,111 +825,5 @@ struct FlashcardView: View {
     private func toggleBookmark() {
         guard let topic = topicManager.currentTopic else { return }
         topicManager.toggleBookmark(topicId: topic.id, cardIndex: currentCardIndex)
-    }
-    // Improved AutoSizedText component with precise boundary fitting
-    struct AutoSizedText: View {
-        let text: String
-        let maxWidth: CGFloat
-        let maxHeight: CGFloat
-        let fontWeight: Font.Weight
-        let color: Color
-
-        @State private var fontSize: CGFloat = 20
-
-        var body: some View {
-            Text(text)
-                .font(.system(size: fontSize, weight: fontWeight))
-                .foregroundColor(color)
-                .multilineTextAlignment(.center)
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: maxWidth)
-                .onAppear {
-                    calculateOptimalFontSize()
-                }
-                .onChange(of: text) { _, _ in
-                    calculateOptimalFontSize()
-                }
-        }
-
-        private func calculateOptimalFontSize() {
-            let maxFontSize: CGFloat = 32
-            let minFontSize: CGFloat = 8
-            var bestSize: CGFloat = minFontSize
-
-            // Binary search for the optimal font size
-            var low: CGFloat = minFontSize
-            var high: CGFloat = maxFontSize
-
-            while high - low > 0.5 {
-                let mid = (low + high) / 2
-                let textSize = measureText(fontSize: mid)
-
-                if textSize.width <= maxWidth && textSize.height <= maxHeight {
-                    bestSize = mid
-                    low = mid
-                } else {
-                    high = mid - 0.5
-                }
-            }
-
-            // Final verification and adjustment
-            var finalSize = bestSize
-            while finalSize > minFontSize {
-                let testSize = measureText(fontSize: finalSize)
-                if testSize.width <= maxWidth && testSize.height <= maxHeight {
-                    break
-                }
-                finalSize -= 0.5
-            }
-
-            fontSize = max(finalSize, minFontSize)
-        }
-
-        private func measureText(fontSize: CGFloat) -> CGSize {
-            let font = UIFont.systemFont(ofSize: fontSize, weight: uiFontWeight(from: fontWeight))
-
-            let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.alignment = .center
-            paragraphStyle.lineBreakMode = .byWordWrapping
-
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: font,
-                .paragraphStyle: paragraphStyle
-            ]
-
-            let attributedString = NSAttributedString(string: text, attributes: attributes)
-
-            // Use a slightly smaller width for measurement to account for padding
-            let constraintWidth = maxWidth - 4
-            let constraintSize = CGSize(width: constraintWidth, height: CGFloat.greatestFiniteMagnitude)
-
-            let boundingRect = attributedString.boundingRect(
-                with: constraintSize,
-                options: [.usesLineFragmentOrigin, .usesFontLeading],
-                context: nil
-            )
-
-            // Add small buffer to ensure no truncation
-            return CGSize(
-                width: ceil(boundingRect.width) + 2,
-                height: ceil(boundingRect.height) + 2
-            )
-        }
-
-        private func uiFontWeight(from fontWeight: Font.Weight) -> UIFont.Weight {
-            switch fontWeight {
-            case .ultraLight: return .ultraLight
-            case .thin: return .thin
-            case .light: return .light
-            case .regular: return .regular
-            case .medium: return .medium
-            case .semibold: return .semibold
-            case .bold: return .bold
-            case .heavy: return .heavy
-            case .black: return .black
-            default: return .regular
-            }
-        }
     }
 }

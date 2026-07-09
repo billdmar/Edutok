@@ -1,8 +1,11 @@
-// StreakCalendarView.swift
+/// StreakCalendarView.swift
+///
+/// Monthly calendar grid showing daily study activity, streak counts, and per-day stat
+/// detail sheets.
 import SwiftUI
 
 struct StreakCalendarView: View {
-    @StateObject private var firebaseManager = FirebaseManager.shared
+    private var firebaseManager = FirebaseManager.shared
     @State private var selectedDate = Date()
     @State private var currentMonth = Date()
     @State private var selectedDayStat: DailyStat?
@@ -488,7 +491,7 @@ struct DayDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 20) {
                 // Date header
                 Text(dayFormatter.string(from: dailyStat.date))

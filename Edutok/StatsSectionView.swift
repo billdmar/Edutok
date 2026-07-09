@@ -1,4 +1,6 @@
-// StatsSectionView.swift
+/// StatsSectionView.swift
+///
+/// Tabbed stats section toggling between the streak calendar and leaderboard views.
 import SwiftUI
 
 enum StatsViewMode: String, CaseIterable {
@@ -25,8 +27,8 @@ enum StatsViewMode: String, CaseIterable {
 }
 
 struct StatsSectionView: View {
-    @StateObject private var firebaseManager = FirebaseManager.shared
-    @EnvironmentObject var topicManager: TopicManager
+    private var firebaseManager = FirebaseManager.shared
+    @Environment(TopicManager.self) var topicManager
     @State private var selectedMode: StatsViewMode = .calendar
 
     var body: some View {

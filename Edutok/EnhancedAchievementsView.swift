@@ -1,12 +1,16 @@
+/// EnhancedAchievementsView.swift
+///
+/// Achievement gallery grouped by category (Learning, Social, Time, Special) with
+/// rarity-colored lock/unlock states.
 import SwiftUI
 
 struct EnhancedAchievementsView: View {
-    @ObservedObject var gamificationManager: GamificationManager
+    var gamificationManager: GamificationManager
     @Environment(\.dismiss) private var dismiss
     @State private var selectedCategory: AchievementCategory = .learning
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 // Background gradient
                 LinearGradient(

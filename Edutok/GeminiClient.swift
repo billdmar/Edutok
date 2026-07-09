@@ -19,7 +19,7 @@ enum APIError: Error, Equatable {
 /// Stateless client for the Gemini `generateContent` endpoint.
 struct GeminiClient {
     /// The single place the model id is defined (was hardcoded in two managers).
-    static let model = "gemini-1.5-flash-latest"
+    static let model = "gemini-2.0-flash"
 
     private let session: URLSession
     private let apiKey: String

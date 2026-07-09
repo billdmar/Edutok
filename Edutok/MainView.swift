@@ -1,8 +1,12 @@
+/// MainView.swift
+///
+/// Home screen with topic search, trending suggestions, and the entry point for generating
+/// new flashcard decks.
 import SwiftUI
 
 struct MainView: View {
-    @EnvironmentObject var topicManager: TopicManager
-    @EnvironmentObject var gamificationManager: GamificationManager
+    @Environment(TopicManager.self) var topicManager
+    @Environment(GamificationManager.self) var gamificationManager
     @State private var topicInput = ""
     @State private var isLoading = false
     @Binding var showSidebar: Bool

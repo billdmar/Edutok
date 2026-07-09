@@ -1,12 +1,16 @@
+/// Phase1DashboardView.swift
+///
+/// Gamification overview dashboard: level progress ring, daily challenges summary, mystery box
+/// grid, and achievement highlights.
 import SwiftUI
 
-struct Phase1DashboardView: View {
-    @ObservedObject var gamificationManager: GamificationManager
+struct GamificationDashboardView: View {
+    @Bindable var gamificationManager: GamificationManager
     @State private var showDailyChallenges = false
     @State private var showEnhancedAchievements = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 // Background gradient
                 LinearGradient(
@@ -419,5 +423,5 @@ struct StatPreviewCard: View {
 }
 
 #Preview {
-    Phase1DashboardView(gamificationManager: GamificationManager())
+    GamificationDashboardView(gamificationManager: GamificationManager())
 }

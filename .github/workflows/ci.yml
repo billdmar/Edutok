@@ -68,7 +68,12 @@ jobs:
           PLIST
 
       - name: Resolve Swift packages
-        run: xcodebuild -resolvePackageDependencies -project Edutok.xcodeproj -scheme Edutok
+        run: |
+          for i in 1 2 3; do
+            xcodebuild -resolvePackageDependencies -project Edutok.xcodeproj -scheme Edutok && break
+            echo "Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
 
       - name: Build & test
         run: |
@@ -164,7 +169,12 @@ jobs:
           PLIST
 
       - name: Resolve Swift packages
-        run: xcodebuild -resolvePackageDependencies -project Edutok.xcodeproj -scheme Edutok
+        run: |
+          for i in 1 2 3; do
+            xcodebuild -resolvePackageDependencies -project Edutok.xcodeproj -scheme Edutok && break
+            echo "Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
 
       - name: Run UI tests
         run: |

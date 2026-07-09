@@ -9,18 +9,18 @@ import Foundation
 import SwiftUI
 
 /// Shared, main-actor service for generating and caching flashcard image URLs.
-@MainActor
-class ImageManager: ObservableObject {
+@Observable @MainActor
+class ImageManager {
     static let shared = ImageManager()
 
     // Bounded LRU caches (NSCache) so resolved image URLs don't grow without limit.
     // NSCache evicts automatically under memory pressure and respects countLimit.
-    private let imageCache: NSCache<NSString, NSString> = {
+    @ObservationIgnored private let imageCache: NSCache<NSString, NSString> = {
         let cache = NSCache<NSString, NSString>()
         cache.countLimit = 500
         return cache
     }() // Cache for image URLs
-    private let questionImageCache: NSCache<NSString, NSString> = {
+    @ObservationIgnored private let questionImageCache: NSCache<NSString, NSString> = {
         let cache = NSCache<NSString, NSString>()
         cache.countLimit = 500
         return cache
@@ -28,13 +28,13 @@ class ImageManager: ObservableObject {
 
     // Decoded-image cache so a card scrolling back into view doesn't re-download and
     // re-decode its photo. Bounded; NSCache also evicts under memory pressure.
-    private let decodedImageCache: NSCache<NSString, UIImage> = {
+    @ObservationIgnored private let decodedImageCache: NSCache<NSString, UIImage> = {
         let cache = NSCache<NSString, UIImage>()
         cache.countLimit = 120
         return cache
     }()
 
-    private let geminiClient = GeminiClient()
+    @ObservationIgnored private let geminiClient = GeminiClient()
 
     /// Asks Gemini for specific, visual search keywords describing the question.
     /// Always returns a usable string: on any failure (bad URL, non-200, decode/network
