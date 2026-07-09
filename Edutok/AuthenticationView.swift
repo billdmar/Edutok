@@ -100,6 +100,8 @@ struct AuthenticationView: View {
                                             .fill(authMode == mode ? Color.purple.opacity(0.6) : Color.clear)
                                     )
                             }
+                            .accessibilityLabel(mode.title)
+                            .accessibilityAddTraits(authMode == mode ? [.isButton, .isSelected] : .isButton)
                         }
                     }
                     .background(
@@ -182,6 +184,7 @@ struct AuthenticationView: View {
                             .padding(12)
                             .background(Circle().fill(Color.white.opacity(0.1)))
                     }
+                    .accessibilityLabel("Close")
                     .padding(.trailing, 20)
                     .padding(.top, 20)
                 }

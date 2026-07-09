@@ -187,6 +187,16 @@ struct ChallengeCard: View {
         )
         .scaleEffect(challenge.isCompleted ? 1.02 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: challenge.isCompleted)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(challengeLabel)
+        .accessibilityValue("\(Int(challenge.progressPercentage * 100)) percent complete")
+    }
+
+    private var challengeLabel: String {
+        let status = challenge.isCompleted
+            ? "completed"
+            : "\(challenge.currentValue) of \(challenge.targetValue)"
+        return "\(challenge.title), \(status), \(challenge.xpReward) XP reward"
     }
 }
 
@@ -258,6 +268,9 @@ struct MysteryBoxCard: View {
         .disabled(box.isOpened)
         .scaleEffect(box.isOpened ? 0.95 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: box.isOpened)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(box.rarity.rawValue.capitalized) mystery box, \(box.isOpened ? "opened, \(box.xpAmount) XP" : "tap to open")")
+        .accessibilityAddTraits(box.isOpened ? [] : .isButton)
     }
 }
 

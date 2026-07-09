@@ -73,6 +73,8 @@ struct StatsSectionView: View {
                                             )
                                     )
                                 }
+                                .accessibilityLabel("Back")
+                                .accessibilityHint("Returns to the main view")
 
                                 Spacer()
                             }
@@ -178,6 +180,8 @@ struct StatsSectionView: View {
                     }
                     .scaleEffect(selectedMode == mode ? 1.05 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedMode)
+                    .accessibilityLabel(mode.title)
+                    .accessibilityAddTraits(selectedMode == mode ? [.isButton, .isSelected] : .isButton)
                 }
             }
             .padding(.horizontal, 20)
@@ -292,5 +296,7 @@ struct QuickStatItem: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(value) \(subtitle)")
     }
 }
