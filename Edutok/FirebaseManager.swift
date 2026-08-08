@@ -67,13 +67,8 @@ class FirebaseManager {
 
     func signInWithPhone(phoneNumber: String) async throws -> String {
         // Note: Phone auth requires additional setup in Firebase Console
-        // and may not work in simulator
-        do {
-            let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
-            return verificationID
-        } catch {
-            throw error
-        }
+        // and may not work in simulator.
+        return try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
     }
 
     func verifyPhoneCode(verificationID: String, verificationCode: String) async throws {
@@ -368,8 +363,11 @@ class FirebaseManager {
 
             let collectionName = type == .cardsFlipped ? "daily_cards_leaderboard" : "daily_topics_leaderboard"
 
+            // Order by score only. (An inequality filter on `userId` here would be invalid:
+            // Firestore requires the first `order(by:)` to match the inequality field. Every
+            // written entry already sets `userId`, and the compactMap below discards any doc
+            // missing it, so no server-side existence filter is needed.)
             let snapshot = try await db.collection(collectionName)
-                .whereField("userId", isNotEqualTo: "")
                 .order(by: "value", descending: true)
                 .limit(to: 50)
                 .getDocuments()

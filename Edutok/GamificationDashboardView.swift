@@ -1,4 +1,4 @@
-/// Phase1DashboardView.swift
+/// GamificationDashboardView.swift
 ///
 /// Gamification overview dashboard: level progress ring, daily challenges summary, mystery box
 /// grid, and achievement highlights.
@@ -162,7 +162,10 @@ struct GamificationDashboardView: View {
 
                                 StatPreviewCard(
                                     title: "Streak",
-                                    value: "\(gamificationManager.userProgress.currentStreak) days",
+                                    // Streaks are computed from activity history and owned by
+                                    // FirebaseManager (see StreakCalculator), so read the current
+                                    // streak from there rather than the never-written progress copy.
+                                    value: "\(FirebaseManager.shared.currentUser?.currentStreak ?? 0) days",
                                     icon: "flame.fill",
                                     color: .red
                                 )

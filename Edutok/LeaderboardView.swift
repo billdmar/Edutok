@@ -27,7 +27,8 @@ struct LeaderboardView: View {
     }
 
     private func leaderboardContent() -> some View {
-        VStack(spacing: 0) {            // Header with type selection
+        VStack(spacing: 0) {
+            // Header with type selection
             VStack(spacing: 20) {
                 Text("Daily Leaderboard")
                     .font(.largeTitle)
@@ -188,7 +189,6 @@ struct LeaderboardView: View {
 
     private func leaderboardRow(entry: LeaderboardEntry) -> some View {
         HStack(spacing: 15) {
-            // Rank
             ZStack {
                 Circle()
                     .fill(rankColor(entry.rank))
@@ -205,7 +205,6 @@ struct LeaderboardView: View {
                 }
             }
 
-            // User info
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(entry.username)
@@ -228,7 +227,6 @@ struct LeaderboardView: View {
 
             Spacer()
 
-            // Value badge
             Text("\(entry.value)")
                 .font(.title2)
                 .fontWeight(.bold)
@@ -433,7 +431,6 @@ struct AuthenticationPromptView: View {
 
     var body: some View {
         VStack(spacing: 30) {
-            // Trophy animation
             ZStack {
                 Circle()
                     .fill(
@@ -465,7 +462,6 @@ struct AuthenticationPromptView: View {
             }
 
             VStack(spacing: 20) {
-                // Main sign up button
                 Button(action: {
                     showAuthView = true
                 }) {
@@ -502,7 +498,6 @@ struct AuthenticationPromptView: View {
                         .underline()
                 }
 
-                // Guest option
                 Button(action: {
                     Task {
                         try? await firebaseManager.signInAnonymously()

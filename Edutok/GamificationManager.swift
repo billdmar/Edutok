@@ -7,6 +7,7 @@
 /// progress is persisted to `UserDefaults` and key milestones are mirrored to Firebase.
 import Foundation
 import SwiftUI
+import FirebaseCore
 
 /// Observable, main-actor store of the player's progression and reward state.
 @Observable @MainActor
@@ -18,7 +19,7 @@ class GamificationManager {
     var newAchievement: CustomAchievement?
     var particleEffects: [ParticleEffect] = []
 
-    // NEW: Phase 1 features
+    // Daily challenges, mystery boxes, and the enhanced achievement catalog.
     var dailyChallenges: [DailyChallenge] = []
     var availableMysteryBoxes: [MysteryBox] = []
     var enhancedAchievements: [EnhancedAchievement] = []
@@ -49,17 +50,17 @@ class GamificationManager {
             generateMysteryBoxes()
         }
 
-        // NEW: Listen for topic exploration notifications
+        // Listen for topic-exploration notifications posted by TopicManager.
         setupNotificationListeners()
 
         // Check enhanced achievements after loading progress
         checkEnhancedAchievements()
     }
 
-    // NEW: Setup notification listeners for cross-component communication
+    // Observes topic-exploration notifications to credit the matching daily challenge.
     private func setupNotificationListeners() {
         topicExploredObserver = NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("TopicExplored"),
+            forName: .topicExplored,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -208,6 +209,14 @@ class GamificationManager {
     }
 
     func checkEnhancedAchievements() {
+        // Sync the authoritative streak (owned by FirebaseManager via StreakCalculator) into
+        // userProgress so streak-based achievements evaluate against the real value. Guarded on
+        // FirebaseApp being configured: touching FirebaseManager.shared before configure()
+        // (e.g. this manager's own init, or unit tests with no Firebase) would trap.
+        if FirebaseApp.app() != nil {
+            userProgress.currentStreak = FirebaseManager.shared.currentUser?.currentStreak ?? userProgress.currentStreak
+        }
+
         let indices = achievementEvaluator.newlyUnlockableIndices(in: enhancedAchievements,
                                                                   progress: userProgress)
         for index in indices {

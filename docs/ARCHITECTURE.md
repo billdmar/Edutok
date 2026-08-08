@@ -61,7 +61,7 @@ main thread and the UI updates without data races.
    api.unsplash.com          ┌──────────────────────────┐                      │ HTTPS
    generativelanguage        │   GamificationManager     │                      ▼
    .googleapis.com           │ XP/levels, challenges,    │              Cloud Firestore
-   (Gemini 1.5 Flash)        │ mystery boxes, achievements│             (users, leaderboards)
+   (gemini-2.0-flash)        │ mystery boxes, achievements│             (users, leaderboards)
                              │ persists → UserDefaults    │
                              │ UNUserNotificationCenter   │
                              └──────────────────────────┘
@@ -130,7 +130,7 @@ truth for the active topic. It persists `savedTopics` to `UserDefaults` (key
 Generation flow (`fetchFlashcardsFromGemini(topic:batchNumber:)`):
 
 1. Calls `GeminiClient.generateText(...)` — the shared networking layer that owns the
-   endpoint URL, the model id (`GeminiClient.model = "gemini-1.5-flash-latest"`, defined
+   endpoint URL, the model id (`GeminiClient.model = "gemini-2.0-flash"`, defined
    once), the `POST` body, status check, and `GeminiResponse` decoding. `ImageManager`
    uses the same client for image-keyword generation, so the request plumbing isn't
    duplicated.
@@ -341,7 +341,7 @@ feed). `FlashcardView` exposes a native `ShareLink` to share a card's Q/A.
 
 ## Testing
 
-30 unit tests in `EdutokTests` (Swift Testing framework) cover the **pure domain
+71 unit tests in `EdutokTests` (Swift Testing framework) cover the **pure domain
 logic** with no Firebase/network dependency: XP/leveling math (thresholds, level-up
 detection, in-level progress), **streak calculation** (`StreakCalculator` — single/
 consecutive days, gaps, same-day idempotency), **leaderboard ranking**

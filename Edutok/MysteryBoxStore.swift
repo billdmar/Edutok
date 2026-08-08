@@ -3,7 +3,7 @@
 /// Mystery-box generation, rarity distribution, and persistence — extracted from
 /// `GamificationManager` so the reward manager isn't also the box factory + storage layer.
 /// This is a **stateless** helper: it returns values and reads/writes `UserDefaults`, but it
-/// does NOT own the `@Published` array (that stays on `GamificationManager`, which the views
+/// does NOT own the observable `var availableMysteryBoxes` (that stays on `GamificationManager`, which the views
 /// bind to). `GamificationManager` remains the side-effect coordinator (XP, animation,
 /// Firebase). Keeping the helper stateless avoids any chance of the published array drifting
 /// out of sync with a second copy.

@@ -49,7 +49,7 @@ struct StatsSectionView: View {
                             // Back button
                             HStack {
                                 Button(action: {
-                                    // Navigate back to main view by clearing currentTopic and switching section
+                                    // Return to the main view by clearing the current topic.
                                     topicManager.currentTopic = nil
                                 }) {
                                     HStack(spacing: 8) {

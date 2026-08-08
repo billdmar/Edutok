@@ -72,20 +72,16 @@ class ImageManager {
     /// caching the result by keywords (and by question when provided). Returns `nil` when
     /// the request is rate-limited/unauthorized, errors, or yields no results.
     func fetchImage(keywords: String, question: String? = nil) async -> String? {
-        // Create a unique cache key that includes both keywords and question
         let cacheKey = question.map { "\(keywords)_\($0.prefix(30))" } ?? keywords
 
-        // Check question-specific cache first
         if question != nil, let cachedURL = questionImageCache.object(forKey: cacheKey as NSString) {
             return cachedURL as String
         }
 
-        // Check general cache
         if let cachedURL = imageCache.object(forKey: keywords as NSString) {
             return cachedURL as String
         }
 
-        // Clean up keywords for Unsplash search
         let searchQuery = keywords.replacingOccurrences(of: ",", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -153,15 +149,6 @@ class ImageManager {
         // (The old source.unsplash.com fallback was removed — that service was
         // permanently shut down by Unsplash and always failed to load.)
         return nil
-    }
-
-    // Generate and fetch unique image for a flashcard
-    func generateImageForFlashcard(question: String, topic: String) async -> String? {
-        // Generate unique keywords using Gemini
-        let keywords = await generateImageKeywords(for: question, topic: topic)
-
-        // Fetch image using keywords and question for unique caching
-        return await fetchImage(keywords: keywords, question: question)
     }
 
     /// Generates keywords and fetches an image, appending a per-index variation modifier

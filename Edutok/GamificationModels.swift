@@ -22,6 +22,9 @@ struct UserProgress: Codable {
     /// Correct answers in an unbroken run; reset when the user marks a card "Again" (wrong).
     /// Drives the "Perfect Score" daily challenge.
     var consecutiveCorrectAnswers: Int = 0
+    /// Mirror of the authoritative daily streak (computed by `StreakCalculator` and owned by
+    /// `FirebaseManager`). Synced in `GamificationManager.checkEnhancedAchievements()` so
+    /// streak-based achievements and the dashboard evaluate against the real value.
     var currentStreak: Int = 0
     var xpGainedToday: Int = 0
 
@@ -76,6 +79,15 @@ struct UserProgress: Codable {
     mutating func addXP(_ amount: Int) -> Bool {
         let oldLevel = currentLevel
         totalXP += amount
+
+        // Maintain the "XP today" bucket that the dashboard displays: roll it over to a
+        // fresh day when the last XP gain was before today, then add this gain.
+        if !Calendar.current.isDateInToday(lastActiveDate) {
+            xpGainedToday = 0
+        }
+        xpGainedToday += amount
+        lastActiveDate = Date()
+
         currentLevel = calculateLevelFromXP()
 
         // Update XP in current level
@@ -93,22 +105,14 @@ enum XPReward: Int, CaseIterable {
     case cardCompleted = 10
     case correctAnswer = 15
     case perfectCard = 25      // Answered correctly on first try
-    case topicCompleted = 100
-    case dailyGoal = 50
-    case weeklyChallenge = 200
     case speedBonus = 5        // Extra XP for quick answers
-    case streakBonus = 20      // Daily streak bonus
 
     var description: String {
         switch self {
         case .cardCompleted: return "Card Completed"
         case .correctAnswer: return "Correct Answer"
         case .perfectCard: return "Perfect Card!"
-        case .topicCompleted: return "Topic Mastered"
-        case .dailyGoal: return "Daily Goal"
-        case .weeklyChallenge: return "Weekly Challenge"
         case .speedBonus: return "Speed Bonus"
-        case .streakBonus: return "Streak Bonus"
         }
     }
 
@@ -117,11 +121,7 @@ enum XPReward: Int, CaseIterable {
         case .cardCompleted: return "✅"
         case .correctAnswer: return "💡"
         case .perfectCard: return "🌟"
-        case .topicCompleted: return "🏆"
-        case .dailyGoal: return "🎯"
-        case .weeklyChallenge: return "💪"
         case .speedBonus: return "⚡"
-        case .streakBonus: return "🔥"
         }
     }
 }

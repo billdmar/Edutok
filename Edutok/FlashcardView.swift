@@ -305,7 +305,7 @@ struct FlashcardView: View {
         let isCurrentCard = relativeIndex == 0
         let cardOffset = CGFloat(relativeIndex)
 
-        // ⚠️ OPACITY CONTROL SECTION - ADJUST HERE TO CHANGE BACKGROUND CARD VISIBILITY ⚠️
+        // Background cards fade with distance from the current card.
         let cardOpacity = isCurrentCard ? 1.0 : max(0.3 - (abs(cardOffset) * 0.15), 0.1)
 
         // TikTok-style transition offsets

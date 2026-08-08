@@ -12,7 +12,7 @@ struct SidebarView: View {
     #if DEBUG
     @State private var showDebugView = false
     #endif
-    @State private var showCalendar = false  // Add this for calendar access
+    @State private var showCalendar = false
     @State private var showGamificationDashboard = false
     @State private var showBookmarks = false
     @State private var showSettings = false
@@ -144,7 +144,7 @@ struct SidebarView: View {
                 .padding(.top, 50)
                 .padding(.bottom, 20)
 
-                // Quick Actions Section - ADD THIS
+                // Quick Actions Section
                 VStack(spacing: 12) {
                     HStack {
                         Text("Quick Actions")
@@ -455,7 +455,7 @@ struct SidebarView: View {
                 .environment(gamificationManager)
         }
         .fullScreenCover(isPresented: $showCalendar) {
-            StandaloneCalendarView(isShowing: $showCalendar)
+            StandaloneCalendarView()
         }
         .sheet(isPresented: $showGamificationDashboard) {
             GamificationDashboardView(gamificationManager: gamificationManager)

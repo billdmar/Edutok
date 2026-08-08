@@ -4,7 +4,7 @@
 /// `GamificationManager` following the same stateless-helper pattern as `ChallengeStore` /
 /// `MysteryBoxStore`. The unlock conditions are a **pure** function with an injected `now`,
 /// so the time-based achievements (Night Owl / Early Bird) are deterministic and testable.
-/// `GamificationManager` keeps `@Published var enhancedAchievements` and performs the unlock
+/// `GamificationManager` keeps the observable `var enhancedAchievements` and performs the unlock
 /// side effects (XP, toast, particles, Firebase).
 ///
 /// This also fixes a real bug: the manager previously rebuilt the catalog from scratch every
