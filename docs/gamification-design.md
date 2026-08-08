@@ -51,7 +51,7 @@ Daily challenge reset creates urgency without punishment — expired challenges 
 
 ### Behavioral reasoning
 
-Mystery boxes use a **variable-ratio reinforcement schedule** — the most extinction-resistant schedule identified in operant conditioning research. Unlike fixed-ratio schedules (where the reward becomes predictable and motivation drops between payoffs), variable-ratio schedules maintain consistent engagement because the next reward could always be the big one. The 50/30/15/5 rarity distribution deliberately creates anticipation: most opens are satisfying (Common is still a reward), occasional Rare/Epic opens spike dopamine, and the 5% Legendary chance keeps users opening every box. This is the same mechanic that makes loot boxes effective, applied here to learning rewards rather than purchases.
+Mystery boxes use a **variable reward** — the reward's size isn't fixed, so the outcome of any single open is uncertain. Unlike a predictable payout, a variable reward is intended to sustain engagement because the next box could always be the big one. The 50/30/15/5 rarity distribution is designed to create anticipation: most opens are satisfying (Common is still a reward), occasional Rare/Epic opens feel like a win, and the 5% Legendary chance gives a reason to open every box — the same variable-reward pattern common in game and habit-forming design, applied here to learning rewards rather than purchases.
 
 ---
 

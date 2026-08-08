@@ -35,7 +35,7 @@ struct ContentView: View {
                 case .leaderboard:
                     LeaderboardWrapper()
                 case .calendar:
-                    StandaloneCalendarView(isShowing: .constant(true))
+                    StandaloneCalendarView()
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: currentSection)

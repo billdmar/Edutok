@@ -9,7 +9,7 @@ Edutok is an iOS app that turns any topic into a TikTok-style feed of bite-sized
 </p>
 
 [![CI](https://github.com/billdmar/Edutok/actions/workflows/ci.yml/badge.svg)](https://github.com/billdmar/Edutok/actions/workflows/ci.yml)
-![Coverage](https://img.shields.io/badge/coverage-14.8%25_(pure_logic)-blue)
+![Coverage](https://img.shields.io/badge/coverage-pure--logic-blue)
 ![Swift](https://img.shields.io/badge/Swift-6-orange?logo=swift&logoColor=white)
 ![iOS](https://img.shields.io/badge/iOS-18.5%2B-000000?logo=apple&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0071e3)
@@ -119,8 +119,8 @@ A few choices worth calling out:
 | Metric | Value |
 | ------ | ----- |
 | Production Swift | ~10,000 LOC across 42 source files |
-| Unit tests | 68 across 11 focused suites |
-| Unit test coverage | 14.8% of app target (pure logic — UI coverage requires snapshot infrastructure) |
+| Unit tests | 71 tests across 12 files |
+| Unit test coverage | Pure-logic paths covered; UI coverage requires snapshot infrastructure |
 | CI jobs | 3 parallel (build + test, SwiftLint, UI smoke tests) |
 | Flashcard batch size | 15 cards per Gemini round-trip |
 | Image cache bounds | 500 URL entries + 120 decoded UIImages (NSCache, LRU) |
@@ -148,7 +148,7 @@ What's a limitation and why:
 
 ## Testing
 
-Core domain logic is covered by **68 unit tests** in `EdutokTests`, exercising the pure,
+Core domain logic is covered by **71 unit tests** in `EdutokTests`, exercising the pure,
 Firebase-free logic independently of the UI:
 
 - **XP / leveling** — thresholds, level-up detection, in-level progress.

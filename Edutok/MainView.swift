@@ -278,9 +278,46 @@ struct MainView: View {
                                     )
                                     .shadow(color: .purple.opacity(isSearchFocused ? 0.3 : 0.1), radius: 10, x: 0, y: 5)
 
-                                    // Search suggestions (keep as is)
+                                    // Matching-topic suggestions, revealed as the user types.
                                     if showSuggestions && !searchSuggestions.isEmpty {
-                                        // ... existing suggestions code ...
+                                        VStack(spacing: 0) {
+                                            ForEach(searchSuggestions, id: \.self) { suggestion in
+                                                Button {
+                                                    topicInput = suggestion
+                                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                                        showSuggestions = false
+                                                        isSearchFocused = false
+                                                    }
+                                                } label: {
+                                                    HStack(spacing: 12) {
+                                                        Image(systemName: "magnifyingglass")
+                                                            .font(.system(size: 15))
+                                                            .foregroundColor(.white.opacity(0.5))
+                                                        Text(suggestion)
+                                                            .font(.system(.subheadline, design: .rounded))
+                                                            .foregroundColor(.white)
+                                                        Spacer()
+                                                    }
+                                                    .padding(.horizontal, 22)
+                                                    .padding(.vertical, 14)
+                                                    .contentShape(Rectangle())
+                                                }
+
+                                                if suggestion != searchSuggestions.last {
+                                                    Divider()
+                                                        .overlay(Color.white.opacity(0.1))
+                                                        .padding(.horizontal, 22)
+                                                }
+                                            }
+                                        }
+                                        .padding(.top, 8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .fill(Color.white.opacity(0.1))
+                                        )
+                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                        .accessibilityElement(children: .contain)
+                                        .accessibilityLabel("Topic suggestions")
                                     }
                                 }
 
@@ -356,7 +393,7 @@ struct MainView: View {
                     }
                 }
 
-                // Sidebar overlay - same as ContentView
+                // Sidebar overlay (mirrors the slide-in overlay in FlashcardView).
                 if showSidebar {
                     ZStack {
                         // Full screen dimming overlay

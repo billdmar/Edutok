@@ -1,30 +1,13 @@
 /// LeaderboardWrapper.swift
 ///
-/// Wrapper view that layers the sidebar overlay on top of the LeaderboardView for consistent
-/// navigation.
+/// Wrapper view that hosts the LeaderboardView.
 import SwiftUI
 
 struct LeaderboardWrapper: View {
-    @State private var showSidebar = false
-
     var body: some View {
         ZStack {
-            // Leaderboard content (your existing view)
+            // Leaderboard content
             LeaderboardView()
-
-            // Sidebar overlay
-            if showSidebar {
-                Color.black.opacity(0.3)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showSidebar = false
-                        }
-                    }
-
-                SidebarView(isShowing: $showSidebar)
-                    .transition(.move(edge: .leading))
-            }
         }
     }
 }

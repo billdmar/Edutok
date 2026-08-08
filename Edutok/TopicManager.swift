@@ -1,7 +1,7 @@
 /// TopicManager.swift
 ///
 /// Owns the user's learning topics and the flashcards within them. Flashcards are
-/// generated in batches by Google's Gemini model (`gemini-1.5-flash-latest`); the
+/// generated in batches by Google's Gemini model (the id configured in `GeminiClient.model`); the
 /// model returns JSON wrapped in markdown code fences, which is stripped and decoded
 /// here. If the network call fails or returns malformed data, the manager falls back
 /// to locally generated mock flashcards so the UI is never left empty.
@@ -45,7 +45,7 @@ class TopicManager {
             saveTopics()
             await FirebaseManager.shared.trackTopicExplored()
 
-            // NEW: Update challenge progress for topic exploration
+            // Credit the topic-exploration daily challenge.
             updateTopicExplorationChallenge()
 
         } catch {
@@ -72,17 +72,16 @@ class TopicManager {
             currentTopic = newTopic
             saveTopics()
 
-            // NEW: Update challenge progress for topic exploration
+            // Credit the topic-exploration daily challenge.
             updateTopicExplorationChallenge()
         }
     }
 
-    // NEW: Helper function to update topic exploration challenge
+    // Notifies GamificationManager (via NotificationCenter) that a topic was explored.
     private func updateTopicExplorationChallenge() {
-        // This will be called from the GamificationManager when it's available
-        // For now, we'll use a simple notification approach
+        // Decoupled via NotificationCenter so TopicManager needn't hold a GamificationManager reference.
         NotificationCenter.default.post(
-            name: NSNotification.Name("TopicExplored"),
+            name: .topicExplored,
             object: nil
         )
     }

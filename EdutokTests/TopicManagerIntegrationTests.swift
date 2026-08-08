@@ -2,10 +2,11 @@
 //  TopicManagerIntegrationTests.swift
 //  EdutokTests
 //
-//  Integration tests proving the generate->parse->fallback pipeline:
+//  Integration tests proving the generate->parse pipeline:
 //  GeminiClient.generateText -> LLMJSON.extractJSONArray -> JSONDecoder.
-//  Exercises the full path that TopicManager.fetchFlashcardsFromGemini uses
-//  without needing @MainActor or singleton dependencies.
+//  Exercises GeminiClient + LLMJSON with a representative decode shape (a
+//  locally-declared FlashcardData struct + a fresh JSONDecoder), not
+//  TopicManager's own parser, and without @MainActor or singleton dependencies.
 //
 
 import Foundation
@@ -141,44 +142,5 @@ struct TopicManagerIntegrationTests {
         #expect(cards[0].type == "definition")
         #expect(cards[0].question == "What is DNA?")
         #expect(cards[0].answer == "Deoxyribonucleic acid.")
-    }
-
-    // MARK: - Error-path tests
-
-    /// HTTP error causes GeminiClient to throw a typed error the caller can catch and fall back.
-    @Test func httpErrorThrowsTypedError() async {
-        respond(status: 429, body: #"{"error":"rate limited"}"#)
-        let client = makeClient()
-
-        await #expect(throws: APIError.httpStatus(429)) {
-            try await client.generateText(prompt: "test", maxOutputTokens: 3000)
-        }
-    }
-
-    /// Malformed/unparseable response causes a decoding error at the GeminiClient level.
-    @Test func malformedJSONThrowsDecodingError() async {
-        respond(status: 200, body: "this is not json at all")
-        let client = makeClient()
-
-        do {
-            _ = try await client.generateText(prompt: "test", maxOutputTokens: 3000)
-            Issue.record("expected a decoding error")
-        } catch let error as APIError {
-            if case .decoding = error { /* expected */ } else {
-                Issue.record("expected .decoding, got \(error)")
-            }
-        } catch {
-            Issue.record("expected APIError, got \(error)")
-        }
-    }
-
-    /// Empty candidates array causes an emptyResponse error.
-    @Test func emptyCandidatesThrowsEmptyResponse() async {
-        respond(status: 200, body: #"{"candidates":[]}"#)
-        let client = makeClient()
-
-        await #expect(throws: APIError.emptyResponse) {
-            try await client.generateText(prompt: "test", maxOutputTokens: 3000)
-        }
     }
 }

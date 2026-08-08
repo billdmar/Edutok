@@ -3,7 +3,7 @@
 /// Daily-challenge generation, progress math, expiry, and persistence — extracted from
 /// `GamificationManager`. Stateless like `MysteryBoxStore`: it operates on a passed-in
 /// `[DailyChallenge]` and returns the new array plus the challenges that *just* completed,
-/// so `GamificationManager` keeps the `@Published var dailyChallenges` the views bind to and
+/// so `GamificationManager` keeps the observable `var dailyChallenges` the views bind to and
 /// performs the side effects (XP, toast, particles, Firebase) for completions.
 import Foundation
 
